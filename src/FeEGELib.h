@@ -119,7 +119,7 @@ namespace FeEGE {
 	Element* getElementByPtr(Element*);
 	void initpen() {
 
-		//³õÊ¼»¯»­±Ê
+		//åˆå§‹åŒ–ç”»ç¬”
 		WIDTH = getwidth();
 		HEIGHT = getheight();
 		if(pen_image != nullptr) delimage(pen_image);
@@ -516,8 +516,8 @@ class Element {
 		}
 		inline bool is_touched_by(Element* that) {
 			if(that == nullptr) {
-				LPCSTR text = TEXT(("Element::is_touched_by·½·¨±»´íÎóµÄ´«ÈëÁËnullptr²ÎÊý\nÕâ¿ÉÄÜÊÇÓÉÓÚgetElementById²éÑ¯ÁË²»´æÔÚµÄ¶ÔÏó\n\nElementÃû³Æ : " + this->id).c_str());
-				MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
+				LPCSTR text = TEXT(("Element::is_touched_byæ–¹æ³•è¢«é”™è¯¯çš„ä¼ å…¥äº†nullptrå‚æ•°\nè¿™å¯èƒ½æ˜¯ç”±äºŽgetElementByIdæŸ¥è¯¢äº†ä¸å­˜åœ¨çš„å¯¹è±¡\n\nElementåç§° : " + this->id).c_str());
+				MessageBox(getHWnd(),text,"è­¦å‘Š",MB_ICONWARNING | MB_OK);
 			}
 			if(!this->is_show || !that->is_show) return false;
 			this->draw_to_private_image();
@@ -844,7 +844,7 @@ Element* Element::deletethis() {
 }
 
 Element* Element::deleteElement() {
-	//	// cout<<"É¾³ý"<<endl;
+	//	// cout<<"åˆ é™¤"<<endl;
 //	// cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
@@ -883,29 +883,29 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	getimage(image,TEXT(ImagePath.c_str()));
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"·ÖÅä"<<i<<endl;
+			// cout<<"åˆ†é…"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
-			// cout<<"·ÖÅä½áÊø"<<endl;
+			// cout<<"åˆ†é…ç»“æŸ"<<endl;
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"·ÖÅäElementÊ§°Ü(´ïµ½×î´óÈÝÁ¿)","ÌáÊ¾",MB_OK);
+	MessageBox(getHWnd(),"åˆ†é…Elementå¤±è´¥(è¾¾åˆ°æœ€å¤§å®¹é‡)","æç¤º",MB_OK);
 	return nullptr;
 }
 
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"·ÖÅä"<<i<<endl;
+			// cout<<"åˆ†é…"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"·ÖÅäElementÊ§°Ü(´ïµ½×î´óÈÝÁ¿)","ÌáÊ¾",MB_OK);
+	MessageBox(getHWnd(),"åˆ†é…Elementå¤±è´¥(è¾¾åˆ°æœ€å¤§å®¹é‡)","æç¤º",MB_OK);
 	return nullptr;
 }
 
