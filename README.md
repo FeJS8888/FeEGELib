@@ -41,6 +41,7 @@ int main(){
 }
 ```
 运行结果应该如图所示：
+
 [![pFG1vbq.png](https://s11.ax1x.com/2024/02/15/pFG1vbq.png)](https://imgse.com/i/pFG1vbq)
 
 具体代码可查看FeEGELib.h中具体内容
