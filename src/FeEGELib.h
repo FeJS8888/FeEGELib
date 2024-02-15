@@ -1,4 +1,4 @@
-#define version V1.1
+#define version V1.2--upd2024-2-16 
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
@@ -120,7 +120,7 @@ namespace FeEGE {
 	Element* getElementByPtr(Element*);
 	void initpen() {
 
-		//初始化画笔
+		//鍒濆鍖栫敾绗?
 		WIDTH = getwidth();
 		HEIGHT = getheight();
 		if(pen_image != nullptr) delimage(pen_image);
@@ -151,6 +151,14 @@ namespace FeEGE {
 
 	Events EventType;
 	
+	class PenTypes {
+		public:
+			int left = 0x01;
+			int middle = 0x02;
+	};
+
+	PenTypes PenType;
+	
 	Position& getLastPixel(){
 		return lastpixel;
 	} 
@@ -160,10 +168,10 @@ class Element {
 	private:
 		//Variables
 		string id;
-		unsigned short scale;
+		short scale;
 		int angle;
 		int order;
-		unsigned char alpha;
+		short alpha;
 		int reg_order;
 		Position pos;
 		Position backup_pos;
@@ -381,16 +389,24 @@ class Element {
 		inline color_t get_pixel(int x,int y){
 			return getpixel(x,y,this->__visible_image);
 		}
-		inline void set_scale(unsigned short scale) {
-			this->scale = scale;
+		inline short get_scale() {
+			return this->scale;
 		}
-		inline void increase_scale(unsigned short scale) {
+		inline void set_scale(short scale) {
+			this->scale = scale;
+			this->scale %= 101;
+		}
+		inline void increase_scale(short scale) {
 			if(this->scale + scale <= 100) this->scale += scale;
 			else this->scale = 100;
+			this->scale %= 101;
+			if(this->scale < 0) this->scale += 101;
 		}
-		inline void decrease_scale(unsigned short scale) {
+		inline void decrease_scale(short scale) {
 			if(this->scale > scale) this->scale -= scale;
 			else this->scale = 0;
+			this->scale %= 101;
+			if(this->scale < 0) this->scale += 101;
 		}
 		inline void hide() {
 			this->is_show = false;
@@ -406,9 +422,6 @@ class Element {
 		}
 		inline void turn_to(int angle) {
 			this->angle = angle % 360;
-		}
-		inline unsigned short get_scale() {
-			return this->scale;
 		}
 		inline int get_angle() {
 			return this->angle;
@@ -517,8 +530,8 @@ class Element {
 		}
 		inline bool is_touched_by(Element* that) {
 			if(that == nullptr) {
-				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
-				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+				LPCSTR text = TEXT(("Element::is_touched_by鏂规硶琚敊璇殑浼犲叆浜唍ullptr鍙傛暟\n杩欏彲鑳芥槸鐢变簬getElementById鏌ヨ浜嗕笉瀛樺湪鐨勫璞n\nElement鍚嶇О : " + this->id).c_str());
+				MessageBox(getHWnd(),text,"璀﹀憡",MB_ICONWARNING | MB_OK);
 			}
 			if(!this->is_show || !that->is_show) return false;
 			this->draw_to_private_image();
@@ -612,19 +625,25 @@ class Element {
 			this->is_cancel_x = true;
 			this->is_cancel_y = true;
 		}
-		inline unsigned char get_alpha() {
+		inline short get_alpha() {
 			return this->alpha;
 		}
-		inline unsigned char set_alpha(unsigned char alpha) {
-			return this->alpha = alpha;
+		inline void set_alpha(short alpha) {
+			this->alpha = alpha;
+			this->alpha %= 256;
+			if(this->alpha < 0) this->alpha += 256;
 		}
-		inline unsigned char decrease_alpha(unsigned char alpha) {
-			if(this->alpha - alpha < 0) return this->alpha = 0;
-			else return this->alpha -= alpha;
+		inline void decrease_alpha(short alpha) {
+			if(this->alpha - alpha < 0) this->alpha = 0;
+			else this->alpha -= alpha;
+			this->alpha %= 256;
+			if(this->alpha < 0) this->alpha += 256;
 		}
-		inline unsigned char increase_alpha(unsigned char alpha) {
-			if(this->alpha + alpha > 255) return this->alpha = 255;
-			else return this->alpha += alpha;;
+		inline void increase_alpha(short alpha) {
+			if(this->alpha + alpha > 255) this->alpha = 255;
+			else this->alpha += alpha;
+			this->alpha %= 256;
+			if(this->alpha < 0) this->alpha += 256;
 		}
 		inline void nextimage() {
 //			// cout<<this->current_image<<endl;
@@ -770,8 +789,13 @@ void Element::set_order(int count) {
 namespace pen {
 	int order = 0;
 	int fontscale = 1;
+	int penType = FeEGE::PenType.left;
 	void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
+		if(penType == FeEGE::PenType.middle){
+			x -= (str.length() * (fontscale / 2.0));
+			y -= (str.length() * (fontscale / 4.0));
+		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
 	void font(int scale,string fontname) {
@@ -782,6 +806,9 @@ namespace pen {
 	void color(color_t color) {
 		if(pen_image == nullptr) return;
 		setcolor(color,pen_image);
+	}
+	void type(int Type){
+		penType = Type;
 	}
 	void clear(int x,int y,int ex,int ey) {
 		if(pen_image == nullptr) return;
@@ -845,7 +872,7 @@ Element* Element::deletethis() {
 }
 
 Element* Element::deleteElement() {
-	//	// cout<<"删除"<<endl;
+	//	// cout<<"鍒犻櫎"<<endl;
 //	// cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
@@ -884,29 +911,29 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	getimage(image,TEXT(ImagePath.c_str()));
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"分配"<<i<<endl;
+			// cout<<"鍒嗛厤"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
-			// cout<<"分配结束"<<endl;
+			// cout<<"鍒嗛厤缁撴潫"<<endl;
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
+	MessageBox(getHWnd(),"鍒嗛厤Element澶辫触(杈惧埌鏈€澶у閲?","鎻愮ず",MB_OK);
 	return nullptr;
 }
 
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"分配"<<i<<endl;
+			// cout<<"鍒嗛厤"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
+	MessageBox(getHWnd(),"鍒嗛厤Element澶辫触(杈惧埌鏈€澶у閲?","鎻愮ず",MB_OK);
 	return nullptr;
 }
 
@@ -954,9 +981,10 @@ void reflush() {
 	delay_ms(1);
 }
 
+#define initXY() {WIDTH = getwidth();HEIGHT = getheight();}
+
 void start(int fps) {
-	WIDTH = getwidth();
-	HEIGHT = getheight();
+	initXY();
 	randomize();
 	while(!closeGraph && is_run()) {
 		reflush();
