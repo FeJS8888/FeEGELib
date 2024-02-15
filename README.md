@@ -18,7 +18,7 @@ EGE官网：
 1、装载EGE图形库 （参见 https://blog.csdn.net/qq_39151563/article/details/100161986 ）
 
 2、将FeEGELib.h放在与你的代码同一级目录下
-![image](https://github.com/FeJS8888/FeEGELib/assets/110683147/5d24a541-4c0d-4fdc-a445-e9e35d4abed7)
+[![pFG1jrn.png](https://s11.ax1x.com/2024/02/15/pFG1jrn.png)](https://imgse.com/i/pFG1jrn)
 
 3、测试：将以下代码复制进你的代码并编译运行：
 ```cpp
