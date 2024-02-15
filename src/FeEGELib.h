@@ -1,3 +1,4 @@
+#define version V1.1
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
