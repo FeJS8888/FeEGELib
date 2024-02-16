@@ -1,4 +1,3 @@
-#define version V1.2--upd2024-2-16 
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
@@ -31,7 +30,7 @@
 #define PIE 3.141592653589793238462643383279502f
 
 using namespace std;
-
+const string version = "version V1.2.1--upd2024-2-16";
 double GlobalRating = 1.00f;
 
 class Position;
@@ -119,8 +118,6 @@ namespace FeEGE {
 	Element* getElementById(string);
 	Element* getElementByPtr(Element*);
 	void initpen() {
-
-		//鍒濆鍖栫敾绗?
 		WIDTH = getwidth();
 		HEIGHT = getheight();
 		if(pen_image != nullptr) delimage(pen_image);
@@ -507,7 +504,7 @@ class Element {
 			this->private_variables[which] = value;
 //			// cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 		}
-		inline long long get_variable(unsigned int which) {
+		inline long long& get_variable(unsigned int which) {
 			return this->private_variables[which];
 		}
 		inline void increase_variable(unsigned int which,long long value) {
@@ -530,8 +527,8 @@ class Element {
 		}
 		inline bool is_touched_by(Element* that) {
 			if(that == nullptr) {
-				LPCSTR text = TEXT(("Element::is_touched_by鏂规硶琚敊璇殑浼犲叆浜唍ullptr鍙傛暟\n杩欏彲鑳芥槸鐢变簬getElementById鏌ヨ浜嗕笉瀛樺湪鐨勫璞n\nElement鍚嶇О : " + this->id).c_str());
-				MessageBox(getHWnd(),text,"璀﹀憡",MB_ICONWARNING | MB_OK);
+				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 			if(!this->is_show || !that->is_show) return false;
 			this->draw_to_private_image();
@@ -872,7 +869,6 @@ Element* Element::deletethis() {
 }
 
 Element* Element::deleteElement() {
-	//	// cout<<"鍒犻櫎"<<endl;
 //	// cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
@@ -911,29 +907,26 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	getimage(image,TEXT(ImagePath.c_str()));
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"鍒嗛厤"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
-			// cout<<"鍒嗛厤缁撴潫"<<endl;
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"鍒嗛厤Element澶辫触(杈惧埌鏈€澶у閲?","鎻愮ず",MB_OK);
+	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
 	return nullptr;
 }
 
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			// cout<<"鍒嗛厤"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"鍒嗛厤Element澶辫触(杈惧埌鏈€澶у閲?","鎻愮ず",MB_OK);
+	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
 	return nullptr;
 }
 
