@@ -8,12 +8,19 @@ EGE项目仓库：https://github.com/wysaid/xege
 EGE官网：https://xege.org/
 
 主要封装了一个Element组件类
+
 功能包括但不限于：
+
   ·组件图层之间的遮挡
+  
   ·组件移动旋转等基本控制
+  
   ·事件订阅及取消订阅
+  
   ·异步加载图像
+
   ·物理引擎（待完善）
+  
 
 使用方法：
 
