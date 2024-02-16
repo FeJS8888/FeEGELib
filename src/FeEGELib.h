@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "version V1.2.2--upd2024-2-16"
+#define FeEGELib_version "version V1.2.3--upd2024-2-16"
 
 #include<graphics.h>
 #include<vector>
@@ -64,35 +64,6 @@ PIMAGE pen_image;
 map<string,Element*>IdToElement;
 map<Element*,bool>ElementIsIn;
 
-
-//EventType
-//Classes
-
-//union TYPE_UNION{
-//	int type_int;
-//	bool type_bool;
-//	string type_string;
-//	void* type_pointer;
-//	unsigned int type_uint;
-//};
-
-//template<typename T>
-//Any MakeAny(T Value) {
-//	Any* data = new Any;
-//	const type_info& type = typeid(T);
-//	if(
-//	    type == typeid(int) ||
-//	    type == typeid(long long) ||
-//	    type == typeid(short) ||
-//	    type == typeid(double) ||
-//	    type == typeid(long double) ||
-//	    type == typeid(float)) data->Number = Value;
-//	if(type == typeid(string)) data->String = Value;
-//	if(type.__is_pointer_p()) data->Pointer = Value;
-//	if(type == typeid(bool)) data->Boolean = Value;
-//	return *data;
-//}
-
 using namespace std;
 
 class Position {
@@ -107,7 +78,7 @@ class Position {
 			this->y = y;
 		}
 		~Position() {}
-}lastpixel;
+} lastpixel;
 
 namespace FeEGE {
 	short getkey(int VB) {
@@ -151,7 +122,7 @@ namespace FeEGE {
 	};
 
 	Events EventType;
-	
+
 	class PenTypes {
 		public:
 			int left = 0x01;
@@ -159,10 +130,10 @@ namespace FeEGE {
 	};
 
 	PenTypes PenType;
-	
-	Position& getLastPixel(){
+
+	Position& getLastPixel() {
 		return lastpixel;
-	} 
+	}
 }
 
 class Element {
@@ -245,7 +216,6 @@ class Element {
 			if(this->disabled_draw_to_private_image) return false;
 			if(this->image_vector[this->current_image] == nullptr) return false;
 			cleardevice(this->__visible_image);
-//			 cout<<this->id<<endl;
 			putimage_rotatezoom(this->__visible_image,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
 			return this->drawed = true;
 		}
@@ -253,7 +223,6 @@ class Element {
 		//Functions
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
-//			log("[Construct]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = pos;
@@ -276,7 +245,6 @@ class Element {
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
-//			log("[Construct]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = *(new Position(x,y));
@@ -321,18 +289,6 @@ class Element {
 			this->SpeedY = 0.00;
 			return this;
 		}
-//		Element(Element* that) {
-//			this->__visible_image = newimage(getwidth(),getheight());
-//			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
-//			this->image_vector = that->image_vector;
-//			this->current_image = that->current_image;
-//			this->pos = *(new Position(that->pos.x,that->pos.y));
-//			this->is_show = true;
-//			this->scale = 100;
-//			this->angle = 0;
-//			this->order = 0;
-//			this->clonecount = 0;
-//		}
 		inline void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
@@ -350,26 +306,13 @@ class Element {
 				this->pos.y = this->backup_pos.y;
 				cout<<"ok\n";
 			}
-			//
+			
 			this->drawed = false;
 			if(this->PhysicEngineStatu) {
 				this->UpdatePhysicSpeed();
 				this->UpdatePhysicPosition();
 			}
-//			PIMAGE alpha_image = newimage();
-//			getimage(alpha_image,image,0,0,getwidth(image),getheight(image));
-
-//			for(auto color : this->remove_colors) ege_setalpha(color,alpha_image);
-//			ege_setalpha(0,alpha_image);
-
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
-
-//			delimage(this->__visible_image);
-//			this->__visible_image = newimage(getwidth(),getheight());
-//			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
-//			cleardevice(this->__visible_image);
-//			putimage_rotatezoom(this->__visible_image,alpha_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
-//			delimage(alpha_image);
 		}
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
@@ -387,7 +330,7 @@ class Element {
 			this->pos.x -= sin(this->angle * PIE / 180.00f) * pixels;
 			this->pos.y -= cos(this->angle * PIE / 180.00f) * pixels;
 		}
-		inline color_t get_pixel(int x,int y){
+		inline color_t get_pixel(int x,int y) {
 			return getpixel(x,y,this->__visible_image);
 		}
 		inline short get_scale() {
@@ -476,29 +419,11 @@ class Element {
 			if(!this->is_show) return false;
 			int x,y;
 			mousepos(&x,&y);
-			if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) {
-//				// cout<<"BECAUSE OUT"<<endl;
-				return false;
-			}
-//			cout<<"test"<<this;
+			if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
 			this->draw_to_private_image();
-//			// cout<<x<<" "<<y<<"<><>"<<EGEGET_A(getpixel(x,y,this->__visible_image))<<"<><>"<<getpixel(x,y,this->__visible_image)<<endl;
-			//getch();
-//			// cout<<"======DEBUG=========\nPRINT __visible_image\n";
-//			putimage(0,0,this->__visible_image);
-//putimage_rotatezoom(nullptr,this->__visible_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
-			//getch();
-//			if(EGEGET_A(getpixel(x,y,this->__visible_image)) == 255) // cout<<"!= alpha"<<endl;
-//			else //getch();
-//			// cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
 			color_t pixel = getpixel(x,y,this->__visible_image);
 			for(int i = 0; i < remove_colors.size(); ++ i) if(pixel == remove_colors[i]) return false;
-
-//			cout<<"p="<<pixel<<"|";
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
-//			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
-//			int d_height = getheight(this->image_vector[this->current_image]);
-//			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
 		}
 		inline bool ishit() {
 			if(!GetAsyncKeyState(LeftButton)) return false;
@@ -551,28 +476,20 @@ class Element {
 			for(int i = 0; i < nextclonecount; ++ i) {
 				if(e[i] == nullptr) continue;
 				if(!this->deletedList[i]) continue;
-//				// cout<<this->removeList.size()<<endl;
 				for(int j = 0; j < this->removeList.size(); ++ j) {
 					if(this->deletedList[i] && (e[i] == this->removeList[j] || FeEGE::getElementByPtr(e[i]) == nullptr)) {
-//						// cout<<i<<" "<<e[i]<<" removed"<<endl;
 						this->deletedList[i] = false;
-//						if(!e[i]->deleted) e[i]->~Element();
 						e[i] = nullptr;
 					}
 				}
-//				// cout<<i<<" "<<e[i]<<" "<<!deletedList[i]<<endl;
 			}
 			this->removeList.clear();
-//			// cout<<"SAFE"<<endl;
 			for(int i = 0; i < nextclonecount; ++ i) if(!this->deletedList[i]) {
-//					// cout<<"USE OLD"<<i<<endl;
 					deletedList[i] = true;
 					e[i] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
 					e[i]->angle = this->angle;
 					e[i]->scale = this->scale;
-//					// cout<<this<<" "<<(long long)this<<endl;
 					e[i]->set_variable(1,(long long)this);
-//					e[i]->get_variable(1);
 					e[i]->disabled_draw_to_private_image = this->disabled_draw_to_private_image;
 					e[i]->is_show = this->is_show;
 					reg_Element(e[i]);
@@ -580,14 +497,11 @@ class Element {
 					for(auto it : this->on_clone_clones_function_set) it.second(e[i]);
 					return e[i];
 				}
-//			// cout<<"USE NEW"<<nextclonecount<<endl;
 			deletedList[nextclonecount] = true;
 			e[nextclonecount] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
 			e[nextclonecount]->angle = this->angle;
 			e[nextclonecount]->scale = this->scale;
-//			// cout<<this<<" "<<(long long)this<<endl;
 			e[nextclonecount]->set_variable(1,(long long)this);
-//			// cout<<e[nextclonecount]->get_variable(1)<<endl;
 			e[nextclonecount]->is_show = this->is_show;
 			reg_Element(e[nextclonecount]);
 			for(auto it : this->on_clone_function_set) it.second(this);
@@ -647,7 +561,6 @@ class Element {
 			if(this->alpha < 0) this->alpha += 256;
 		}
 		inline void nextimage() {
-//			// cout<<this->current_image<<endl;
 			do {
 				this->current_image ++;
 				this->current_image %= 100;
@@ -658,7 +571,6 @@ class Element {
 				PIMAGE image = newimage();
 				int statu = 0;
 				do {
-					// cout<<this->id<<" 's "<<id<<" is trying\n";
 					statu = getimage(image,TEXT(ImagePath.c_str()));
 					this_thread::sleep_for(chrono::milliseconds(10));
 				} while(statu != 0);
@@ -666,7 +578,6 @@ class Element {
 				this->image_lock = true;
 				this->image_vector[id] = image;
 				this->image_lock = false;
-				// cout<<this->id<<" 's "<<id<<" ok\n";
 			}).detach();
 		}
 		inline void deleteImage(int id) {
@@ -736,10 +647,10 @@ class Element {
 		inline void PhysicArcSpeedY() {
 			this->SpeedY = -this->SpeedY;
 		}
-		inline void PhysicRemoveSpeedX(){
+		inline void PhysicRemoveSpeedX() {
 			this->SpeedX = 0;
 		}
-		inline void PhysicRemoveSpeedY(){
+		inline void PhysicRemoveSpeedY() {
 			this->SpeedY = 0;
 		}
 
@@ -790,11 +701,12 @@ void Element::set_order(int count) {
 namespace pen {
 	int order = 0;
 	int fontscale = 1;
+	short penalpha = 255;
 	int penType = FeEGE::PenType.left;
 	int charwidth,charheight;
 	void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
-		if(penType == FeEGE::PenType.middle){
+		if(penType == FeEGE::PenType.middle) {
 			x -= charwidth * str.length() >> 1;
 			y -= charheight >> 1;
 		}
@@ -811,7 +723,7 @@ namespace pen {
 		if(pen_image == nullptr) return;
 		setcolor(color,pen_image);
 	}
-	void type(int Type){
+	void type(int Type) {
 		penType = Type;
 	}
 	void clear(int x,int y,int ex,int ey) {
@@ -832,6 +744,24 @@ namespace pen {
 	}
 	void setorder(int value) {
 		order = value;
+	}
+	void set_alpha(short alpha) {
+		penalpha = alpha;
+		penalpha %= 256;
+		if(penalpha < 0) penalpha += 256;
+	}
+	short get_alpha() {
+		return penalpha;
+	}
+	void increase_alpha(short alpha){
+		penalpha += alpha;
+		penalpha %= 256;
+		if(penalpha < 0) penalpha += 256;
+	}
+	void decrease_alpha(short alpha){
+		penalpha -= alpha;
+		penalpha %= 256;
+		if(penalpha < 0) penalpha += 256;
 	}
 }
 
@@ -946,38 +876,29 @@ void reflush() {
 		FreeList.pop();
 	}
 
-	vector<void(*)(void)>schedule_backup;
+	vector<void(*)(void)> schedule_backup;
 	for(int i = 0; i < schedule.size(); ++ i) schedule_backup.push_back(schedule[i]);
 	schedule.clear();
 	for(int i = 0; i < schedule_backup.size(); ++ i) schedule_backup[i]();
 	schedule_backup.clear();
-//	if(needsort) {
-//		sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
-//		needsort = false;
-//	}
-//	__SIZE__ -= removesize;
-//	removesize = 0;
 	bool pen_nprinted = true;
 	cleardevice();
 
 	for(Element* it : Element_queue) {
-//		cout<<it->getId()<<" ";
 		if(it == nullptr || it == *Element_queue.end()) continue;
 		if(pen_nprinted && it->get_order() >= pen::order) {
 			pen_nprinted = false;
-			putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
+			putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
 		}
 		it->call();
-//		cout<<it<<"="<<it->getId()<<"|";
 	}
-//	cout<<"\n";
-	if(pen_nprinted) putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
+	if(pen_nprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
 	flushmouse();
-	#ifdef FPS
-		char fps[100];
-		sprintf(fps,"FPS : %0.2f",getfps());
-		setcaption(fps);
-	#endif
+#ifdef FPS
+	char fps[100];
+	sprintf(fps,"FPS : %0.2f",getfps());
+	setcaption(fps);
+#endif
 	delay_ms(1);
 }
 
@@ -987,15 +908,15 @@ void start(int fps) {
 	while(!closeGraph && is_run()) {
 		reflush();
 		if(!reg_pause) continue;
+#ifdef pause
 		if(FeEGE::getkey('p') || FeEGE::getkey('P')) {
-			// cout<<"pause"<<endl;
 			this_thread::sleep_for(chrono::milliseconds(200));
 			while(!FeEGE::getkey('p') && !FeEGE::getkey('P')) this_thread::sleep_for(chrono::milliseconds(1));
 			this_thread::sleep_for(chrono::milliseconds(200));
 		}
-//		delay_ms(1);
+#endif
+		delay_ms(1);
 	}
-
 }
 
 
