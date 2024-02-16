@@ -1,4 +1,4 @@
-FeEGELib V1.2.1
+FeEGELib V1.2.3
 
 upd: 2024/2/16
 
@@ -39,7 +39,6 @@ EGE官网：https://xege.org/
 3、测试：将以下代码复制进你的代码并编译运行：
 ```cpp
 #include "FeEGELib.h" 
-using namespace std;
 using namespace FeEGE;
 int main(){
 	initgraph(1920 >> 1,1080 >> 1);
