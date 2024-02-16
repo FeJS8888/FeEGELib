@@ -2,8 +2,10 @@ FeEGELib V1.1
 upd: 2024/2/15
 
 基于EGE v20.08开发的一套轮子
+
 EGE项目仓库：https://github.com/wysaid/xege
-EGE官网：
+
+EGE官网：xege.org
 
 主要封装了一个Element组件类
 功能包括但不限于：
