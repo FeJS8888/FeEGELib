@@ -1,7 +1,8 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define OEMRESOURCE
+#define FeEGELib_version "version V1.2.2--upd2024-2-16"
+
 #include<graphics.h>
 #include<vector>
 #include<thread>
@@ -29,8 +30,11 @@
 #define log printf
 #define PIE 3.141592653589793238462643383279502f
 
+#define initXY() {WIDTH = getwidth();HEIGHT = getheight();}
+#define X WIDTH
+#define Y HEIGHT
+
 using namespace std;
-const string version = "version V1.2.1--upd2024-2-16";
 double GlobalRating = 1.00f;
 
 class Position;
@@ -787,11 +791,12 @@ namespace pen {
 	int order = 0;
 	int fontscale = 1;
 	int penType = FeEGE::PenType.left;
+	int charwidth,charheight;
 	void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
 		if(penType == FeEGE::PenType.middle){
-			x -= (str.length() * (fontscale / 2.0));
-			y -= (str.length() * (fontscale / 4.0));
+			x -= charwidth * str.length() >> 1;
+			y -= charheight >> 1;
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
@@ -799,6 +804,8 @@ namespace pen {
 		if(pen_image == nullptr) return;
 		fontscale = scale;
 		setfont(scale,0,fontname.c_str(),pen_image);
+		charwidth = textwidth('t',pen_image);
+		charheight = textheight('t',pen_image);
 	}
 	void color(color_t color) {
 		if(pen_image == nullptr) return;
@@ -813,11 +820,11 @@ namespace pen {
 	}
 	void clear_char(int x,int y) {
 		if(pen_image == nullptr) return;
-		bar(x,y,x + fontscale,y + fontscale,pen_image);
+		bar(x,y,x + charwidth,y + charheight,pen_image);
 	}
 	void clear_chars(int x,int y,int charcount) {
 		if(pen_image == nullptr) return;
-		bar(x,y,x + fontscale * charcount,y + fontscale,pen_image);
+		bar(x,y,x + charwidth * charcount,y + charwidth,pen_image);
 	}
 	void clear_all() {
 		if(pen_image == nullptr) return;
@@ -973,8 +980,6 @@ void reflush() {
 	#endif
 	delay_ms(1);
 }
-
-#define initXY() {WIDTH = getwidth();HEIGHT = getheight();}
 
 void start(int fps) {
 	initXY();
