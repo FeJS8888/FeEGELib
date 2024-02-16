@@ -5,7 +5,7 @@ upd: 2024/2/15
 
 EGE项目仓库：https://github.com/wysaid/xege
 
-EGE官网：xege.org
+EGE官网：https://xege.org/
 
 主要封装了一个Element组件类
 功能包括但不限于：
