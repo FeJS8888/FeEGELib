@@ -1,7 +1,8 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "version V1.2.3--upd2024-2-16"
+#define FeEGELib_version "V1.2.10.0--upd2024-5-1"
+#define version() FeEGELib_version
 
 #include<graphics.h>
 #include<vector>
@@ -50,6 +51,8 @@ bool needsort = true;
 bool reg_pause = false;
 mouse_msg mouseinfo;
 bool keystatus[360];
+map<string,void(*)(void)> globalListen_frame_function_set;
+map<string,void(*)(void)> globalListen_on_click_function_set;
 
 int WIDTH;
 int HEIGHT;
@@ -172,6 +175,8 @@ class Element {
 		Element** clonequeue = nullptr;
 		bool drawed = false;
 		int PoolIndex;
+		bool HittingBox = false;
+		int HBheight,HBwidth; 
 
 		bool PhysicEngineStatu;
 		double ForceX;
@@ -458,8 +463,28 @@ class Element {
 			if(that == nullptr) {
 				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+				return false; 
 			}
 			if(!this->is_show || !that->is_show) return false;
+			
+			if(this->HittingBox ^ that->HittingBox){
+				LPCSTR text = TEXT(("Element::is_touched_by方法中两个对象的碰撞箱状态不一致\n\nElement名称 : " + this->id).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+				return false;
+			}
+			if(this->HittingBox){
+				double thisleft = this->pos.x - (this->HBwidth >> 1) * this->scale / 100.00;
+				double thatleft = that->pos.x - (that->HBwidth >> 1) * that->scale / 100.00;
+				double thisright = this->pos.x + (this->HBwidth >> 1) * this->scale / 100.00;
+				double thatright = that->pos.x + (that->HBwidth >> 1) * that->scale / 100.00;
+				double thistop = this->pos.y - (this->HBheight >> 1) * this->scale / 100.00;
+				double thattop = that->pos.y - (that->HBheight >> 1) * that->scale / 100.00;
+				double thisbottom = this->pos.y + (this->HBheight >> 1) * this->scale / 100.00;
+				double thatbottom = that->pos.y + (that->HBheight >> 1) * that->scale / 100.00;
+				if(thisleft <= thatright && (thistop <= thatbottom && thisbottom >= thattop) || thisright >= thatleft && (thistop <= thatbottom && thisbottom >= thattop)) return true;
+				return false;
+			}
+			
 			this->draw_to_private_image();
 			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
 				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
@@ -600,6 +625,12 @@ class Element {
 				}
 			}
 		}
+		inline void useHittingBox(){
+			this->HittingBox = true;
+		} 
+		inline void stopHittingBox(){
+			this->HittingBox = false;
+		}
 
 		// PhysicEngine
 		inline void enablePhysicEngine() {
@@ -667,14 +698,6 @@ class cmp {
 		bool operator()(Element* _A,Element* _B) {
 			if(_A->get_order() == _B->get_order()) return _A->get_reg_order() < _B->get_reg_order();
 			return _A->get_order() < _B->get_order();
-//			cout<<_A->getId()<<"="<<_A->get_order()<<"&"<<_B->getId()<<"="<<_B->get_order()<<endl;
-//			if(_A == nullptr) return false;
-//			if(_B == nullptr) return true;
-//			if(_A->get_order() < _B->get_order()) return false;
-//			else if (_A->get_order() > _B->get_order()) return true;
-//			cout<<"Failed\n";
-//			return _A->get_reg_order() < _B->get_reg_order();
-//			return *_A < *_B;
 		}
 };
 
@@ -770,7 +793,6 @@ namespace pen {
 void reg_Element(Element* element) {
 	element->set_reg_order(current_reg_order ++);
 	Element_queue.insert(element);
-//	cout<<"\nfind"<<element<<"="<<(Element_queue.find(element) == Element_queue.end())<<endl;
 	__SIZE__ ++;
 	ElementIsIn[element] = true;
 	IdToElement[element->getId()] = element;
@@ -779,21 +801,12 @@ void reg_Element(Element* element) {
 
 
 Element* FeEGE::getElementById(string ElementId) {
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
-//		if(Element_queue[i] == nullptr) continue;
-//		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
-//		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
-//	}
 	return IdToElement[ElementId];
 }
 
 
 
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
-//		if(Element_queue[i] == nullptr) continue;
-//		if(Element_queue[i] == ElementPtr) return Element_queue[i];
-//	}
 	return ElementIsIn[ElementPtr] ? ElementPtr : nullptr;
 }
 
@@ -867,6 +880,15 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	return nullptr;
 }
 
+void globalListen(int listen_mode,string identifier,auto function){
+	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set[identifier] = function ;
+	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set[identifier] = function ;
+}
+
+void stopGlobalListen(int listen_mode,string identifier,auto function){
+	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set.erase(identifier) ;
+	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
+}
 
 void reflush() {
 	++ frame;
@@ -907,13 +929,17 @@ void start(int fps) {
 	randomize();
 	while(!closeGraph && is_run()) {
 		reflush();
+		for(auto it : globalListen_frame_function_set) it.second();
 		if(!reg_pause) continue;
-#ifdef pause
+#ifdef Ppause
 		if(FeEGE::getkey('p') || FeEGE::getkey('P')) {
 			this_thread::sleep_for(chrono::milliseconds(200));
 			while(!FeEGE::getkey('p') && !FeEGE::getkey('P')) this_thread::sleep_for(chrono::milliseconds(1));
 			this_thread::sleep_for(chrono::milliseconds(200));
 		}
+#endif
+#ifdef ESCexit
+		if(FeEGE::getkey(VK_ESCAPE)) break;
 #endif
 		delay_ms(1);
 	}
