@@ -1,6 +1,6 @@
-FeEGELib V1.2.3
+FeEGELib V1.2.11.0
 
-upd: 2024/2/16
+upd: 2024/7/19
 
 基于EGE v20.08开发的一套轮子
 
