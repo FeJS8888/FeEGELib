@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.11.0--upd2024-7-19"
+#define FeEGELib_version "V1.2.11.1--upd2024-7-19"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -314,10 +314,12 @@ class Element {
 			}
 			
 			this->drawed = false;
+#ifdef TEST_FUNCTION
 			if(this->PhysicEngineStatu) {
 				this->UpdatePhysicSpeed();
 				this->UpdatePhysicPosition();
 			}
+#endif
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 		}
 		inline void move_left(double pixels = 0) {
@@ -428,7 +430,8 @@ class Element {
 			if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
 			this->draw_to_private_image();
 			color_t pixel = getpixel(x,y,this->__visible_image);
-			for(int i = 0; i < remove_colors.size(); ++ i) if(pixel == remove_colors[i]) return false;
+			int size = remove_colors.size();
+			for(int i = 0; i < size; ++ i) if(pixel == remove_colors[i]) return false;
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
 		}
 		inline bool ishit() {
@@ -482,7 +485,7 @@ class Element {
 				double thattop = that->pos.y - (that->HBheight >> 1) * that->scale / 100.00;
 				double thisbottom = this->pos.y + (this->HBheight >> 1) * this->scale / 100.00;
 				double thatbottom = that->pos.y + (that->HBheight >> 1) * that->scale / 100.00;
-				if(thisleft <= thatright && (thistop <= thatbottom && thisbottom >= thattop) || thisright >= thatleft && (thistop <= thatbottom && thisbottom >= thattop)) return true;
+				if((thisleft <= thatright && (thistop <= thatbottom && thisbottom >= thattop)) || (thisright >= thatleft && (thistop <= thatbottom && thisbottom >= thattop))) return true;
 				return false;
 			}
 			
@@ -502,7 +505,8 @@ class Element {
 			for(int i = 0; i < nextclonecount; ++ i) {
 				if(e[i] == nullptr) continue;
 				if(!this->deletedList[i]) continue;
-				for(int j = 0; j < this->removeList.size(); ++ j) {
+				int size = this->removeList.size();
+				for(int j = 0; j < size; ++ j) {
 					if(this->deletedList[i] && (e[i] == this->removeList[j] || FeEGE::getElementByPtr(e[i]) == nullptr)) {
 						this->deletedList[i] = false;
 						e[i] = nullptr;
@@ -624,7 +628,7 @@ class Element {
 			int YY = getheight(this->image_vector[this->current_image]);
 			for(int i = 0; i < XX; ++ i) {
 				for(int j = 0; j < YY; ++ j) {
-					if(getpixel(i,j,this->image_vector[this->current_image]) == BLACK) putpixel_f(i,j,EGERGBA(0,0,0,0),this->image_vector[this->current_image]);
+					if(getpixel(i,j,this->image_vector[this->current_image]) == (color_t)BLACK) putpixel_f(i,j,EGERGBA(0,0,0,0),this->image_vector[this->current_image]);
 				}
 			}
 		}
@@ -904,9 +908,11 @@ void reflush() {
 	}
 
 	vector<void(*)(void)> schedule_backup;
-	for(int i = 0; i < schedule.size(); ++ i) schedule_backup.push_back(schedule[i]);
+	int size = schedule.size();
+	for(int i = 0; i < size; ++ i) schedule_backup.push_back(schedule[i]);
 	schedule.clear();
-	for(int i = 0; i < schedule_backup.size(); ++ i) schedule_backup[i]();
+	int size2 = schedule_backup.size();
+	for(int i = 0; i < size2; ++ i) schedule_backup[i]();
 	schedule_backup.clear();
 	bool pen_nprinted = true;
 	cleardevice();
