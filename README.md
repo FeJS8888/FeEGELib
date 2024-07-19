@@ -1,4 +1,4 @@
-FeEGELib V1.2.11.0
+FeEGELib V1.2.11.1
 
 upd: 2024/7/19
 
