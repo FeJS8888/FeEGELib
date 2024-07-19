@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.10.0--upd2024-5-1"
+#define FeEGELib_version "V1.2.11.0--upd2024-7-19"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -15,6 +15,7 @@
 #include<iostream>
 #include<fstream>
 #include<queue>
+#include<math.h>
 #include<stdlib.h>
 #include<malloc.h>
 #include<time.h>
@@ -591,6 +592,7 @@ class Element {
 				this->current_image %= 100;
 			} while(this->image_vector[current_image] == nullptr);
 		}
+#ifndef NO_THREAD
 		inline void loadImage(string ImagePath,int id) {
 			thread([this,ImagePath,id]() {
 				PIMAGE image = newimage();
@@ -610,6 +612,7 @@ class Element {
 				delimage(this->image_vector[id]);
 			}).detach();
 		}
+#endif
 		inline void disable_draw_to_private_image() {
 			this->disabled_draw_to_private_image = true;
 		}
@@ -625,6 +628,7 @@ class Element {
 				}
 			}
 		}
+#ifdef TEST_FUNCTION 
 		inline void useHittingBox(){
 			this->HittingBox = true;
 		} 
@@ -684,6 +688,7 @@ class Element {
 		inline void PhysicRemoveSpeedY() {
 			this->SpeedY = 0;
 		}
+#endif
 
 		inline Element* deleteElement();
 		~Element() {
@@ -807,7 +812,7 @@ Element* FeEGE::getElementById(string ElementId) {
 
 
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
-	return ElementIsIn[ElementPtr] ? ElementPtr : nullptr;
+	return (ElementIsIn.find(ElementPtr) != ElementIsIn.end()) ? ElementPtr : nullptr;
 }
 
 Element ElementPool[MAXELEMENTCOUNT];
@@ -931,6 +936,7 @@ void start(int fps) {
 		reflush();
 		for(auto it : globalListen_frame_function_set) it.second();
 		if(!reg_pause) continue;
+#ifndef NO_THREAD
 #ifdef Ppause
 		if(FeEGE::getkey('p') || FeEGE::getkey('P')) {
 			this_thread::sleep_for(chrono::milliseconds(200));
@@ -940,6 +946,7 @@ void start(int fps) {
 #endif
 #ifdef ESCexit
 		if(FeEGE::getkey(VK_ESCAPE)) break;
+#endif
 #endif
 		delay_ms(1);
 	}
