@@ -85,8 +85,8 @@ class Position {
 } lastpixel;
 
 namespace FeEGE {
-	short getkey(int VB) {
-		return GetAsyncKeyState(VB);
+	short getkey(int VK) {
+		return GetAsyncKeyState(VK);
 	}
 	void enable_pause() {
 		reg_pause = true;
@@ -604,7 +604,6 @@ class Element {
 				int statu = 0;
 				do {
 					statu = getimage(image,TEXT(ImagePath.c_str()));
-					cout<<"waiting\n";
 					this_thread::sleep_for(chrono::milliseconds(10));
 				} while(statu != 0);
 				while(this->image_lock) this_thread::sleep_for(chrono::milliseconds(1));
