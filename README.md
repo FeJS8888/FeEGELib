@@ -30,7 +30,15 @@ EGE官网：https://xege.org/
 
 1、装载EGE图形库 （参见 https://blog.csdn.net/qq_39151563/article/details/100161986 ）
 
+快捷编译命令：
+```
+-std=c++14 -O2
+```
 
+快捷连接器命令：
+```
+-static -static-libgcc  -lgraphics -luuid -lmsimg32 -lgdi32 -limm32 -lole32 -loleaut32 -lwinmm -lgdiplus -lws2_32
+```
 
 2、将FeEGELib.h放在与你的代码同一级目录下
 
