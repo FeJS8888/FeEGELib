@@ -41,14 +41,12 @@ EGE官网：https://xege.org/
 #include "FeEGELib.h" 
 using namespace FeEGE;
 int main(){
-	initgraph(1920 >> 1,1080 >> 1);
-	initXY();
-	FeEGE::initpen();
+	init(1920 >> 1,1080 >> 1);
 	pen::font(90,"幼圆");
 	
 	pen::print(0,0,"test pen");
 	
-	start(120);
+	start();
 	return 0;
 }
 ```
