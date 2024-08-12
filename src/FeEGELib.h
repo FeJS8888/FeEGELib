@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.11.1--upd2024-7-19"
+#define FeEGELib_version "V1.2.11.5--upd2024-8-12"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -269,9 +269,7 @@ class Element {
 			this->SpeedY = 0.00;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
-		Element() {
-
-		}
+		Element() { }
 		inline Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -310,7 +308,6 @@ class Element {
 			if(this->is_cancel_y) {
 				this->is_cancel_y = false;
 				this->pos.y = this->backup_pos.y;
-				cout<<"ok\n";
 			}
 			
 			this->drawed = false;
@@ -338,33 +335,40 @@ class Element {
 			this->pos.x -= sin(this->angle * PIE / 180.00f) * pixels;
 			this->pos.y -= cos(this->angle * PIE / 180.00f) * pixels;
 		}
+		inline void move_to(double x,double y) {
+			this->pos.x = x;
+			this->pos.y = y;
+		}
+		inline void move_to(Position position) {
+			this->pos = position;
+		}
 		inline color_t get_pixel(int x,int y) {
 			return getpixel(x,y,this->__visible_image);
 		}
 		inline short get_scale() {
 			return this->scale;
 		}
-		inline void set_scale(short scale) {
-			this->scale = scale;
-			this->scale %= 101;
-		}
 		inline void increase_scale(short scale) {
-			if(this->scale + scale <= 100) this->scale += scale;
-			else this->scale = 100;
-			this->scale %= 101;
-			if(this->scale < 0) this->scale += 101;
+			if(this->scale + scale <= 255) this->scale += scale;
+			else this->scale = 255;
+			this->scale %= 255;
+			if(this->scale < 0) this->scale += 255;
 		}
 		inline void decrease_scale(short scale) {
 			if(this->scale > scale) this->scale -= scale;
 			else this->scale = 0;
-			this->scale %= 101;
+			this->scale %= 255;
 			if(this->scale < 0) this->scale += 101;
 		}
-		inline void hide() {
-			this->is_show = false;
+		inline void set_scale(short scale) {
+			this->scale = scale;
+			this->scale %= 255;
 		}
 		inline void show() {
 			this->is_show = true;
+		}
+		inline void hide() {
+			this->is_show = false;
 		}
 		inline void turn_right(int angle) {
 			this->angle = (this->angle - angle) % 360;
@@ -412,13 +416,6 @@ class Element {
 		inline void set_posy(int y) {
 			this->pos.y = y;
 		}
-		inline void move_to(double x,double y) {
-			this->pos.x = x;
-			this->pos.y = y;
-		}
-		inline void move_to(Position pos) {
-			this->pos = pos;
-		}
 		inline void remove_color(color_t color) {
 			this->remove_colors.push_back(color);
 		}
@@ -454,8 +451,12 @@ class Element {
 		inline void add_image(PIMAGE image) {
 			this->image_vector.push_back(image);
 		}
-		inline void set_image(int order) {
-			this->current_image = order;
+		inline bool set_image(int order) {
+			if(this->image_vector[order] != nullptr){
+				this->current_image = order;
+				return true;
+			}
+			return false;
 		}
 		inline int get_image_order() {
 			return this->current_image;
@@ -603,6 +604,7 @@ class Element {
 				int statu = 0;
 				do {
 					statu = getimage(image,TEXT(ImagePath.c_str()));
+					cout<<"waiting\n";
 					this_thread::sleep_for(chrono::milliseconds(10));
 				} while(statu != 0);
 				while(this->image_lock) this_thread::sleep_for(chrono::milliseconds(1));
@@ -692,11 +694,16 @@ class Element {
 		inline void PhysicRemoveSpeedY() {
 			this->SpeedY = 0;
 		}
+		inline void PhysicRemoveForceX() {
+			this->ForceX = 0;
+		}
+		inline void PhysicRemoveForceY() {
+			this->ForceY = 0;
+		}
 #endif
 
 		inline Element* deleteElement();
-		~Element() {
-		};
+		~Element() { };
 };
 int current_reg_order = 0;
 unsigned long long frame = 0;
@@ -850,20 +857,11 @@ Element* Element::deleteElement() {
 	ElementIsIn[this] = false;
 	IdToElement[this->id] = nullptr;
 	return this;
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
-//		if(Element_queue[i] == this) {
-//			Element_queue[i] = nullptr;
-//			removesize ++;
-//			needsort = true;
-//
-//		}
-//	}
-//			// cout<<"Can not find"<<endl;
 }
 
 Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	PIMAGE image = newimage();
-	getimage(image,TEXT(ImagePath.c_str()));
+	if(ImagePath != "") getimage(image,TEXT(ImagePath.c_str()));
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
 			ElementPoolUsed[i] = true;
@@ -928,14 +926,23 @@ void reflush() {
 	if(pen_nprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
 	flushmouse();
 #ifdef FPS
-	char fps[100];
+	static char fps[64];
+	memset(fps,0,sizeof(fps));
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
 #endif
 	delay_ms(1);
 }
 
-void start(int fps) {
+void init(int x,int y){
+	setinitmode(INIT_RENDERMANUAL);
+	initgraph(x,y);
+	initXY();
+	FeEGE::initpen();
+}
+
+void start() {
+	closeGraph = false;
 	initXY();
 	randomize();
 	while(!closeGraph && is_run()) {
