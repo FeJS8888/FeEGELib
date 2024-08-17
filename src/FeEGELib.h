@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.11.5--upd2024-8-12"
+#define FeEGELib_version "V1.2.12.1--upd2024-8-18"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -9,6 +9,7 @@
 #include<thread>
 #include<set>
 #include<map>
+#include<unordered_map>
 #include<string>
 #include<windows.h>
 #include<algorithm>
@@ -37,10 +38,14 @@
 #define Y HEIGHT
 
 using namespace std;
+
+const double eps = 1e-7;
 double GlobalRating = 1.00f;
 
 class Position;
 class Element;
+class InputBox;
+class InputBoxSet;
 void reg_Element(Element* element);
 Element* newElement(string,PIMAGE,double,double);
 Element* newElement(string,string,double,double);
@@ -52,23 +57,26 @@ bool needsort = true;
 bool reg_pause = false;
 mouse_msg mouseinfo;
 bool keystatus[360];
-map<string,void(*)(void)> globalListen_frame_function_set;
-map<string,void(*)(void)> globalListen_on_click_function_set;
+map<string,function<void(void)>> globalListen_frame_function_set;
+map<string,function<void(void)>> globalListen_on_click_function_set;
 
 int WIDTH;
 int HEIGHT;
 
-vector<void(*)(void)> schedule;
+vector<function<void(void)>> schedule;
 int __SIZE__ = 0;
 int removesize = 0;
 bool closeGraph = false;
 
 PIMAGE pen_image;
 
-map<string,Element*>IdToElement;
-map<Element*,bool>ElementIsIn;
+unordered_map<string,Element*>IdToElement;
+unordered_map<Element*,bool>ElementIsIn;
 
-using namespace std;
+inline int sgn(double x){
+	if(fabs(x) < eps) return 0;
+	return x > 0 ? 1 : -1;
+}
 
 class Position {
 	public:
@@ -113,6 +121,11 @@ namespace FeEGE {
 		public:
 			int on_clone = 0x06;
 	};
+	
+	class InputBoxEvent {
+		public:
+			int on_select = 0x06;
+	};
 
 	class Events {
 		public:
@@ -123,6 +136,7 @@ namespace FeEGE {
 			int on_click = 0x04;
 			int on_clone = 0x05;
 			ClonesEvent clones;
+			InputBoxEvent InputBox;
 	};
 
 	Events EventType;
@@ -141,9 +155,10 @@ namespace FeEGE {
 }
 
 class Element {
-	private:
+	protected:
 		//Variables
 		string id;
+		string ElementType;
 		short scale;
 		int angle;
 		int order;
@@ -158,15 +173,15 @@ class Element {
 		vector<PIMAGE> image_vector;
 		vector<Element*> clones;
 		vector<Element*> removeList;
-		map<string,void(*)(Element*)> frame_function_set;
-		map<string,void(*)(Element*)> on_mouse_put_on_function_set;
-		map<string,void(*)(Element*)> on_mouse_hitting_function_set;
-		map<string,void(*)(Element*)> on_mouse_move_away_function_set;
-		map<string,void(*)(Element*)> on_click_function_set;
-		map<string,void(*)(Element*)> on_clone_function_set;
-		map<string,void(*)(Element*)> on_clone_clones_function_set;
+		map<string,function<void(Element*)> > frame_function_set;
+		map<string,function<void(Element*)>> on_mouse_put_on_function_set;
+		map<string,function<void(Element*)>> on_mouse_hitting_function_set;
+		map<string,function<void(Element*)>> on_mouse_move_away_function_set;
+		map<string,function<void(Element*)>> on_click_function_set;
+		map<string,function<void(Element*)>> on_clone_function_set;
+		map<string,function<void(Element*)>> on_clone_clones_function_set;
 		unsigned int current_image = 0;
-		long long private_variables[10];
+		unordered_map<int,long long> private_variables;
 		bool deletedList[MAXCLONESCOUNT] = {};
 		int clonecount = 0;
 		int nextclonecount = 0;
@@ -177,7 +192,7 @@ class Element {
 		bool drawed = false;
 		int PoolIndex;
 		bool HittingBox = false;
-		int HBheight,HBwidth; 
+		int HBheight,HBwidth;
 
 		bool PhysicEngineStatu;
 		double ForceX;
@@ -189,7 +204,7 @@ class Element {
 
 		vector<color_t> remove_colors;
 
-		inline void reflush_mouse_statu() {
+		inline virtual void reflush_mouse_statu() {
 			/*
 				Test click
 			*/
@@ -293,7 +308,7 @@ class Element {
 			this->SpeedY = 0.00;
 			return this;
 		}
-		inline void call() {
+		inline virtual void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(auto it : this->frame_function_set) it.second(this);
@@ -318,6 +333,12 @@ class Element {
 			}
 #endif
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+		}
+		inline void set_type(const string& type){
+			this->ElementType = type;
+		}
+		inline string get_type(const string& type){
+			return this->ElementType;
 		}
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
@@ -378,6 +399,24 @@ class Element {
 		}
 		inline void turn_to(int angle) {
 			this->angle = angle % 360;
+		}
+		inline bool face_to(Element* that){
+			if(that == nullptr) {
+				LPCSTR text = TEXT(("Element::face_to方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+				return false; 
+			}
+			Position pos = that->get_position();
+			double dx = pos.x - this->pos.x;
+			double dy = pos.y - this->pos.y;
+			if(!sgn(dx)) return true;
+			if(!sgn(dy)){
+				if(dx > 0) this->angle = 0;
+				else this->angle = 180;
+				return true;
+			}
+			this->angle = atan2(dy,dx) / PIE * 180.00f;
+			return true;
 		}
 		inline int get_angle() {
 			return this->angle;
@@ -542,23 +581,31 @@ class Element {
 		inline string getId() {
 			return this->id;
 		}
-		inline void listen(int listen_mode,string identifier,auto function) {
+		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set[identifier] = function ;
-			if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set[identifier] = function ;
+			else{
+				LPCSTR text = TEXT(("Element::listen方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+			}
 		}
-		inline void stop(int listen_mode,string identifier) {
+		inline virtual void stop(int listen_mode,string identifier) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set.erase(identifier) ;
-			if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set.erase(identifier) ;
+			else{
+				LPCSTR text = TEXT(("Element::stop方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+			}
 		}
 		inline Element* deletethis();
 		inline void cancel_x() {
@@ -704,6 +751,223 @@ class Element {
 		inline Element* deleteElement();
 		~Element() { };
 };
+
+class InputBoxSet{
+	protected:
+		bool is_enabled;
+		set<Element*> childs;
+		Element* selected_InputBox;
+		
+	public:
+		InputBoxSet(){
+			this->is_enabled = false;
+		}
+		inline void enable(){
+			this->is_enabled = true;
+		}
+		inline void disable(){
+			this->is_enabled = false;
+		}
+		inline bool get_enable_statu(){
+			return this->is_enabled;
+		}
+		inline void insert(Element* inputbox){
+			this->childs.insert(inputbox);
+		}
+		inline void erase(Element* inputbox){
+			this->childs.erase(inputbox); 
+		}
+		inline void select(Element* inputbox){
+			
+		}
+		inline void call(){
+			for(Element* inputbox : childs){
+				inputbox->call();
+			}
+		}
+		~InputBoxSet(){	}
+};
+
+class InputBox : public Element{
+	protected:
+		bool is_enabled;
+		InputBoxSet* father;
+		Element* submit_button;
+	public:
+		InputBox(){
+			this->father = nullptr;
+			this->submit_button = nullptr;
+		}
+		InputBox(InputBoxSet* father,Element* submit_button): father(father),submit_button(submit_button) { };
+		inline void bind(InputBoxSet* father){
+			if(this->father != nullptr) this->father->erase(this);
+			this->father = father;
+		}
+		inline void enable(){
+			this->is_enabled = true;
+		}
+		inline void disable(){
+			this->is_enabled = false;
+		}
+		inline bool get_enable_statu(){
+			return this->is_enabled;
+		}
+		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
+			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set[identifier] = function ;
+			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set[identifier] = function ;
+			else{
+				LPCSTR text = TEXT(("InputBox::listen方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+			}
+		}
+		inline virtual void stop(int listen_mode,string identifier) {
+			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set.erase(identifier) ;
+			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set.erase(identifier) ;
+			else{
+				LPCSTR text = TEXT(("InputBox::stop方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+			}
+		}
+		inline void reflush_mouse_statu() override {
+			/*
+				Test click
+			*/
+			if(this->ismousein()) {
+				int statu = this->get_variable(0);
+				if(this->ishit()) {
+					if(statu == 1) {
+						this->set_variable(0,2);
+						if(this->is_enabled)
+							for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+					}
+				} else {
+					if(statu == 0) {
+						this->set_variable(0,1);
+						if(this->is_enabled)
+							for(auto it : this->on_mouse_put_on_function_set) it.second(this);
+					} else if(statu == 2) {
+						this->set_variable(0,0);
+						if(this->is_enabled){
+							this->father->select(this);
+							for(auto it : this->on_click_function_set) it.second(this);
+						}
+					}
+				}
+			} else {
+				if(this->get_variable(0) == 1)	{
+					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+					if(this->is_enabled)
+							this->set_variable(0,0);
+				}
+			}
+		}
+		inline void call() override {
+			this->backup_pos = pos;
+			this->reflush_mouse_statu();
+			for(auto it : this->frame_function_set) it.second(this);
+			if(this->ishit())
+			if(this->deleted) return;
+			if(!this->is_show) return;
+
+			//backup
+			if(this->is_cancel_x) {
+				this->is_cancel_x = false;
+				this->pos.x = this->backup_pos.x;
+			}
+			if(this->is_cancel_y) {
+				this->is_cancel_y = false;
+				this->pos.y = this->backup_pos.y;
+			}
+			
+			this->drawed = false;
+			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+		}
+		~InputBox(){
+			this->father->erase(this);
+		};
+};
+
+class Button : public Element{
+	protected:
+		bool is_enabled;
+	public:
+		Button(){
+			this->is_enabled = false;
+		}
+		inline void enable(){
+			this->is_enabled = true;
+		}
+		inline void disable(){
+			this->is_enabled = false;
+		}
+		inline bool get_enable_statu(){
+			return this->is_enabled;
+		}
+		inline void reflush_mouse_statu() override {
+			/*
+				Test click
+			*/
+			if(this->ismousein()) {
+				int statu = this->get_variable(0);
+				if(this->ishit()) {
+					if(statu == 1) {
+						this->set_variable(0,2);
+						if(this->is_enabled)
+							for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+					}
+				} else {
+					if(statu == 0) {
+						this->set_variable(0,1);
+						if(this->is_enabled)
+							for(auto it : this->on_mouse_put_on_function_set) it.second(this);
+					} else if(statu == 2) {
+						this->set_variable(0,0);
+						if(this->is_enabled)
+							for(auto it : this->on_click_function_set) it.second(this);
+					}
+				}
+			} else {
+				if(this->get_variable(0) == 1)	{
+					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+					if(this->is_enabled)
+							this->set_variable(0,0);
+				}
+			}
+		}
+		inline void call() override {
+			this->backup_pos = pos;
+			this->reflush_mouse_statu();
+			for(auto it : this->frame_function_set) it.second(this);
+			if(this->ishit())
+			if(this->deleted) return;
+			if(!this->is_show) return;
+
+			//backup
+			if(this->is_cancel_x) {
+				this->is_cancel_x = false;
+				this->pos.x = this->backup_pos.x;
+			}
+			if(this->is_cancel_y) {
+				this->is_cancel_y = false;
+				this->pos.y = this->backup_pos.y;
+			}
+			
+			this->drawed = false;
+			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+		}
+		~Button(){ }
+};
+
 int current_reg_order = 0;
 unsigned long long frame = 0;
 queue<Element*>FreeList;
@@ -742,7 +1006,7 @@ namespace pen {
 	short penalpha = 255;
 	int penType = FeEGE::PenType.left;
 	int charwidth,charheight;
-	void print(int x,int y,string str) {
+	inline void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
 		if(penType == FeEGE::PenType.middle) {
 			x -= charwidth * str.length() >> 1;
@@ -750,56 +1014,62 @@ namespace pen {
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
-	void font(int scale,string fontname) {
+	inline void font(int scale,string fontname = "幼圆") {
 		if(pen_image == nullptr) return;
 		fontscale = scale;
 		setfont(scale,0,fontname.c_str(),pen_image);
 		charwidth = textwidth('t',pen_image);
 		charheight = textheight('t',pen_image);
 	}
-	void color(color_t color) {
+	inline void color(color_t color) {
 		if(pen_image == nullptr) return;
 		setcolor(color,pen_image);
 	}
-	void type(int Type) {
+	inline void type(int Type) {
 		penType = Type;
 	}
-	void clear(int x,int y,int ex,int ey) {
+	inline void clear(int x,int y,int ex,int ey) {
 		if(pen_image == nullptr) return;
 		bar(x,y,ex,ey,pen_image);
 	}
-	void clear_char(int x,int y) {
+	inline void clear_char(int x,int y) {
 		if(pen_image == nullptr) return;
 		bar(x,y,x + charwidth,y + charheight,pen_image);
 	}
-	void clear_chars(int x,int y,int charcount) {
+	inline void clear_chars(int x,int y,int charcount) {
 		if(pen_image == nullptr) return;
 		bar(x,y,x + charwidth * charcount,y + charwidth,pen_image);
 	}
-	void clear_all() {
+	inline void clear_all() {
 		if(pen_image == nullptr) return;
 		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
 	}
-	void setorder(int value) {
+	inline void setorder(int value) {
 		order = value;
 	}
-	void set_alpha(short alpha) {
+	inline void set_alpha(short alpha) {
 		penalpha = alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
 	}
-	short get_alpha() {
+	inline short get_alpha() {
 		return penalpha;
 	}
-	void increase_alpha(short alpha){
+	inline void increase_alpha(short alpha){
 		penalpha += alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
 	}
-	void decrease_alpha(short alpha){
+	inline void decrease_alpha(short alpha){
 		penalpha -= alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
+	}
+	inline void print_line(int x1,int y1,int x2,int y2){
+		line(x1,y1,x2,y2,pen_image);
+	}
+	inline void print_bar(int left,int top,int right,int bottom){
+		bar(left,top,right,bottom,pen_image);
 	}
 }
 
@@ -818,8 +1088,6 @@ void reg_Element(Element* element) {
 Element* FeEGE::getElementById(string ElementId) {
 	return IdToElement[ElementId];
 }
-
-
 
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
 	return (ElementIsIn.find(ElementPtr) != ElementIsIn.end()) ? ElementPtr : nullptr;
@@ -866,6 +1134,7 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 			ElementPoolUsed[i] = true;
 			Element* e = ElementPool[i].copy(id,image,i,x,y);
 			reg_Element(e);
+			e->set_type("Normal@native");
 			return e;
 		}
 	}
@@ -873,6 +1142,24 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	return nullptr;
 }
 
+Button* newButton(string id,string ImagePath,double x,double y,function<void(Element*)> put_on = nullptr,function<void(Element*)> move_away = nullptr,function<void(Element*)> on_click = nullptr) {
+	Button* button = (Button*)newElement(id,ImagePath,x,y);
+	if(button == nullptr) return nullptr;
+	button->set_type("Button@native");
+	button->listen(FeEGE::EventType.on_click,"click@native",on_click);
+	button->listen(FeEGE::EventType.on_mouse_put_on,"hit@native",put_on);
+	button->listen(FeEGE::EventType.on_mouse_move_away,"hit@native",move_away);
+	return button;
+}
+
+Element* newInputBox(string id,string ImagePath,double x,double y,Element* submit_button,function<void(Element*)> on_submit = nullptr,function<void(Element*)> on_selected = nullptr){
+	Element* inputBox = newElement(id,ImagePath,x,y);
+	if(inputBox == nullptr) return nullptr;
+	inputBox->set_type("InputBox@native");
+	return inputBox;
+}
+
+#if false
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
@@ -885,6 +1172,7 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
 	return nullptr;
 }
+#endif
 
 void globalListen(int listen_mode,string identifier,auto function){
 	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set[identifier] = function ;
@@ -896,6 +1184,12 @@ void stopGlobalListen(int listen_mode,string identifier,auto function){
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
 }
 
+Position get_mouse_position(){
+	int x,y;
+	mousepos(&x,&y);
+	return Position{(double)x,(double)y};
+}
+
 void reflush() {
 	++ frame;
 
@@ -904,7 +1198,7 @@ void reflush() {
 		FreeList.pop();
 	}
 
-	vector<void(*)(void)> schedule_backup;
+	vector<function<void(void)>> schedule_backup;
 	int size = schedule.size();
 	for(int i = 0; i < size; ++ i) schedule_backup.push_back(schedule[i]);
 	schedule.clear();
