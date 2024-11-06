@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.12.1--upd2024-8-18"
+#define FeEGELib_version "V1.2.12.2--upd2024-11-6"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -1159,7 +1159,7 @@ Element* newInputBox(string id,string ImagePath,double x,double y,Element* submi
 	return inputBox;
 }
 
-#if false
+#if true
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
