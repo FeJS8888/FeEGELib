@@ -1,8 +1,8 @@
-FeEGELib V1.2.12.1
+FeEGELib V1.2.12.3
 
 upd: 2024/8/18
 
-基于EGE V24.04 开发的一套轮子
+基于 EGE V24.04 开发的一套轮子
 
 EGE项目仓库：https://github.com/wysaid/xege
 
