@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.12.2--upd2024-11-6"
+#define FeEGELib_version "V1.2.13.0--upd2024-11-23"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -63,7 +63,8 @@ map<string,function<void(void)>> globalListen_on_click_function_set;
 int WIDTH;
 int HEIGHT;
 
-vector<function<void(void)>> schedule;
+vector<function<void(void)> > schedule;
+map<double,vector<function<void(void)> > > schedule_timeOut;
 int __SIZE__ = 0;
 int removesize = 0;
 bool closeGraph = false;
@@ -113,8 +114,17 @@ namespace FeEGE {
 		setcolor(EGERGB(255,0,0),pen_image);
 		setfillcolor(EGERGBA(1,1,4,0),pen_image);
 	}
-	void push_schedule(auto function) {
-		schedule.push_back(function);
+	
+	double getMs(){
+		return (double)clock() / CLOCKS_PER_SEC * 1000;
+	}
+	
+	void push_schedule(function<void(void)> func) {
+		schedule.push_back(func);
+	}
+	
+	void setTimeOut(function<void(void)> func,double time_ms){
+		schedule_timeOut[getMs() + time_ms].emplace_back(func);
 	}
 
 	class ClonesEvent {
@@ -153,6 +163,23 @@ namespace FeEGE {
 		return lastpixel;
 	}
 }
+using namespace FeEGE;
+
+class Animate{
+	public:
+		function<Position(double)> function;
+		double speed;
+		double end;
+		
+		Animate(std::function<Position(double)> function,double speed,double end): function(function),speed(speed),end(end) {	};
+};
+
+namespace Ease{
+	Animate EaseInOutCubicX([&](double tick) -> Position { return {tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2,0}; },0.002,1);
+	Animate EaseInOutCubicY([&](double tick) -> Position { return {0,tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2}; },0.002,1);
+	Animate EaseOutQuadX([&](double tick) -> Position { return {1 - (1 - tick) * (1 - tick),0}; },0.002,1);
+	Animate EaseOutQuadY([&](double tick) -> Position { return {0,1 - (1 - tick) * (1 - tick)}; },0.002,1);
+}
 
 class Element {
 	protected:
@@ -174,12 +201,15 @@ class Element {
 		vector<Element*> clones;
 		vector<Element*> removeList;
 		map<string,function<void(Element*)> > frame_function_set;
-		map<string,function<void(Element*)>> on_mouse_put_on_function_set;
-		map<string,function<void(Element*)>> on_mouse_hitting_function_set;
-		map<string,function<void(Element*)>> on_mouse_move_away_function_set;
-		map<string,function<void(Element*)>> on_click_function_set;
-		map<string,function<void(Element*)>> on_clone_function_set;
-		map<string,function<void(Element*)>> on_clone_clones_function_set;
+		map<string,function<void(Element*)> > on_mouse_put_on_function_set;
+		map<string,function<void(Element*)> > on_mouse_hitting_function_set;
+		map<string,function<void(Element*)> > on_mouse_move_away_function_set;
+		map<string,function<void(Element*)> > on_click_function_set;
+		map<string,function<void(Element*)> > on_clone_function_set;
+		map<string,function<void(Element*)> > on_clone_clones_function_set;
+		vector<pair<pair<double,pair<double,double> >,Animate> > animations;
+		unordered_map<int,double> animate_states;
+		unordered_map<int,function<void(Element*)> > animate_callbacks;
 		unsigned int current_image = 0;
 		unordered_map<int,long long> private_variables;
 		bool deletedList[MAXCLONESCOUNT] = {};
@@ -208,26 +238,33 @@ class Element {
 			/*
 				Test click
 			*/
-			if(this->ismousein()) {
+			if(this->ismousein()){
 				int statu = this->get_variable(0);
-				if(this->ishit()) {
-					if(statu == 1) {
+				if(this->ishit()){
+					if(statu == 1){
 						this->set_variable(0,2);
 						for(auto it :this->on_mouse_hitting_function_set) it.second(this);
 					}
-				} else {
-					if(statu == 0) {
+				} 
+				else {
+					if(statu == 0){
 						this->set_variable(0,1);
 						for(auto it : this->on_mouse_put_on_function_set) it.second(this);
-					} else if(statu == 2) {
+					} 
+					else if(statu == 2) {
 						this->set_variable(0,0);
 						for(auto it : this->on_click_function_set) it.second(this);
 					}
 				}
-			} else {
-				if(this->get_variable(0) == 1)	{
-					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+			} 
+			else {
+				if(this->get_variable(0) == 1){
 					this->set_variable(0,0);
+					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+				}
+				else if(this->get_variable(0) == 2 && !GetAsyncKeyState(LeftButton)){
+					this->set_variable(0,0);
+					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
 				}
 			}
 		}
@@ -308,11 +345,47 @@ class Element {
 			this->SpeedY = 0.00;
 			return this;
 		}
+		
+		inline void cancel_animate(const Animate& animate,double tick,double x,double y){
+			Position p = animate.function(tick);
+			this->pos.x -= p.x * x;
+			this->pos.y -= p.y * y;
+		}
+		
+		inline void run_animate(const Animate& animate,double tick,double x,double y){
+			Position p = animate.function(tick);
+			this->pos.x += p.x * x;
+			this->pos.y += p.y * y;
+		}
+		
+		inline void call_animations(){
+			vector<pair<pair<double,pair<double,double> >,Animate> > q;
+			for(auto& p : this->animations){
+				int w = p.first.first;
+				Animate& animate = p.second;
+				cancel_animate(animate,this->animate_states[w],p.first.second.first,p.first.second.second);
+				this->animate_states[w] += animate.speed;
+				if(this->animate_states[w] >= animate.end){
+					run_animate(animate,animate.end,p.first.second.first,p.first.second.second);
+					this->animate_states.erase(w);
+					auto it = this->animate_callbacks.find(w);
+					if(it == this->animate_callbacks.end()) continue;
+					it->second(this);
+					this->animate_callbacks.erase(it);
+					continue;
+				}
+				run_animate(animate,this->animate_states[w],p.first.second.first,p.first.second.second);
+				q.emplace_back(p);
+			}
+			this->animations.swap(q);
+		}
+		
 		inline virtual void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(auto it : this->frame_function_set) it.second(this);
 			if(this->deleted) return;
+			this->call_animations();
 			if(!this->is_show) return;
 
 			//backup
@@ -746,6 +819,16 @@ class Element {
 		inline void PhysicRemoveForceY() {
 			this->ForceY = 0;
 		}
+		
+		// Move Animated
+		inline void move_with_animation(double xpixel,double ypixel,const Animate& animate,function<void(Element*)> callback = nullptr){
+			static int cur = 0;
+			animate_states[++ cur] = 0;
+			Position p = animate.function(animate.end);
+			animations.emplace_back(make_pair(make_pair(cur,make_pair((p.x == 0 ? 0 : xpixel / p.x),(p.y == 0 ? 0 : ypixel / p.y))),animate));
+			if(callback == nullptr) return;
+			this->animate_callbacks[cur] = callback;
+		}
 #endif
 
 		inline Element* deleteElement();
@@ -1102,13 +1185,10 @@ Element* Element::deletethis() {
 }
 
 Element* Element::deleteElement() {
-//	// cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
-//			log("EMM");
 	Element_queue.erase(this);
 	this->deleted = true;
 	ElementPoolUsed[this->PoolIndex] = false;
-//			// cout<<this->PoolIndex<<" : 1->0\n";
 	this->frame_function_set.clear();
 	if((Element*)this->private_variables[1] == nullptr) for(auto i : this->image_vector) delimage(i);
 	this->image_vector.clear();
@@ -1197,14 +1277,20 @@ void reflush() {
 		FreeList.front()->deleteElement();
 		FreeList.pop();
 	}
-
+	
+	// run schedule
 	vector<function<void(void)>> schedule_backup;
-	int size = schedule.size();
-	for(int i = 0; i < size; ++ i) schedule_backup.push_back(schedule[i]);
-	schedule.clear();
-	int size2 = schedule_backup.size();
-	for(int i = 0; i < size2; ++ i) schedule_backup[i]();
-	schedule_backup.clear();
+	schedule_backup.swap(schedule);
+	for(auto func : schedule_backup) func();
+	
+	// check timeOut
+	double currentTime = getMs();
+	while(!schedule_timeOut.empty() && (*schedule_timeOut.begin()).first < currentTime){
+		auto vec = (*schedule_timeOut.begin()).second;
+		schedule_timeOut.erase(schedule_timeOut.begin());
+		for(const auto& func : vec) func();
+	}
+	
 	bool pen_nprinted = true;
 	cleardevice();
 
@@ -1219,7 +1305,7 @@ void reflush() {
 	if(pen_nprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
 	flushmouse();
 #ifdef FPS
-	static char fps[64];
+	static char fps[32];
 	memset(fps,0,sizeof(fps));
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
@@ -1254,7 +1340,7 @@ void start() {
 		if(FeEGE::getkey(VK_ESCAPE)) break;
 #endif
 #endif
-		delay_ms(1);
+		delay_jfps(120);
 	}
 }
 
