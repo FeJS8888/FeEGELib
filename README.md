@@ -39,7 +39,7 @@ EGE官网：https://xege.org/
 
 快捷连接器命令：
 ```
--static -static-libgcc  -lgraphics -luuid -lmsimg32 -lgdi32 -limm32 -lole32 -loleaut32 -lwinmm -lgdiplus -lws2_32
+-static -static-libgcc -lgraphics -lgdi32 -lgdiplus
 ```
 
 2、将FeEGELib.h放在与你的代码同一级目录下
