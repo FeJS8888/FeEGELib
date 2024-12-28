@@ -20,6 +20,7 @@
 #include<stdlib.h>
 #include<malloc.h>
 #include<time.h>
+#include<mutex>
 
 #ifndef MAXCLONESCOUNT
 #define MAXCLONESCOUNT 100
@@ -94,8 +95,8 @@ class Position {
 } lastpixel;
 
 namespace FeEGE {
-	short getkey(int VK) {
-		return GetAsyncKeyState(VK);
+	bool getkey(int VK) {
+		return GetAsyncKeyState(VK) & 0x8000;
 	}
 	void enable_pause() {
 		reg_pause = true;
@@ -262,7 +263,7 @@ class Element {
 					this->set_variable(0,0);
 					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
 				}
-				else if(this->get_variable(0) == 2 && !GetAsyncKeyState(LeftButton)){
+				else if(this->get_variable(0) == 2 && !getkey(LeftButton)){
 					this->set_variable(0,0);
 					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
 				}
@@ -500,7 +501,7 @@ class Element {
 		inline bool getisshow() {
 			return this->is_show;
 		}
-		inline void increase_order(int count) ;
+		inline void increase_order(int count);
 		inline void decrease_order(int count);
 		inline void set_order(int count);
 		inline void set_reg_order(int count) {
@@ -544,7 +545,7 @@ class Element {
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
 		}
 		inline bool ishit() {
-			if(!GetAsyncKeyState(LeftButton)) return false;
+			if(!getkey(LeftButton)) return false;
 			return this->ismousein();
 		}
 		inline void set_variable(unsigned int which,long long value) {
@@ -1167,9 +1168,12 @@ void reg_Element(Element* element) {
 }
 
 
-
+mutex M;
 Element* FeEGE::getElementById(string ElementId) {
-	return IdToElement[ElementId];
+	M.lock();
+	Element* res = IdToElement[ElementId];
+	M.unlock();
+	return res;
 }
 
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
@@ -1259,7 +1263,7 @@ void globalListen(int listen_mode,string identifier,auto function){
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set[identifier] = function ;
 }
 
-void stopGlobalListen(int listen_mode,string identifier,auto function){
+void stopGlobalListen(int listen_mode,string identifier){
 	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set.erase(identifier) ;
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
 }
