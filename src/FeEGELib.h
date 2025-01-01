@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.13.0--upd2024-11-23"
+#define FeEGELib_version "V1.2.14.0--upd2024-12-28"
 #define version() FeEGELib_version
 
 #include<graphics.h>
