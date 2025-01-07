@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.14.0--upd2024-12-28"
+#define FeEGELib_version "V1.2.15.0--upd2025-01-07"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -92,7 +92,7 @@ class Position {
 			this->y = y;
 		}
 		~Position() {}
-} lastpixel;
+} lastpixel,mousePos;
 
 namespace FeEGE {
 	bool getkey(int VK) {
@@ -162,6 +162,10 @@ namespace FeEGE {
 
 	Position& getLastPixel() {
 		return lastpixel;
+	}
+	
+	Position& getMousePos(){
+		return mousePos;
 	}
 }
 using namespace FeEGE;
@@ -535,8 +539,7 @@ class Element {
 		inline bool ismousein() {
 			if(GetForegroundWindow() != getHWnd()) return false;
 			if(!this->is_show) return false;
-			int x,y;
-			mousepos(&x,&y);
+			int x = getMousePos().x,y = getMousePos().y;
 			if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
 			this->draw_to_private_image();
 			color_t pixel = getpixel(x,y,this->__visible_image);
@@ -1032,7 +1035,7 @@ class Button : public Element{
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(auto it : this->frame_function_set) it.second(this);
-			if(this->ishit())
+//			if(this->ishit())
 			if(this->deleted) return;
 			if(!this->is_show) return;
 
@@ -1236,10 +1239,16 @@ Button* newButton(string id,string ImagePath,double x,double y,function<void(Ele
 	return button;
 }
 
+void SelectInputBox(InputBox* inputBox){
+	
+}
+
 Element* newInputBox(string id,string ImagePath,double x,double y,Element* submit_button,function<void(Element*)> on_submit = nullptr,function<void(Element*)> on_selected = nullptr){
 	Element* inputBox = newElement(id,ImagePath,x,y);
 	if(inputBox == nullptr) return nullptr;
 	inputBox->set_type("InputBox@native");
+	submit_button->listen(EventType.on_click,id + "SUBMIT EVENT",on_submit);
+	inputBox->listen(EventType.InputBox.on_select,"SELECT",on_selected);
 	return inputBox;
 }
 
@@ -1268,14 +1277,11 @@ void stopGlobalListen(int listen_mode,string identifier){
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
 }
 
-Position get_mouse_position(){
-	int x,y;
-	mousepos(&x,&y);
-	return Position{(double)x,(double)y};
-}
-
 void reflush() {
 	++ frame;
+	int x,y;
+	mousepos(&x,&y);
+	mousePos = {(double)x,(double)y};
 
 	while(!FreeList.empty()) {
 		FreeList.front()->deleteElement();
