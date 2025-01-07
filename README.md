@@ -1,3 +1,5 @@
+[![Page Views Count](https://badges.toozhao.com/badges/01JH01V78N1S0P0A9RVFJ5SWXZ/blue.svg)](https://badges.toozhao.com/stats/01JH01V78N1S0P0A9RVFJ5SWXZ "Get your own page views count badge on badges.toozhao.com")
+
 FeEGELib V1.2.15.0
 
 upd: 2025/01/07
