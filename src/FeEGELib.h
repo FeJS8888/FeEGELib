@@ -1,3 +1,13 @@
+/**
+ * @file FeEGELib.h
+ * @author FeJS8888 (fmxfmx2007@gmail.com,fmxfmx2007@163.com)
+ * @brief 
+ * @version V1.2.15.0
+ * @date 2025-01-07
+ * 
+ * @copyright MIT
+ * 
+ */
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
@@ -95,17 +105,36 @@ class Position {
 } lastpixel,mousePos;
 
 namespace FeEGE {
+	/**
+	 * @brief 这个函数用于获取某个按键的状态
+	 * 
+	 * @param VK 虚拟键码，常见 ASCII 字符用 ASCII 替代即可
+	 * @return true 表示正在被按住
+	 * @return false 表示未正在被按住
+	 */
 	bool getkey(int VK) {
 		return GetAsyncKeyState(VK) & 0x8000;
 	}
+	/**
+	 * @brief 
+	 * 
+	 */
 	void enable_pause() {
 		reg_pause = true;
 	}
+	/**
+	 * @brief 
+	 * 
+	 */
 	void  disable_pause() {
 		reg_pause = false;
 	}
 	Element* getElementById(string);
 	Element* getElementByPtr(Element*);
+	/**
+	 * @brief 
+	 * 
+	 */
 	void initpen() {
 		WIDTH = getwidth();
 		HEIGHT = getheight();
@@ -115,38 +144,97 @@ namespace FeEGE {
 		setcolor(EGERGB(255,0,0),pen_image);
 		setfillcolor(EGERGBA(1,1,4,0),pen_image);
 	}
-	
+	/**
+	 * @brief Get the Ms object
+	 * 
+	 * @return double 
+	 */
 	double getMs(){
 		return (double)clock() / CLOCKS_PER_SEC * 1000;
 	}
-	
+	/**
+	 * @brief 
+	 * 
+	 * @param func 
+	 */
 	void push_schedule(function<void(void)> func) {
 		schedule.push_back(func);
 	}
-	
+	/**
+	 * @brief Set the Time Out object
+	 * 
+	 * @param func 
+	 * @param time_ms 
+	 */
 	void setTimeOut(function<void(void)> func,double time_ms){
 		schedule_timeOut[getMs() + time_ms].emplace_back(func);
 	}
-
+	/**
+	 * @brief 
+	 * 
+	 */
 	class ClonesEvent {
 		public:
+			/**
+			 * @brief 
+			 * 
+			 */
 			int on_clone = 0x06;
 	};
-	
+	/**
+	 * @brief 
+	 * 
+	 */
 	class InputBoxEvent {
 		public:
+			/**
+			* @brief 
+			* 
+			*/
 			int on_select = 0x06;
 	};
 
 	class Events {
 		public:
+			/**
+			* @brief 
+			* 
+			*/
 			int frame = 0x00;
+			/**
+			* @brief 
+			* 
+			*/
 			int on_mouse_put_on = 0x01;
+			/**
+			* @brief 
+			* 
+			*/
 			int on_mouse_hitting = 0x02;
+			/**
+			* @brief 
+			* 
+			*/
 			int on_mouse_move_away = 0x03;
+			/**
+			* @brief 
+			* 
+			*/
 			int on_click = 0x04;
+			/**
+			* @brief 
+			* 
+			*/
 			int on_clone = 0x05;
+			/**
+			* @brief 
+			* 
+			*/
 			ClonesEvent clones;
+			/**
+			* @brief 
+			* 
+			*/
 			InputBoxEvent InputBox;
 	};
 
@@ -154,16 +242,32 @@ namespace FeEGE {
 
 	class PenTypes {
 		public:
-			int left = 0x01;
-			int middle = 0x02;
+		/**
+		 * @brief 
+		 * 
+		 */
+		int left = 0x01;
+		/**
+		 * @brief 
+		 * 
+		 */
+		int middle = 0x02;
 	};
 
 	PenTypes PenType;
-
+	/**
+	 * @brief Get the Last Pixel object
+	 * 
+	 * @return Position& 
+	 */
 	Position& getLastPixel() {
 		return lastpixel;
 	}
-	
+	/**
+	 * @brief Get the Mouse Pos object
+	 * 
+	 * @return Position& 
+	 */
 	Position& getMousePos(){
 		return mousePos;
 	}
@@ -238,7 +342,10 @@ class Element {
 		double ResistanceY;
 
 		vector<color_t> remove_colors;
-
+		/**
+		 * @brief 
+		 * 
+		 */
 		inline virtual void reflush_mouse_statu() {
 			/*
 				Test click
@@ -273,6 +380,12 @@ class Element {
 				}
 			}
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool draw_to_private_image() {
 			if(this->drawed) return false;
 			if(this->deleted) return false;
@@ -284,6 +397,13 @@ class Element {
 		}
 	public:
 		//Functions
+		/**
+		 * @brief Construct a new Element object
+		 * 
+		 * @param id 
+		 * @param image 
+		 * @param pos 
+		 */
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -306,6 +426,14 @@ class Element {
 			this->ResistanceY = 0.00;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
+		/**
+		 * @brief Construct a new Element object
+		 * 
+		 * @param id 
+		 * @param image 
+		 * @param x 
+		 * @param y 
+		 */
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -327,6 +455,16 @@ class Element {
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 		Element() { }
+		/**
+		 * @brief 
+		 * 
+		 * @param id 
+		 * @param image 
+		 * @param index 
+		 * @param x 
+		 * @param y 
+		 * @return Element* 
+		 */
 		inline Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -350,19 +488,36 @@ class Element {
 			this->SpeedY = 0.00;
 			return this;
 		}
-		
+		/**
+		 * @brief 
+		 * 
+		 * @param animate 
+		 * @param tick 
+		 * @param x 
+		 * @param y 
+		 */
 		inline void cancel_animate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x -= p.x * x;
 			this->pos.y -= p.y * y;
 		}
-		
+		/**
+		 * @brief 
+		 * 
+		 * @param animate 
+		 * @param tick 
+		 * @param x 
+		 * @param y 
+		 */
 		inline void run_animate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x += p.x * x;
 			this->pos.y += p.y * y;
 		}
-		
+		/**
+		 * @brief 
+		 * 
+		 */
 		inline void call_animations(){
 			vector<pair<pair<double,pair<double,double> >,Animate> > q;
 			for(auto& p : this->animations){
@@ -384,7 +539,10 @@ class Element {
 			}
 			this->animations.swap(q);
 		}
-		
+		/**
+		 * @brief 
+		 * 
+		 */
 		inline virtual void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
@@ -412,72 +570,176 @@ class Element {
 #endif
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 		}
+		/**
+		 * @brief Set the type object
+		 * 
+		 * @param type 
+		 */
 		inline void set_type(const string& type){
 			this->ElementType = type;
 		}
+		/**
+		 * @brief Get the type object
+		 * 
+		 * @param type 
+		 * @return string 
+		 */
 		inline string get_type(const string& type){
 			return this->ElementType;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param pixels 
+		 */
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param pixels 
+		 */
 		inline void move_right(double pixels = 0) {
 			this->pos.x += pixels;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param pixels 
+		 */
 		inline void move_up(double pixels = 0) {
 			this->pos.y -= pixels;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param pixels 
+		 */
 		inline void move_down(double pixels = 0) {
 			this->pos.y += pixels;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param pixels 
+		 */
 		inline void move_forward(double pixels = 0) {
 			this->pos.x -= sin(this->angle * PIE / 180.00f) * pixels;
 			this->pos.y -= cos(this->angle * PIE / 180.00f) * pixels;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param x 
+		 * @param y 
+		 */
 		inline void move_to(double x,double y) {
 			this->pos.x = x;
 			this->pos.y = y;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param position 
+		 */
 		inline void move_to(Position position) {
 			this->pos = position;
 		}
+		/**
+		 * @brief Get the pixel object
+		 * 
+		 * @param x 
+		 * @param y 
+		 * @return color_t 
+		 */
 		inline color_t get_pixel(int x,int y) {
 			return getpixel(x,y,this->__visible_image);
 		}
+		/**
+		 * @brief Get the scale object
+		 * 
+		 * @return short 
+		 */
 		inline short get_scale() {
 			return this->scale;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param scale 
+		 */
 		inline void increase_scale(short scale) {
 			if(this->scale + scale <= 255) this->scale += scale;
 			else this->scale = 255;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 255;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param scale 
+		 */
 		inline void decrease_scale(short scale) {
 			if(this->scale > scale) this->scale -= scale;
 			else this->scale = 0;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 101;
 		}
+		/**
+		 * @brief Set the scale object
+		 * 
+		 * @param scale 
+		 */
 		inline void set_scale(short scale) {
 			this->scale = scale;
 			this->scale %= 255;
 		}
+		/**
+		 * @brief 
+		 * 
+		 */
 		inline void show() {
 			this->is_show = true;
 		}
+		/**
+		 * @brief 
+		 * 
+		 */
 		inline void hide() {
 			this->is_show = false;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param angle 
+		 */
 		inline void turn_right(int angle) {
 			this->angle = (this->angle - angle) % 360;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param angle 
+		 */
 		inline void turn_left(int angle) {
 			this->angle = (this->angle + angle) % 360;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param angle 
+		 */
 		inline void turn_to(int angle) {
 			this->angle = angle % 360;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param that 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool face_to(Element* that){
 			if(that == nullptr) {
 				LPCSTR text = TEXT(("Element::face_to方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
@@ -496,24 +758,55 @@ class Element {
 			this->angle = atan2(dy,dx) / PIE * 180.00f;
 			return true;
 		}
+		/**
+		 * @brief Get the angle object
+		 * 
+		 * @return int 
+		 */
 		inline int get_angle() {
 			return this->angle;
 		}
+		/**
+		 * @brief Get the position object
+		 * 
+		 * @return Position 
+		 */
 		inline Position get_position() {
 			return this->pos;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool getisshow() {
 			return this->is_show;
 		}
 		inline void increase_order(int count);
 		inline void decrease_order(int count);
 		inline void set_order(int count);
+		/**
+		 * @brief Set the reg order object
+		 * 
+		 * @param count 
+		 */
 		inline void set_reg_order(int count) {
 			this->reg_order = count;
 		}
+		/**
+		 * @brief Get the reg order object
+		 * 
+		 * @return int 
+		 */
 		inline int get_reg_order() {
 			return this->reg_order;
 		}
+		/**
+		 * @brief Get the order object
+		 * 
+		 * @return int 
+		 */
 		inline int get_order() {
 			return this->order;
 		}
@@ -527,15 +820,36 @@ class Element {
 			else if (this->get_order() > _B.get_order()) return true;
 			return this->get_reg_order() > _B.get_reg_order();
 		}
+		/**
+		 * @brief Set the posx object
+		 * 
+		 * @param x 
+		 */
 		inline void set_posx(int x) {
 			this->pos.x = x;
 		}
+		/**
+		 * @brief Set the posy object
+		 * 
+		 * @param y 
+		 */
 		inline void set_posy(int y) {
 			this->pos.y = y;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param color 
+		 */
 		inline void remove_color(color_t color) {
 			this->remove_colors.push_back(color);
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool ismousein() {
 			if(GetForegroundWindow() != getHWnd()) return false;
 			if(!this->is_show) return false;
@@ -547,26 +861,68 @@ class Element {
 			for(int i = 0; i < size; ++ i) if(pixel == remove_colors[i]) return false;
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool ishit() {
 			if(!getkey(LeftButton)) return false;
 			return this->ismousein();
 		}
+		/**
+		 * @brief Set the variable object
+		 * 
+		 * @param which 
+		 * @param value 
+		 */
 		inline void set_variable(unsigned int which,long long value) {
 			this->private_variables[which] = value;
 //			// cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 		}
+		/**
+		 * @brief Get the variable object
+		 * 
+		 * @param which 
+		 * @return long& 
+		 */
 		inline long long& get_variable(unsigned int which) {
 			return this->private_variables[which];
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param which 
+		 * @param value 
+		 */
 		inline void increase_variable(unsigned int which,long long value) {
 			this->private_variables[which] += value;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param which 
+		 * @param value 
+		 */
 		inline void decrease_variable(unsigned int which,long long value) {
 			this->private_variables[which] -= value;
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param image 
+		 */
 		inline void add_image(PIMAGE image) {
 			this->image_vector.push_back(image);
 		}
+		/**
+		 * @brief Set the image object
+		 * 
+		 * @param order 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool set_image(int order) {
 			if(this->image_vector[order] != nullptr){
 				this->current_image = order;
@@ -574,12 +930,29 @@ class Element {
 			}
 			return false;
 		}
+		/**
+		 * @brief Get the image order object
+		 * 
+		 * @return int 
+		 */
 		inline int get_image_order() {
 			return this->current_image;
 		}
+		/**
+		 * @brief Get the image object
+		 * 
+		 * @return PIMAGE 
+		 */
 		inline PIMAGE get_image() {
 			return this->image_vector[this->current_image];
 		}
+		/**
+		 * @brief 
+		 * 
+		 * @param that 
+		 * @return true 
+		 * @return false 
+		 */
 		inline bool is_touched_by(Element* that) {
 			if(that == nullptr) {
 				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
