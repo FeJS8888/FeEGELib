@@ -1,17 +1,7 @@
-/**
- * @file FeEGELib.h
- * @author FeJS8888 (fmxfmx2007@gmail.com,fmxfmx2007@163.com)
- * @brief 
- * @version V1.2.15.0
- * @date 2025-01-07
- * 
- * @copyright MIT
- * 
- */
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.15.0--upd2025-01-07"
+#define FeEGELib_version "V1.2.16.0--upd2025-02-19"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -48,6 +38,10 @@
 #define X WIDTH
 #define Y HEIGHT
 
+#ifdef BigScreen
+#define getkey GetAsyncKeyState
+#endif
+
 using namespace std;
 
 const double eps = 1e-7;
@@ -70,6 +64,7 @@ mouse_msg mouseinfo;
 bool keystatus[360];
 map<string,function<void(void)>> globalListen_frame_function_set;
 map<string,function<void(void)>> globalListen_on_click_function_set;
+map<int,bool> VK_STATE;
 
 int WIDTH;
 int HEIGHT;
@@ -105,36 +100,24 @@ class Position {
 } lastpixel,mousePos;
 
 namespace FeEGE {
-	/**
-	 * @brief 这个函数用于获取某个按键的状态
-	 * 
-	 * @param VK 虚拟键码，常见 ASCII 字符用 ASCII 替代即可
-	 * @return true 表示正在被按住
-	 * @return false 表示未正在被按住
-	 */
-	bool getkey(int VK) {
-		return GetAsyncKeyState(VK) & 0x8000;
+	#ifndef BigScreen
+	bool builtin_getkey(){
+		for(int i = 0;i <= 0xFF;++ i){
+			VK_STATE[i] = GetAsyncKeyState(i) & 0x8000;
+		}
 	}
-	/**
-	 * @brief 允许暂停
-	 * 
-	 */
+	bool getkey(int VK) {
+		return VK_STATE[VK];
+	}
+	#endif
 	void enable_pause() {
 		reg_pause = true;
 	}
-	/**
-	 * @brief 不允许暂停
-	 * 
-	 */
 	void  disable_pause() {
 		reg_pause = false;
 	}
 	Element* getElementById(string);
 	Element* getElementByPtr(Element*);
-	/**
-	 * @brief 初始化画笔，此方法在 init 方法中会被调用一次，无需手动调用
-	 * 
-	 */
 	void initpen() {
 		WIDTH = getwidth();
 		HEIGHT = getheight();
@@ -144,97 +127,38 @@ namespace FeEGE {
 		setcolor(EGERGB(255,0,0),pen_image);
 		setfillcolor(EGERGBA(1,1,4,0),pen_image);
 	}
-	/**
-	 * @brief 获取当前系统时间（精确到毫秒）
-	 * 
-	 * @return double 
-	 */
+	
 	double getMs(){
 		return (double)clock() / CLOCKS_PER_SEC * 1000;
 	}
-	/**
-	 * @brief 在下一帧安排一个任务
-	 * 
-	 * @param func 安排的任务函数
-	 */
+	
 	void push_schedule(function<void(void)> func) {
 		schedule.push_back(func);
 	}
-	/**
-	 * @brief 设置延时调用某个任务
-	 * 
-	 * @param func 安排的任务函数
-	 * @param time_ms 延时时长
-	 */
+	
 	void setTimeOut(function<void(void)> func,double time_ms){
 		schedule_timeOut[getMs() + time_ms].emplace_back(func);
 	}
-	/**
-	 * @brief 
-	 * 
-	 */
+
 	class ClonesEvent {
 		public:
-			/**
-			 * @brief 
-			 * 
-			 */
 			int on_clone = 0x06;
 	};
-	/**
-	 * @brief 
-	 * 
-	 */
+	
 	class InputBoxEvent {
 		public:
-			/**
-			* @brief 
-			* 
-			*/
 			int on_select = 0x06;
 	};
 
 	class Events {
 		public:
-			/**
-			* @brief 
-			* 
-			*/
 			int frame = 0x00;
-			/**
-			* @brief 
-			* 
-			*/
 			int on_mouse_put_on = 0x01;
-			/**
-			* @brief 
-			* 
-			*/
 			int on_mouse_hitting = 0x02;
-			/**
-			* @brief 
-			* 
-			*/
 			int on_mouse_move_away = 0x03;
-			/**
-			* @brief 
-			* 
-			*/
 			int on_click = 0x04;
-			/**
-			* @brief 
-			* 
-			*/
 			int on_clone = 0x05;
-			/**
-			* @brief 
-			* 
-			*/
 			ClonesEvent clones;
-			/**
-			* @brief 
-			* 
-			*/
 			InputBoxEvent InputBox;
 	};
 
@@ -242,32 +166,16 @@ namespace FeEGE {
 
 	class PenTypes {
 		public:
-		/**
-		 * @brief 
-		 * 
-		 */
-		int left = 0x01;
-		/**
-		 * @brief 
-		 * 
-		 */
-		int middle = 0x02;
+			int left = 0x01;
+			int middle = 0x02;
 	};
 
 	PenTypes PenType;
-	/**
-	 * @brief Get the Last Pixel object
-	 * 
-	 * @return Position& 
-	 */
+
 	Position& getLastPixel() {
 		return lastpixel;
 	}
-	/**
-	 * @brief Get the Mouse Pos object
-	 * 
-	 * @return Position& 
-	 */
+	
 	Position& getMousePos(){
 		return mousePos;
 	}
@@ -342,10 +250,7 @@ class Element {
 		double ResistanceY;
 
 		vector<color_t> remove_colors;
-		/**
-		 * @brief 
-		 * 
-		 */
+
 		inline virtual void reflush_mouse_statu() {
 			/*
 				Test click
@@ -353,6 +258,13 @@ class Element {
 			if(this->ismousein()){
 				int statu = this->get_variable(0);
 				if(this->ishit()){
+					#ifdef BigScreen
+					if(statu == 0){
+						this->set_variable(0,2);
+						for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+					}
+					#endif
+					
 					if(statu == 1){
 						this->set_variable(0,2);
 						for(auto it :this->on_mouse_hitting_function_set) it.second(this);
@@ -380,12 +292,6 @@ class Element {
 				}
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool draw_to_private_image() {
 			if(this->drawed) return false;
 			if(this->deleted) return false;
@@ -397,13 +303,6 @@ class Element {
 		}
 	public:
 		//Functions
-		/**
-		 * @brief Construct a new Element object
-		 * 
-		 * @param id 
-		 * @param image 
-		 * @param pos 
-		 */
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -426,14 +325,6 @@ class Element {
 			this->ResistanceY = 0.00;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
-		/**
-		 * @brief Construct a new Element object
-		 * 
-		 * @param id 
-		 * @param image 
-		 * @param x 
-		 * @param y 
-		 */
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -455,16 +346,6 @@ class Element {
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 		Element() { }
-		/**
-		 * @brief 
-		 * 
-		 * @param id 
-		 * @param image 
-		 * @param index 
-		 * @param x 
-		 * @param y 
-		 * @return Element* 
-		 */
 		inline Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0) {
 			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
@@ -488,36 +369,19 @@ class Element {
 			this->SpeedY = 0.00;
 			return this;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param animate 
-		 * @param tick 
-		 * @param x 
-		 * @param y 
-		 */
+		
 		inline void cancel_animate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x -= p.x * x;
 			this->pos.y -= p.y * y;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param animate 
-		 * @param tick 
-		 * @param x 
-		 * @param y 
-		 */
+		
 		inline void run_animate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x += p.x * x;
 			this->pos.y += p.y * y;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
+		
 		inline void call_animations(){
 			vector<pair<pair<double,pair<double,double> >,Animate> > q;
 			for(auto& p : this->animations){
@@ -539,10 +403,7 @@ class Element {
 			}
 			this->animations.swap(q);
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
+		
 		inline virtual void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
@@ -570,176 +431,72 @@ class Element {
 #endif
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 		}
-		/**
-		 * @brief Set the type object
-		 * 
-		 * @param type 
-		 */
 		inline void set_type(const string& type){
 			this->ElementType = type;
 		}
-		/**
-		 * @brief Get the type object
-		 * 
-		 * @param type 
-		 * @return string 
-		 */
 		inline string get_type(const string& type){
 			return this->ElementType;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param pixels 
-		 */
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param pixels 
-		 */
 		inline void move_right(double pixels = 0) {
 			this->pos.x += pixels;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param pixels 
-		 */
 		inline void move_up(double pixels = 0) {
 			this->pos.y -= pixels;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param pixels 
-		 */
 		inline void move_down(double pixels = 0) {
 			this->pos.y += pixels;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param pixels 
-		 */
 		inline void move_forward(double pixels = 0) {
 			this->pos.x -= sin(this->angle * PIE / 180.00f) * pixels;
 			this->pos.y -= cos(this->angle * PIE / 180.00f) * pixels;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param x 
-		 * @param y 
-		 */
 		inline void move_to(double x,double y) {
 			this->pos.x = x;
 			this->pos.y = y;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param position 
-		 */
 		inline void move_to(Position position) {
 			this->pos = position;
 		}
-		/**
-		 * @brief Get the pixel object
-		 * 
-		 * @param x 
-		 * @param y 
-		 * @return color_t 
-		 */
 		inline color_t get_pixel(int x,int y) {
 			return getpixel(x,y,this->__visible_image);
 		}
-		/**
-		 * @brief Get the scale object
-		 * 
-		 * @return short 
-		 */
 		inline short get_scale() {
 			return this->scale;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param scale 
-		 */
 		inline void increase_scale(short scale) {
 			if(this->scale + scale <= 255) this->scale += scale;
 			else this->scale = 255;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 255;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param scale 
-		 */
 		inline void decrease_scale(short scale) {
 			if(this->scale > scale) this->scale -= scale;
 			else this->scale = 0;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 101;
 		}
-		/**
-		 * @brief Set the scale object
-		 * 
-		 * @param scale 
-		 */
 		inline void set_scale(short scale) {
 			this->scale = scale;
 			this->scale %= 255;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void show() {
 			this->is_show = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void hide() {
 			this->is_show = false;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 */
 		inline void turn_right(int angle) {
 			this->angle = (this->angle - angle) % 360;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 */
 		inline void turn_left(int angle) {
 			this->angle = (this->angle + angle) % 360;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 */
 		inline void turn_to(int angle) {
 			this->angle = angle % 360;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param that 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool face_to(Element* that){
 			if(that == nullptr) {
 				LPCSTR text = TEXT(("Element::face_to方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
@@ -758,55 +515,24 @@ class Element {
 			this->angle = atan2(dy,dx) / PIE * 180.00f;
 			return true;
 		}
-		/**
-		 * @brief Get the angle object
-		 * 
-		 * @return int 
-		 */
 		inline int get_angle() {
 			return this->angle;
 		}
-		/**
-		 * @brief Get the position object
-		 * 
-		 * @return Position 
-		 */
 		inline Position get_position() {
 			return this->pos;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool getisshow() {
 			return this->is_show;
 		}
 		inline void increase_order(int count);
 		inline void decrease_order(int count);
 		inline void set_order(int count);
-		/**
-		 * @brief Set the reg order object
-		 * 
-		 * @param count 
-		 */
 		inline void set_reg_order(int count) {
 			this->reg_order = count;
 		}
-		/**
-		 * @brief Get the reg order object
-		 * 
-		 * @return int 
-		 */
 		inline int get_reg_order() {
 			return this->reg_order;
 		}
-		/**
-		 * @brief Get the order object
-		 * 
-		 * @return int 
-		 */
 		inline int get_order() {
 			return this->order;
 		}
@@ -820,36 +546,15 @@ class Element {
 			else if (this->get_order() > _B.get_order()) return true;
 			return this->get_reg_order() > _B.get_reg_order();
 		}
-		/**
-		 * @brief Set the posx object
-		 * 
-		 * @param x 
-		 */
 		inline void set_posx(int x) {
 			this->pos.x = x;
 		}
-		/**
-		 * @brief Set the posy object
-		 * 
-		 * @param y 
-		 */
 		inline void set_posy(int y) {
 			this->pos.y = y;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param color 
-		 */
 		inline void remove_color(color_t color) {
 			this->remove_colors.push_back(color);
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool ismousein() {
 			if(GetForegroundWindow() != getHWnd()) return false;
 			if(!this->is_show) return false;
@@ -861,68 +566,26 @@ class Element {
 			for(int i = 0; i < size; ++ i) if(pixel == remove_colors[i]) return false;
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool ishit() {
 			if(!getkey(LeftButton)) return false;
 			return this->ismousein();
 		}
-		/**
-		 * @brief Set the variable object
-		 * 
-		 * @param which 
-		 * @param value 
-		 */
 		inline void set_variable(unsigned int which,long long value) {
 			this->private_variables[which] = value;
 //			// cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 		}
-		/**
-		 * @brief Get the variable object
-		 * 
-		 * @param which 
-		 * @return long& 
-		 */
 		inline long long& get_variable(unsigned int which) {
 			return this->private_variables[which];
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param which 
-		 * @param value 
-		 */
 		inline void increase_variable(unsigned int which,long long value) {
 			this->private_variables[which] += value;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param which 
-		 * @param value 
-		 */
 		inline void decrease_variable(unsigned int which,long long value) {
 			this->private_variables[which] -= value;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param image 
-		 */
 		inline void add_image(PIMAGE image) {
 			this->image_vector.push_back(image);
 		}
-		/**
-		 * @brief Set the image object
-		 * 
-		 * @param order 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool set_image(int order) {
 			if(this->image_vector[order] != nullptr){
 				this->current_image = order;
@@ -930,29 +593,12 @@ class Element {
 			}
 			return false;
 		}
-		/**
-		 * @brief Get the image order object
-		 * 
-		 * @return int 
-		 */
 		inline int get_image_order() {
 			return this->current_image;
 		}
-		/**
-		 * @brief Get the image object
-		 * 
-		 * @return PIMAGE 
-		 */
 		inline PIMAGE get_image() {
 			return this->image_vector[this->current_image];
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param that 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool is_touched_by(Element* that) {
 			if(that == nullptr) {
 				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
@@ -990,11 +636,6 @@ class Element {
 				}
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @return Element* 
-		 */
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
 			for(int i = 0; i < nextclonecount; ++ i) {
@@ -1033,21 +674,9 @@ class Element {
 			for(auto it : this->on_clone_clones_function_set) it.second(e[nextclonecount]);
 			return e[nextclonecount ++];
 		}
-		/**
-		 * @brief Get the Id object
-		 * 
-		 * @return string 
-		 */
 		inline string getId() {
 			return this->id;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param listen_mode 
-		 * @param identifier 
-		 * @param function 
-		 */
 		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
 			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
@@ -1061,12 +690,6 @@ class Element {
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param listen_mode 
-		 * @param identifier 
-		 */
 		inline virtual void stop(int listen_mode,string identifier) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
 			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
@@ -1081,72 +704,36 @@ class Element {
 			}
 		}
 		inline Element* deletethis();
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void cancel_x() {
 			this->is_cancel_x = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void cancel_y() {
 			this->is_cancel_y = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void cancel_move() {
 			this->is_cancel_x = true;
 			this->is_cancel_y = true;
 		}
-		/**
-		 * @brief Get the alpha object
-		 * 
-		 * @return short 
-		 */
 		inline short get_alpha() {
 			return this->alpha;
 		}
-		/**
-		 * @brief Set the alpha object
-		 * 
-		 * @param alpha 
-		 */
 		inline void set_alpha(short alpha) {
 			this->alpha = alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param alpha 
-		 */
 		inline void decrease_alpha(short alpha) {
 			if(this->alpha - alpha < 0) this->alpha = 0;
 			else this->alpha -= alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param alpha 
-		 */
 		inline void increase_alpha(short alpha) {
 			if(this->alpha + alpha > 255) this->alpha = 255;
 			else this->alpha += alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void nextimage() {
 			do {
 				this->current_image ++;
@@ -1154,12 +741,6 @@ class Element {
 			} while(this->image_vector[current_image] == nullptr);
 		}
 #ifndef NO_THREAD
-		/**
-		 * @brief 
-		 * 
-		 * @param ImagePath 
-		 * @param id 
-		 */
 		inline void loadImage(string ImagePath,int id) {
 			thread([this,ImagePath,id]() {
 				PIMAGE image = newimage();
@@ -1174,35 +755,18 @@ class Element {
 				this->image_lock = false;
 			}).detach();
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param id 
-		 */
 		inline void deleteImage(int id) {
 			thread([this,id]() {
 				delimage(this->image_vector[id]);
 			}).detach();
 		}
 #endif
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void disable_draw_to_private_image() {
 			this->disabled_draw_to_private_image = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void enable_draw_to_private_image() {
 			this->disabled_draw_to_private_image = false;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void ignoreBlack() {
 			int XX = getwidth(this->image_vector[this->current_image]);
 			int YY = getheight(this->image_vector[this->current_image]);
@@ -1213,70 +777,32 @@ class Element {
 			}
 		}
 #ifdef TEST_FUNCTION 
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void useHittingBox(){
 			this->HittingBox = true;
 		} 
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void stopHittingBox(){
 			this->HittingBox = false;
 		}
 
 		// PhysicEngine
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void enablePhysicEngine() {
 			this->PhysicEngineStatu = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void disablePhysicEngine() {
 			this->PhysicEngineStatu = false;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 * @param force 
-		 */
 		inline void PhysicForce(double angle,double force) {
 			this->ForceX += cos(angle * PIE / 180.00) * force;
 			this->ForceY -= sin(angle * PIE / 180.00) * force;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 * @param speed 
-		 */
 		inline void PhysicSpeed(double angle,double speed) {
 			this->SpeedX += cos(angle * PIE / 180.00) * speed;
 			this->SpeedY -= sin(angle * PIE / 180.00) * speed;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param angle 
-		 * @param resistance 
-		 */
 		inline void PhysicResistance(double angle,double resistance) {
 			this->ResistanceX += cos(angle * PIE / 180.00) * resistance;
 			this->ResistanceY -= sin(angle * PIE / 180.00) * resistance;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void UpdatePhysicSpeed() {
 			this->SpeedX += ForceX;
 			this->SpeedY += ForceY;
@@ -1287,82 +813,37 @@ class Element {
 			if(YY && fabs(this->SpeedY) >= fabs(this->ResistanceY)) this->SpeedY -= this->ResistanceY;
 			else if(YY) this->SpeedY = 0;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void UpdatePhysicPosition() {
 			this->pos.x += SpeedX * GlobalRating;
 			this->pos.y += SpeedY * GlobalRating;
+//			cout<<"updated\n";
 		}
-		/**
-		 * @brief Get the Speed X object
-		 * 
-		 * @return double 
-		 */
 		inline double getSpeedX() {
 			return this->SpeedX;
 		}
-		/**
-		 * @brief Get the Speed Y object
-		 * 
-		 * @return double 
-		 */
 		inline double getSpeedY() {
 			return this->SpeedY;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicArcSpeedX() {
 			this->SpeedX = -this->SpeedX;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicArcSpeedY() {
 			this->SpeedY = -this->SpeedY;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicRemoveSpeedX() {
 			this->SpeedX = 0;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicRemoveSpeedY() {
 			this->SpeedY = 0;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicRemoveForceX() {
 			this->ForceX = 0;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void PhysicRemoveForceY() {
 			this->ForceY = 0;
 		}
 		
 		// Move Animated
-		/**
-		 * @brief 
-		 * 
-		 * @param xpixel 
-		 * @param ypixel 
-		 * @param animate 
-		 * @param callback 
-		 */
 		inline void move_with_animation(double xpixel,double ypixel,const Animate& animate,function<void(Element*)> callback = nullptr){
 			static int cur = 0;
 			animate_states[++ cur] = 0;
@@ -1387,57 +868,24 @@ class InputBoxSet{
 		InputBoxSet(){
 			this->is_enabled = false;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void enable(){
 			this->is_enabled = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void disable(){
 			this->is_enabled = false;
 		}
-		/**
-		 * @brief Get the enable statu object
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool get_enable_statu(){
 			return this->is_enabled;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param inputbox 
-		 */
 		inline void insert(Element* inputbox){
 			this->childs.insert(inputbox);
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param inputbox 
-		 */
 		inline void erase(Element* inputbox){
 			this->childs.erase(inputbox); 
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param inputbox 
-		 */
 		inline void select(Element* inputbox){
 			
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void call(){
 			for(Element* inputbox : childs){
 				inputbox->call();
@@ -1461,36 +909,15 @@ class InputBox : public Element{
 			if(this->father != nullptr) this->father->erase(this);
 			this->father = father;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void enable(){
 			this->is_enabled = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void disable(){
 			this->is_enabled = false;
 		}
-		/**
-		 * @brief Get the enable statu object
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool get_enable_statu(){
 			return this->is_enabled;
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param listen_mode 
-		 * @param identifier 
-		 * @param function 
-		 */
 		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
 			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
@@ -1504,12 +931,6 @@ class InputBox : public Element{
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 * @param listen_mode 
-		 * @param identifier 
-		 */
 		inline virtual void stop(int listen_mode,string identifier) {
 			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
 			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
@@ -1523,10 +944,6 @@ class InputBox : public Element{
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void reflush_mouse_statu() override {
 			/*
 				Test click
@@ -1560,10 +977,6 @@ class InputBox : public Element{
 				}
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void call() override {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
@@ -1597,33 +1010,15 @@ class Button : public Element{
 		Button(){
 			this->is_enabled = false;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void enable(){
 			this->is_enabled = true;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void disable(){
 			this->is_enabled = false;
 		}
-		/**
-		 * @brief Get the enable statu object
-		 * 
-		 * @return true 
-		 * @return false 
-		 */
 		inline bool get_enable_statu(){
 			return this->is_enabled;
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void reflush_mouse_statu() override {
 			/*
 				Test click
@@ -1655,10 +1050,6 @@ class Button : public Element{
 				}
 			}
 		}
-		/**
-		 * @brief 
-		 * 
-		 */
 		inline void call() override {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
@@ -1696,31 +1087,19 @@ class cmp {
 };
 
 set<Element*,cmp>Element_queue;
-/**
- * @brief 
- * 
- * @param count 
- */
+
 void Element::increase_order(int count) {
 	Element_queue.erase(this);
 	this->order += count;
 	Element_queue.insert(this);
 }
-/**
- * @brief 
- * 
- * @param count 
- */
+
 void Element::decrease_order(int count) {
 	Element_queue.erase(this);
 	this->order -= count;
 	Element_queue.insert(this);
 }
-/**
- * @brief 
- * 
- * @param count 
- */
+
 void Element::set_order(int count) {
 	Element_queue.erase(this);
 	this->order = count;
@@ -1733,13 +1112,6 @@ namespace pen {
 	short penalpha = 255;
 	int penType = FeEGE::PenType.left;
 	int charwidth,charheight;
-	/**
-	 * @brief 
-	 * 
-	 * @param x 
-	 * @param y 
-	 * @param str 
-	 */
 	inline void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
 		if(penType == FeEGE::PenType.middle) {
@@ -1748,12 +1120,6 @@ namespace pen {
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param scale 
-	 * @param fontname 
-	 */
 	inline void font(int scale,string fontname = "幼圆") {
 		if(pen_image == nullptr) return;
 		fontscale = scale;
@@ -1761,140 +1127,60 @@ namespace pen {
 		charwidth = textwidth('t',pen_image);
 		charheight = textheight('t',pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param color 
-	 */
 	inline void color(color_t color) {
 		if(pen_image == nullptr) return;
 		setcolor(color,pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param Type 
-	 */
 	inline void type(int Type) {
 		penType = Type;
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param x 
-	 * @param y 
-	 * @param ex 
-	 * @param ey 
-	 */
 	inline void clear(int x,int y,int ex,int ey) {
 		if(pen_image == nullptr) return;
 		bar(x,y,ex,ey,pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param x 
-	 * @param y 
-	 */
 	inline void clear_char(int x,int y) {
 		if(pen_image == nullptr) return;
 		bar(x,y,x + charwidth,y + charheight,pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param x 
-	 * @param y 
-	 * @param charcount 
-	 */
 	inline void clear_chars(int x,int y,int charcount) {
 		if(pen_image == nullptr) return;
 		bar(x,y,x + charwidth * charcount,y + charwidth,pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 */
 	inline void clear_all() {
 		if(pen_image == nullptr) return;
 		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param value 
-	 */
 	inline void setorder(int value) {
 		order = value;
 	}
-	/**
-	 * @brief Set the alpha object
-	 * 
-	 * @param alpha 
-	 */
 	inline void set_alpha(short alpha) {
 		penalpha = alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
 	}
-	/**
-	 * @brief Get the alpha object
-	 * 
-	 * @return short 
-	 */
 	inline short get_alpha() {
 		return penalpha;
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param alpha 
-	 */
 	inline void increase_alpha(short alpha){
 		penalpha += alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param alpha 
-	 */
 	inline void decrease_alpha(short alpha){
 		penalpha -= alpha;
 		penalpha %= 256;
 		if(penalpha < 0) penalpha += 256;
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param x1 
-	 * @param y1 
-	 * @param x2 
-	 * @param y2 
-	 */
 	inline void print_line(int x1,int y1,int x2,int y2){
 		line(x1,y1,x2,y2,pen_image);
 	}
-	/**
-	 * @brief 
-	 * 
-	 * @param left 
-	 * @param top 
-	 * @param right 
-	 * @param bottom 
-	 */
 	inline void print_bar(int left,int top,int right,int bottom){
 		bar(left,top,right,bottom,pen_image);
 	}
 }
 
 //Functions
-/**
- * @brief 
- * 
- * @param element 
- */
+
 void reg_Element(Element* element) {
 	element->set_reg_order(current_reg_order ++);
 	Element_queue.insert(element);
@@ -1905,44 +1191,25 @@ void reg_Element(Element* element) {
 
 
 mutex M;
-/**
- * @brief 
- * 
- * @param ElementId 
- * @return Element* 
- */
 Element* FeEGE::getElementById(string ElementId) {
 	M.lock();
 	Element* res = IdToElement[ElementId];
 	M.unlock();
 	return res;
 }
-/**
- * @brief 
- * 
- * @param ElementPtr 
- * @return Element* 
- */
+
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
 	return (ElementIsIn.find(ElementPtr) != ElementIsIn.end()) ? ElementPtr : nullptr;
 }
 
 Element ElementPool[MAXELEMENTCOUNT];
 bool ElementPoolUsed[MAXELEMENTCOUNT] = {};
-/**
- * @brief 
- * 
- * @return Element* 
- */
+
 Element* Element::deletethis() {
 	FreeList.push(this);
 	return this;
 }
-/**
- * @brief 
- * 
- * @return Element* 
- */
+
 Element* Element::deleteElement() {
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 	Element_queue.erase(this);
@@ -1964,15 +1231,7 @@ Element* Element::deleteElement() {
 	IdToElement[this->id] = nullptr;
 	return this;
 }
-/**
- * @brief 
- * 
- * @param id 
- * @param ImagePath 
- * @param x 
- * @param y 
- * @return Element* 
- */
+
 Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	PIMAGE image = newimage();
 	if(ImagePath != "") getimage(image,TEXT(ImagePath.c_str()));
@@ -1988,18 +1247,7 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
 	return nullptr;
 }
-/**
- * @brief 
- * 
- * @param id 
- * @param ImagePath 
- * @param x 
- * @param y 
- * @param put_on 
- * @param move_away 
- * @param on_click 
- * @return Button* 
- */
+
 Button* newButton(string id,string ImagePath,double x,double y,function<void(Element*)> put_on = nullptr,function<void(Element*)> move_away = nullptr,function<void(Element*)> on_click = nullptr) {
 	Button* button = (Button*)newElement(id,ImagePath,x,y);
 	if(button == nullptr) return nullptr;
@@ -2009,26 +1257,11 @@ Button* newButton(string id,string ImagePath,double x,double y,function<void(Ele
 	button->listen(FeEGE::EventType.on_mouse_move_away,"hit@native",move_away);
 	return button;
 }
-/**
- * @brief 
- * 
- * @param inputBox 
- */
+
 void SelectInputBox(InputBox* inputBox){
 	
 }
-/**
- * @brief 
- * 
- * @param id 
- * @param ImagePath 
- * @param x 
- * @param y 
- * @param submit_button 
- * @param on_submit 
- * @param on_selected 
- * @return Element* 
- */
+
 Element* newInputBox(string id,string ImagePath,double x,double y,Element* submit_button,function<void(Element*)> on_submit = nullptr,function<void(Element*)> on_selected = nullptr){
 	Element* inputBox = newElement(id,ImagePath,x,y);
 	if(inputBox == nullptr) return nullptr;
@@ -2039,15 +1272,6 @@ Element* newInputBox(string id,string ImagePath,double x,double y,Element* submi
 }
 
 #if true
-/**
- * @brief 
- * 
- * @param id 
- * @param image 
- * @param x 
- * @param y 
- * @return Element* 
- */
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
@@ -2061,31 +1285,17 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	return nullptr;
 }
 #endif
-/**
- * @brief 
- * 
- * @param listen_mode 
- * @param identifier 
- * @param function 
- */
+
 void globalListen(int listen_mode,string identifier,auto function){
 	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set[identifier] = function ;
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set[identifier] = function ;
 }
-/**
- * @brief 
- * 
- * @param listen_mode 
- * @param identifier 
- */
+
 void stopGlobalListen(int listen_mode,string identifier){
 	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set.erase(identifier) ;
 	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
 }
-/**
- * @brief 
- * 
- */
+
 void reflush() {
 	++ frame;
 	int x,y;
@@ -2123,30 +1333,25 @@ void reflush() {
 	}
 	if(pen_nprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
 	flushmouse();
-#ifdef FPS
+	#ifdef FPS
 	static char fps[32];
 	memset(fps,0,sizeof(fps));
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
-#endif
+	#endif
+	#ifndef BigScreen
+	builtin_getkey();
+	#endif
 	delay_ms(1);
 }
-/**
- * @brief 
- * 
- * @param x 
- * @param y 
- */
+
 void init(int x,int y){
 	setinitmode(INIT_RENDERMANUAL);
 	initgraph(x,y);
 	initXY();
 	FeEGE::initpen();
 }
-/**
- * @brief 
- * 
- */
+
 void start() {
 	closeGraph = false;
 	initXY();
