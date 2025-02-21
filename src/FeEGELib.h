@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.16.0--upd2025-02-19"
+#define FeEGELib_version "V1.2.16.1--upd2025-02-21"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -1345,8 +1345,8 @@ void reflush() {
 	delay_ms(1);
 }
 
-void init(int x,int y){
-	setinitmode(INIT_RENDERMANUAL);
+void init(int x,int y,int mode = INIT_RENDERMANUAL){
+	setinitmode(mode);
 	initgraph(x,y);
 	initXY();
 	FeEGE::initpen();
