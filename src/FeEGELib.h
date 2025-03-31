@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.16.1--upd2025-02-21"
+#define FeEGELib_version "V1.2.19.0--upd2025-03-31"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -20,6 +20,7 @@
 #include<stdlib.h>
 #include<malloc.h>
 #include<time.h>
+#include <locale>
 #include<mutex>
 
 #ifndef MAXCLONESCOUNT
@@ -429,7 +430,7 @@ class Element {
 				this->UpdatePhysicPosition();
 			}
 #endif
-			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,-(this->angle / 180.00f * PIE),this->scale / 100.00f,1,this->alpha);
 		}
 		inline void set_type(const string& type){
 			this->ElementType = type;
@@ -1120,6 +1121,14 @@ namespace pen {
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
+	inline void print(int x,int y,wstring str) {
+		if(pen_image == nullptr) return;
+		if(penType == FeEGE::PenType.middle) {
+			x -= charwidth * str.length() >> 1;
+			y -= charheight >> 1;
+		}
+		outtextxy(x,y,str.c_str(),pen_image);
+	}
 	inline void font(int scale,string fontname = "幼圆") {
 		if(pen_image == nullptr) return;
 		fontscale = scale;
@@ -1232,7 +1241,110 @@ Element* Element::deleteElement() {
 	return this;
 }
 
+inline string getCurrentPath() {
+    char buffer[MAX_PATH];
+    if (GetModuleFileNameA(NULL, buffer, MAX_PATH)) {
+        string fullPath(buffer);
+        size_t lastSlash = fullPath.find_last_of("\\/");
+        if (lastSlash != std::string::npos) {
+            return fullPath.substr(0, lastSlash);
+        }
+    }
+    return "";
+}
+
+inline string resolvePath(string s){
+	if(s[0] == '.'){
+		s = s.substr(1);
+		s = getCurrentPath() + s;
+	}
+	return s;
+}
+
+bool isValidUTF8(const string& fileContent) {
+    size_t i = 0;
+    while (i < fileContent.size()) {
+        unsigned char byte = fileContent[i];
+        
+        if (byte <= 0x7F) {
+            i++;
+        }
+        else if ((byte >= 0xC2 && byte <= 0xDF) && i + 1 < fileContent.size() && (fileContent[i+1] & 0xC0) == 0x80) {
+            i += 2;
+        }
+        else if ((byte >= 0xE0 && byte <= 0xEF) && i + 2 < fileContent.size() &&
+                 (fileContent[i+1] & 0xC0) == 0x80 && (fileContent[i+2] & 0xC0) == 0x80) {
+            i += 3;
+        }
+        else if ((byte >= 0xF0 && byte <= 0xF7) && i + 3 < fileContent.size() &&
+                 (fileContent[i+1] & 0xC0) == 0x80 && (fileContent[i+2] & 0xC0) == 0x80 && (fileContent[i+3] & 0xC0) == 0x80) {
+            i += 4;
+        }
+        else {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string detectEncoding(const std::string& fileContent) {
+    if (isValidUTF8(fileContent)) {
+        return "UTF-8";
+    } else {
+        return "ANSI";
+    }
+}
+
+std::string UTF8ToANSI(const std::string& utf8Str) {
+    // 检查并去除 BOM
+    std::string utf8StrClean = utf8Str;
+    if (utf8StrClean.size() >= 3 &&
+        static_cast<unsigned char>(utf8StrClean[0]) == 0xEF &&
+        static_cast<unsigned char>(utf8StrClean[1]) == 0xBB &&
+        static_cast<unsigned char>(utf8StrClean[2]) == 0xBF) {
+        utf8StrClean.erase(0, 3); // 去除 BOM
+    }
+
+    // 获取缓冲区长度的返回值
+    int wideLen = MultiByteToWideChar(CP_UTF8, 0, utf8StrClean.c_str(), -1, nullptr, 0);
+    if (wideLen == 0) {
+        throw std::runtime_error("MultiByteToWideChar failed");
+    }
+
+    // 将 UTF-8 转换为宽字符（UTF-16）
+    std::wstring wideStr(wideLen, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8StrClean.c_str(), -1, &wideStr[0], wideLen);
+
+    // 将宽字符（UTF-16）转换为 ANSI
+    int ansiLen = WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (ansiLen == 0) {
+        throw std::runtime_error("WideCharToMultiByte failed");
+    }
+
+    std::string ansiStr(ansiLen, 0);
+    WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, &ansiStr[0], ansiLen, nullptr, nullptr);
+
+    // 去掉末尾的空字符
+    ansiStr.pop_back();
+    return ansiStr;
+}
+
+void runcmdAwait(const std::string cmd){
+	STARTUPINFO si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_SHOWDEFAULT;
+    const char* command = cmd.c_str();
+    CreateProcess(NULL, (LPSTR)command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+}
+
+
 Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
+	ImagePath = resolvePath(ImagePath);
 	PIMAGE image = newimage();
 	if(ImagePath != "") getimage(image,TEXT(ImagePath.c_str()));
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
