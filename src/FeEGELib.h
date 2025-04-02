@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.2.19.0--upd2025-03-31"
+#define FeEGELib_version "V1.3.0.0--upd2025-04-02"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -361,7 +361,6 @@ class Element {
 			this->order = 0;
 			this->alpha = 0xFF;
 			this->deleted= false;
-			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 			this->PoolIndex = index;
 			this->PhysicEngineStatu = false;
 			this->ForceX = 0.00;
@@ -653,19 +652,21 @@ class Element {
 			this->removeList.clear();
 			for(int i = 0; i < nextclonecount; ++ i) if(!this->deletedList[i]) {
 					deletedList[i] = true;
-					e[i] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
+					e[i] = newElement(this->id + "_" + to_string(clonecount ++),"",this->pos.x,this->pos.y);
 					e[i]->angle = this->angle;
 					e[i]->scale = this->scale;
 					e[i]->set_variable(1,(long long)this);
 					e[i]->disabled_draw_to_private_image = this->disabled_draw_to_private_image;
 					e[i]->is_show = this->is_show;
+					e[i]->image_vector = this->image_vector;
 					reg_Element(e[i]);
 					for(auto it : this->on_clone_function_set) it.second(this);
 					for(auto it : this->on_clone_clones_function_set) it.second(e[i]);
 					return e[i];
 				}
 			deletedList[nextclonecount] = true;
-			e[nextclonecount] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
+			e[nextclonecount] = newElement(this->id + "_" + to_string(clonecount ++),"",this->pos.x,this->pos.y);
+			e[nextclonecount]->image_vector = this->image_vector;
 			e[nextclonecount]->angle = this->angle;
 			e[nextclonecount]->scale = this->scale;
 			e[nextclonecount]->set_variable(1,(long long)this);
@@ -674,6 +675,14 @@ class Element {
 			for(auto it : this->on_clone_function_set) it.second(this);
 			for(auto it : this->on_clone_clones_function_set) it.second(e[nextclonecount]);
 			return e[nextclonecount ++];
+		}
+		inline void cloneImage(){
+			for(int i = 0;i < this->image_vector.size();++ i){
+				if(this->image_vector[i] == nullptr) continue;
+				PIMAGE img = newimage();
+				getimage(img,this->image_vector[i],0,0,getwidth(this->image_vector[i]),getheight(this->image_vector[i]));
+				this->image_vector[i] = img;
+			}
 		}
 		inline string getId() {
 			return this->id;
@@ -1220,12 +1229,17 @@ Element* Element::deletethis() {
 }
 
 Element* Element::deleteElement() {
-	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
+	if(((Element*)this->get_variable(1)) != nullptr){
+		((Element*)this->get_variable(1))->removeList.push_back(this);
+	} 
 	Element_queue.erase(this);
 	this->deleted = true;
 	ElementPoolUsed[this->PoolIndex] = false;
 	this->frame_function_set.clear();
-	if((Element*)this->private_variables[1] == nullptr) for(auto i : this->image_vector) delimage(i);
+	if((Element*)this->private_variables[1] == nullptr){
+		for(auto i : this->image_vector) delimage(i);
+	}
+	if(this->__visible_image != nullptr) delimage(this->__visible_image);
 	this->image_vector.clear();
 	this->clones.clear();
 	this->removeList.clear();
@@ -1347,6 +1361,7 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	ImagePath = resolvePath(ImagePath);
 	PIMAGE image = newimage();
 	if(ImagePath != "") getimage(image,TEXT(ImagePath.c_str()));
+	else delimage(image);
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
 			ElementPoolUsed[i] = true;
