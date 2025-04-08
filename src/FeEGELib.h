@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.3.0.0--upd2025-04-02"
+#define FeEGELib_version "V1.3.1.0--upd2025-04-08"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -31,55 +31,55 @@
 #define MAXELEMENTCOUNT 100
 #endif
 
-#define LeftButton VK_LBUTTON
+#define leftButton VK_LBUTTON
 #define log printf
-#define PIE 3.141592653589793238462643383279502f
+#define pie 3.141592653589793238462643383279502f
 
 #define initXY() {WIDTH = getwidth();HEIGHT = getheight();}
 #define X WIDTH
 #define Y HEIGHT
 
-#ifdef BigScreen
+#ifdef bigScreen
 #define getkey GetAsyncKeyState
 #endif
 
 using namespace std;
 
 const double eps = 1e-7;
-double GlobalRating = 1.00f;
+double globalRating = 1.00f;
 
 class Position;
 class Element;
 class InputBox;
 class InputBoxSet;
-void reg_Element(Element* element);
+void regElement(Element* element);
 Element* newElement(string,PIMAGE,double,double);
 Element* newElement(string,string,double,double);
 
-bool iskey = false;
-key_msg keymsg;
-bool mousehit = false;
-bool needsort = true;
-bool reg_pause = false;
-mouse_msg mouseinfo;
-bool keystatus[360];
-map<string,function<void(void)>> globalListen_frame_function_set;
-map<string,function<void(void)>> globalListen_on_click_function_set;
-map<int,bool> VK_STATE;
+bool isKey = false;
+key_msg keyMsg;
+bool mouseHit = false;
+bool needSort = true;
+bool regPause = false;
+mouse_msg mouseInfo;
+bool keyStatus[360];
+map<string,function<void(void)>> globalListenFrameFunctionSet;
+map<string,function<void(void)>> globalListenOnClickFunctionSet;
+map<int,bool> vkState;
 
 int WIDTH;
 int HEIGHT;
 
 vector<function<void(void)> > schedule;
-map<double,vector<function<void(void)> > > schedule_timeOut;
+map<double,vector<function<void(void)> > > scheduleTimeOut;
 int __SIZE__ = 0;
-int removesize = 0;
+int removeSize = 0;
 bool closeGraph = false;
 
 PIMAGE pen_image;
 
-unordered_map<string,Element*>IdToElement;
-unordered_map<Element*,bool>ElementIsIn;
+unordered_map<string,Element*>idToElement;
+unordered_map<Element*,bool>elementIsIn;
 
 inline int sgn(double x){
 	if(fabs(x) < eps) return 0;
@@ -98,28 +98,28 @@ class Position {
 			this->y = y;
 		}
 		~Position() {}
-} lastpixel,mousePos;
+} lastPixel,mousePos;
 
 namespace FeEGE {
-	#ifndef BigScreen
-	bool builtin_getkey(){
+	#ifndef bigScreen
+	bool builtinGetKey(){
 		for(int i = 0;i <= 0xFF;++ i){
-			VK_STATE[i] = GetAsyncKeyState(i) & 0x8000;
+			vkState[i] = GetAsyncKeyState(i) & 0x8000;
 		}
 	}
 	bool getkey(int VK) {
-		return VK_STATE[VK];
+		return vkState[VK];
 	}
 	#endif
-	void enable_pause() {
-		reg_pause = true;
+	void enablePause() {
+		regPause = true;
 	}
-	void  disable_pause() {
-		reg_pause = false;
+	void disablePause() {
+		regPause = false;
 	}
 	Element* getElementById(string);
 	Element* getElementByPtr(Element*);
-	void initpen() {
+	void initPen() {
 		WIDTH = getwidth();
 		HEIGHT = getheight();
 		if(pen_image != nullptr) delimage(pen_image);
@@ -133,12 +133,12 @@ namespace FeEGE {
 		return (double)clock() / CLOCKS_PER_SEC * 1000;
 	}
 	
-	void push_schedule(function<void(void)> func) {
+	void pushSchedule(function<void(void)> func) {
 		schedule.push_back(func);
 	}
 	
-	void setTimeOut(function<void(void)> func,double time_ms){
-		schedule_timeOut[getMs() + time_ms].emplace_back(func);
+	void setTimeOut(function<void(void)> func,double timeMs){
+		scheduleTimeOut[getMs() + timeMs].emplace_back(func);
 	}
 
 	class ClonesEvent {
@@ -148,7 +148,7 @@ namespace FeEGE {
 	
 	class InputBoxEvent {
 		public:
-			int on_select = 0x06;
+			int onSelect = 0x06;
 	};
 
 	class Events {
@@ -160,7 +160,7 @@ namespace FeEGE {
 			int on_click = 0x04;
 			int on_clone = 0x05;
 			ClonesEvent clones;
-			InputBoxEvent InputBox;
+			InputBoxEvent inputBox;
 	};
 
 	Events EventType;
@@ -171,10 +171,10 @@ namespace FeEGE {
 			int middle = 0x02;
 	};
 
-	PenTypes PenType;
+	PenTypes penType;
 
 	Position& getLastPixel() {
-		return lastpixel;
+		return lastPixel;
 	}
 	
 	Position& getMousePos(){
@@ -193,317 +193,317 @@ class Animate{
 };
 
 namespace Ease{
-	Animate EaseInOutCubicX([&](double tick) -> Position { return {tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2,0}; },0.002,1);
-	Animate EaseInOutCubicY([&](double tick) -> Position { return {0,tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2}; },0.002,1);
-	Animate EaseOutQuadX([&](double tick) -> Position { return {1 - (1 - tick) * (1 - tick),0}; },0.002,1);
-	Animate EaseOutQuadY([&](double tick) -> Position { return {0,1 - (1 - tick) * (1 - tick)}; },0.002,1);
+	Animate easeInOutCubicX([&](double tick) -> Position { return {tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2,0}; },0.002,1);
+	Animate easeInOutCubicY([&](double tick) -> Position { return {0,tick <= 0.5 ? 4 * tick * tick * tick : 1 - pow(-2 * tick + 2,3) / 2}; },0.002,1);
+	Animate easeOutQuadX([&](double tick) -> Position { return {1 - (1 - tick) * (1 - tick),0}; },0.002,1);
+	Animate easeOutQuadY([&](double tick) -> Position { return {0,1 - (1 - tick) * (1 - tick)}; },0.002,1);
 }
 
 class Element {
 	protected:
 		//Variables
 		string id;
-		string ElementType;
+		string elementType;
 		short scale;
 		int angle;
 		int order;
 		short alpha;
-		int reg_order;
+		int regOrder;
 		Position pos;
-		Position backup_pos;
-		bool is_cancel_x;
-		bool is_cancel_y;
-		bool is_show;
-		PIMAGE __visible_image;
-		vector<PIMAGE> image_vector;
+		Position backupPos;
+		bool isCancelX;
+		bool isCancelY;
+		bool isShow;
+		PIMAGE __visibleImage;
+		vector<PIMAGE> imageVector;
 		vector<Element*> clones;
 		vector<Element*> removeList;
-		map<string,function<void(Element*)> > frame_function_set;
-		map<string,function<void(Element*)> > on_mouse_put_on_function_set;
-		map<string,function<void(Element*)> > on_mouse_hitting_function_set;
-		map<string,function<void(Element*)> > on_mouse_move_away_function_set;
-		map<string,function<void(Element*)> > on_click_function_set;
-		map<string,function<void(Element*)> > on_clone_function_set;
-		map<string,function<void(Element*)> > on_clone_clones_function_set;
+		map<string,function<void(Element*)> > frameFunctionSet;
+		map<string,function<void(Element*)> > onMousePutOnFunctionSet;
+		map<string,function<void(Element*)> > onMouseHittingFunctionSet;
+		map<string,function<void(Element*)> > onMouseMoveAwayFunctionSet;
+		map<string,function<void(Element*)> > onClickFunctionSet;
+		map<string,function<void(Element*)> > onCloneFunctionSet;
+		map<string,function<void(Element*)> > onCloneClonesFunctionSet;
 		vector<pair<pair<double,pair<double,double> >,Animate> > animations;
-		unordered_map<int,double> animate_states;
-		unordered_map<int,function<void(Element*)> > animate_callbacks;
-		unsigned int current_image = 0;
-		unordered_map<int,long long> private_variables;
+		unordered_map<int,double> animateStates;
+		unordered_map<int,function<void(Element*)> > animateCallbacks;
+		unsigned int currentImage = 0;
+		unordered_map<int,long long> privateVariables;
 		bool deletedList[MAXCLONESCOUNT] = {};
-		int clonecount = 0;
-		int nextclonecount = 0;
+		int cloneCount = 0;
+		int nextCloneCount = 0;
 		bool deleted = false;
-		bool image_lock = false;
-		bool disabled_draw_to_private_image = false;
-		Element** clonequeue = nullptr;
+		bool imageLock = false;
+		bool disabledDrawToPrivateImage = false;
+		Element** cloneQueue = nullptr;
 		bool drawed = false;
-		int PoolIndex;
-		bool HittingBox = false;
+		int poolIndex;
+		bool hittingBox = false;
 		int HBheight,HBwidth;
 
-		bool PhysicEngineStatu;
-		double ForceX;
-		double ForceY;
-		double SpeedX;
-		double SpeedY;
-		double ResistanceX;
-		double ResistanceY;
+		bool physicEngineStatu;
+		double forceX;
+		double forceY;
+		double speedX;
+		double speedY;
+		double resistanceX;
+		double resistanceY;
 
-		vector<color_t> remove_colors;
+		vector<color_t> removeColors;
 
-		inline virtual void reflush_mouse_statu() {
+		inline virtual void reflushMouseStatu() {
 			/*
 				Test click
 			*/
-			if(this->ismousein()){
-				int statu = this->get_variable(0);
-				if(this->ishit()){
-					#ifdef BigScreen
+			if(this->isMouseIn()){
+				int statu = this->getVariable(0);
+				if(this->isHit()){
+					#ifdef bigScreen
 					if(statu == 0){
-						this->set_variable(0,2);
-						for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+						this->setVariable(0,2);
+						for(auto it :this->onMouseHittingFunctionSet) it.second(this);
 					}
 					#endif
 					
 					if(statu == 1){
-						this->set_variable(0,2);
-						for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+						this->setVariable(0,2);
+						for(auto it :this->onMouseHittingFunctionSet) it.second(this);
 					}
 				} 
 				else {
 					if(statu == 0){
-						this->set_variable(0,1);
-						for(auto it : this->on_mouse_put_on_function_set) it.second(this);
+						this->setVariable(0,1);
+						for(auto it : this->onMousePutOnFunctionSet) it.second(this);
 					} 
 					else if(statu == 2) {
-						this->set_variable(0,0);
-						for(auto it : this->on_click_function_set) it.second(this);
+						this->setVariable(0,0);
+						for(auto it : this->onClickFunctionSet) it.second(this);
 					}
 				}
 			} 
 			else {
-				if(this->get_variable(0) == 1){
-					this->set_variable(0,0);
-					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+				if(this->getVariable(0) == 1){
+					this->setVariable(0,0);
+					for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
 				}
-				else if(this->get_variable(0) == 2 && !getkey(LeftButton)){
-					this->set_variable(0,0);
-					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
+				else if(this->getVariable(0) == 2 && !getkey(leftButton)){
+					this->setVariable(0,0);
+					for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
 				}
 			}
 		}
-		inline bool draw_to_private_image() {
+		inline bool drawToPrivateImage() {
 			if(this->drawed) return false;
 			if(this->deleted) return false;
-			if(this->disabled_draw_to_private_image) return false;
-			if(this->image_vector[this->current_image] == nullptr) return false;
-			cleardevice(this->__visible_image);
-			putimage_rotatezoom(this->__visible_image,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
+			if(this->disabledDrawToPrivateImage) return false;
+			if(this->imageVector[this->currentImage] == nullptr) return false;
+			cleardevice(this->__visibleImage);
+			putimage_rotatezoom(this->__visibleImage,this->imageVector[this->currentImage],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * pie,this->scale / 100.00f,1);
 			return this->drawed = true;
 		}
 	public:
 		//Functions
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+			this->__visibleImage = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(1,1,4,0),this->__visibleImage);
 			this->pos = pos;
-			this->image_vector.resize(100);
-			this->image_vector[0] = image;
-			this->is_show = true;
+			this->imageVector.resize(100);
+			this->imageVector[0] = image;
+			this->isShow = true;
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
 			this->alpha = 0xFF;
 			this->deleted= false;
-			this->PhysicEngineStatu = false;
-			this->ForceX = 0.00;
-			this->ForceY = 0.00;
-			this->SpeedX = 0.00;
-			this->SpeedY = 0.00;
-			this->ResistanceX = 0.00;
-			this->ResistanceY = 0.00;
-			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+			this->physicEngineStatu = false;
+			this->forceX = 0.00;
+			this->forceY = 0.00;
+			this->speedX = 0.00;
+			this->speedY = 0.00;
+			this->resistanceX = 0.00;
+			this->resistanceY = 0.00;
+			for(int i = 0; i < 10; ++ i) this->privateVariables[i] = 0;
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+			this->__visibleImage = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(1,1,4,0),this->__visibleImage);
 			this->pos = *(new Position(x,y));
-			this->image_vector.resize(100);
-			this->image_vector[0] = image;
-			this->is_show = true;
+			this->imageVector.resize(100);
+			this->imageVector[0] = image;
+			this->isShow = true;
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
 			this->alpha = 0xFF;
 			this->deleted= false;
-			this->PhysicEngineStatu = false;
-			this->ForceX = 0.00;
-			this->ForceY = 0.00;
-			this->SpeedX = 0.00;
-			this->SpeedY = 0.00;
-			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+			this->physicEngineStatu = false;
+			this->forceX = 0.00;
+			this->forceY = 0.00;
+			this->speedX = 0.00;
+			this->speedY = 0.00;
+			for(int i = 0; i < 10; ++ i) this->privateVariables[i] = 0;
 		}
 		Element() { }
 		inline Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0) {
 			this->id = id;
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+			this->__visibleImage = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(1,1,4,0),this->__visibleImage);
 			this->pos.x = x;
 			this->pos.y = y;
-			this->image_vector.resize(100);
-			this->image_vector[0] = image;
-			this->is_show = true;
+			this->imageVector.resize(100);
+			this->imageVector[0] = image;
+			this->isShow = true;
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
 			this->alpha = 0xFF;
 			this->deleted= false;
-			this->PoolIndex = index;
-			this->PhysicEngineStatu = false;
-			this->ForceX = 0.00;
-			this->ForceY = 0.00;
-			this->SpeedX = 0.00;
-			this->SpeedY = 0.00;
+			this->poolIndex = index;
+			this->physicEngineStatu = false;
+			this->forceX = 0.00;
+			this->forceY = 0.00;
+			this->speedX = 0.00;
+			this->speedY = 0.00;
 			return this;
 		}
 		
-		inline void cancel_animate(const Animate& animate,double tick,double x,double y){
+		inline void cancelAnimate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x -= p.x * x;
 			this->pos.y -= p.y * y;
 		}
 		
-		inline void run_animate(const Animate& animate,double tick,double x,double y){
+		inline void runAnimate(const Animate& animate,double tick,double x,double y){
 			Position p = animate.function(tick);
 			this->pos.x += p.x * x;
 			this->pos.y += p.y * y;
 		}
 		
-		inline void call_animations(){
+		inline void callAnimations(){
 			vector<pair<pair<double,pair<double,double> >,Animate> > q;
 			for(auto& p : this->animations){
 				int w = p.first.first;
 				Animate& animate = p.second;
-				cancel_animate(animate,this->animate_states[w],p.first.second.first,p.first.second.second);
-				this->animate_states[w] += animate.speed;
-				if(this->animate_states[w] >= animate.end){
-					run_animate(animate,animate.end,p.first.second.first,p.first.second.second);
-					this->animate_states.erase(w);
-					auto it = this->animate_callbacks.find(w);
-					if(it == this->animate_callbacks.end()) continue;
+				cancelAnimate(animate,this->animateStates[w],p.first.second.first,p.first.second.second);
+				this->animateStates[w] += animate.speed;
+				if(this->animateStates[w] >= animate.end){
+					runAnimate(animate,animate.end,p.first.second.first,p.first.second.second);
+					this->animateStates.erase(w);
+					auto it = this->animateCallbacks.find(w);
+					if(it == this->animateCallbacks.end()) continue;
 					it->second(this);
-					this->animate_callbacks.erase(it);
+					this->animateCallbacks.erase(it);
 					continue;
 				}
-				run_animate(animate,this->animate_states[w],p.first.second.first,p.first.second.second);
+				runAnimate(animate,this->animateStates[w],p.first.second.first,p.first.second.second);
 				q.emplace_back(p);
 			}
 			this->animations.swap(q);
 		}
 		
 		inline virtual void call() {
-			this->backup_pos = pos;
-			this->reflush_mouse_statu();
-			for(auto it : this->frame_function_set) it.second(this);
+			this->backupPos = pos;
+			this->reflushMouseStatu();
+			for(auto it : this->frameFunctionSet) it.second(this);
 			if(this->deleted) return;
-			this->call_animations();
-			if(!this->is_show) return;
+			this->callAnimations();
+			if(!this->isShow) return;
 
 			//backup
-			if(this->is_cancel_x) {
-				this->is_cancel_x = false;
-				this->pos.x = this->backup_pos.x;
+			if(this->isCancelX) {
+				this->isCancelX = false;
+				this->pos.x = this->backupPos.x;
 			}
-			if(this->is_cancel_y) {
-				this->is_cancel_y = false;
-				this->pos.y = this->backup_pos.y;
+			if(this->isCancelY) {
+				this->isCancelY = false;
+				this->pos.y = this->backupPos.y;
 			}
 			
 			this->drawed = false;
 #ifdef TEST_FUNCTION
-			if(this->PhysicEngineStatu) {
-				this->UpdatePhysicSpeed();
-				this->UpdatePhysicPosition();
+			if(this->physicEngineStatu) {
+				this->updatePhysicSpeed();
+				this->updatePhysicPosition();
 			}
 #endif
-			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,-(this->angle / 180.00f * PIE),this->scale / 100.00f,1,this->alpha);
+			putimage_rotatezoom(nullptr,this->imageVector[this->currentImage],this->pos.x,this->pos.y,0.5,0.5,-(this->angle / 180.00f * pie),this->scale / 100.00f,1,this->alpha);
 		}
-		inline void set_type(const string& type){
-			this->ElementType = type;
+		inline void setType(const string& type){
+			this->elementType = type;
 		}
-		inline string get_type(const string& type){
-			return this->ElementType;
+		inline string getType(const string& type){
+			return this->elementType;
 		}
-		inline void move_left(double pixels = 0) {
+		inline void moveLeft(double pixels = 0) {
 			this->pos.x -= pixels;
 		}
-		inline void move_right(double pixels = 0) {
+		inline void moveRight(double pixels = 0) {
 			this->pos.x += pixels;
 		}
-		inline void move_up(double pixels = 0) {
+		inline void moveUp(double pixels = 0) {
 			this->pos.y -= pixels;
 		}
-		inline void move_down(double pixels = 0) {
+		inline void moveDown(double pixels = 0) {
 			this->pos.y += pixels;
 		}
-		inline void move_forward(double pixels = 0) {
-			this->pos.x -= sin(this->angle * PIE / 180.00f) * pixels;
-			this->pos.y -= cos(this->angle * PIE / 180.00f) * pixels;
+		inline void moveForward(double pixels = 0) {
+			this->pos.x -= sin(this->angle * pie / 180.00f) * pixels;
+			this->pos.y -= cos(this->angle * pie / 180.00f) * pixels;
 		}
-		inline void move_to(double x,double y) {
+		inline void moveTo(double x,double y) {
 			this->pos.x = x;
 			this->pos.y = y;
 		}
-		inline void move_to(Position position) {
+		inline void moveTo(Position position) {
 			this->pos = position;
 		}
-		inline color_t get_pixel(int x,int y) {
-			return getpixel(x,y,this->__visible_image);
+		inline color_t getPixel(int x,int y) {
+			return getpixel(x,y,this->__visibleImage);
 		}
-		inline short get_scale() {
+		inline short getScale() {
 			return this->scale;
 		}
-		inline void increase_scale(short scale) {
+		inline void increaseScale(short scale) {
 			if(this->scale + scale <= 255) this->scale += scale;
 			else this->scale = 255;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 255;
 		}
-		inline void decrease_scale(short scale) {
+		inline void decreaseScale(short scale) {
 			if(this->scale > scale) this->scale -= scale;
 			else this->scale = 0;
 			this->scale %= 255;
 			if(this->scale < 0) this->scale += 101;
 		}
-		inline void set_scale(short scale) {
+		inline void setScale(short scale) {
 			this->scale = scale;
 			this->scale %= 255;
 		}
 		inline void show() {
-			this->is_show = true;
+			this->isShow = true;
 		}
 		inline void hide() {
-			this->is_show = false;
+			this->isShow = false;
 		}
-		inline void turn_right(int angle) {
+		inline void turnRight(int angle) {
 			this->angle = (this->angle - angle) % 360;
 		}
-		inline void turn_left(int angle) {
+		inline void turnLeft(int angle) {
 			this->angle = (this->angle + angle) % 360;
 		}
-		inline void turn_to(int angle) {
+		inline void turnTo(int angle) {
 			this->angle = angle % 360;
 		}
-		inline bool face_to(Element* that){
+		inline bool faceTo(Element* that){
 			if(that == nullptr) {
-				LPCSTR text = TEXT(("Element::face_to方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
+				LPCSTR text = TEXT(("Element::faceTo方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 				return false; 
 			}
-			Position pos = that->get_position();
+			Position pos = that->getPosition();
 			double dx = pos.x - this->pos.x;
 			double dy = pos.y - this->pos.y;
 			if(!sgn(dx)) return true;
@@ -512,133 +512,133 @@ class Element {
 				else this->angle = 180;
 				return true;
 			}
-			this->angle = atan2(dy,dx) / PIE * 180.00f;
+			this->angle = atan2(dy,dx) / pie * 180.00f;
 			return true;
 		}
-		inline int get_angle() {
+		inline int getAngle() {
 			return this->angle;
 		}
-		inline Position get_position() {
+		inline Position getPosition() {
 			return this->pos;
 		}
-		inline bool getisshow() {
-			return this->is_show;
+		inline bool getIsShow() {
+			return this->isShow;
 		}
-		inline void increase_order(int count);
-		inline void decrease_order(int count);
-		inline void set_order(int count);
-		inline void set_reg_order(int count) {
-			this->reg_order = count;
+		inline void increaseOrder(int count);
+		inline void decreaseOrder(int count);
+		inline void setOrder(int count);
+		inline void setRegOrder(int count) {
+			this->regOrder = count;
 		}
-		inline int get_reg_order() {
-			return this->reg_order;
+		inline int getRegOrder() {
+			return this->regOrder;
 		}
-		inline int get_order() {
+		inline int getOrder() {
 			return this->order;
 		}
 		bool operator<(Element _B) {
-			if(this->get_order() > _B.get_order()) return false;
-			else if (this->get_order() < _B.get_order()) return true;
-			return this->get_reg_order() < _B.get_reg_order();
+			if(this->getOrder() > _B.getOrder()) return false;
+			else if (this->getOrder() < _B.getOrder()) return true;
+			return this->getRegOrder() < _B.getRegOrder();
 		}
 		bool operator>(Element _B) {
-			if(this->get_order() < _B.get_order()) return false;
-			else if (this->get_order() > _B.get_order()) return true;
-			return this->get_reg_order() > _B.get_reg_order();
+			if(this->getOrder() < _B.getOrder()) return false;
+			else if (this->getOrder() > _B.getOrder()) return true;
+			return this->getRegOrder() > _B.getRegOrder();
 		}
-		inline void set_posx(int x) {
+		inline void setPosX(int x) {
 			this->pos.x = x;
 		}
-		inline void set_posy(int y) {
+		inline void setPosY(int y) {
 			this->pos.y = y;
 		}
-		inline void remove_color(color_t color) {
-			this->remove_colors.push_back(color);
+		inline void removeColor(color_t color) {
+			this->removeColors.push_back(color);
 		}
-		inline bool ismousein() {
+		inline bool isMouseIn() {
 			if(GetForegroundWindow() != getHWnd()) return false;
-			if(!this->is_show) return false;
+			if(!this->isShow) return false;
 			int x = getMousePos().x,y = getMousePos().y;
 			if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
-			this->draw_to_private_image();
-			color_t pixel = getpixel(x,y,this->__visible_image);
-			int size = remove_colors.size();
-			for(int i = 0; i < size; ++ i) if(pixel == remove_colors[i]) return false;
+			this->drawToPrivateImage();
+			color_t pixel = getpixel(x,y,this->__visibleImage);
+			int size = removeColors.size();
+			for(int i = 0; i < size; ++ i) if(pixel == removeColors[i]) return false;
 			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
 		}
-		inline bool ishit() {
-			if(!getkey(LeftButton)) return false;
-			return this->ismousein();
+		inline bool isHit() {
+			if(!getkey(leftButton)) return false;
+			return this->isMouseIn();
 		}
-		inline void set_variable(unsigned int which,long long value) {
-			this->private_variables[which] = value;
+		inline void setVariable(unsigned int which,long long value) {
+			this->privateVariables[which] = value;
 //			// cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 		}
-		inline long long& get_variable(unsigned int which) {
-			return this->private_variables[which];
+		inline long long& getVariable(unsigned int which) {
+			return this->privateVariables[which];
 		}
-		inline void increase_variable(unsigned int which,long long value) {
-			this->private_variables[which] += value;
+		inline void increaseVariable(unsigned int which,long long value) {
+			this->privateVariables[which] += value;
 		}
-		inline void decrease_variable(unsigned int which,long long value) {
-			this->private_variables[which] -= value;
+		inline void decreaseVariable(unsigned int which,long long value) {
+			this->privateVariables[which] -= value;
 		}
-		inline void add_image(PIMAGE image) {
-			this->image_vector.push_back(image);
+		inline void addImage(PIMAGE image) {
+			this->imageVector.push_back(image);
 		}
-		inline bool set_image(int order) {
-			if(this->image_vector[order] != nullptr){
-				this->current_image = order;
+		inline bool setImage(int order) {
+			if(this->imageVector[order] != nullptr){
+				this->currentImage = order;
 				return true;
 			}
 			return false;
 		}
-		inline int get_image_order() {
-			return this->current_image;
+		inline int getImageOrder() {
+			return this->currentImage;
 		}
-		inline PIMAGE get_image() {
-			return this->image_vector[this->current_image];
+		inline PIMAGE getImage() {
+			return this->imageVector[this->currentImage];
 		}
-		inline bool is_touched_by(Element* that) {
+		inline bool isTouchedBy(Element* that) {
 			if(that == nullptr) {
-				LPCSTR text = TEXT(("Element::is_touched_by方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
+				LPCSTR text = TEXT(("Element::isTouchedBy方法被错误的传入了nullptr参数\n这可能是由于getElementById查询了不存在的对象\n\nElement名称 : " + this->id).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 				return false; 
 			}
-			if(!this->is_show || !that->is_show) return false;
+			if(!this->isShow || !that->isShow) return false;
 			
-			if(this->HittingBox ^ that->HittingBox){
-				LPCSTR text = TEXT(("Element::is_touched_by方法中两个对象的碰撞箱状态不一致\n\nElement名称 : " + this->id).c_str());
+			if(this->hittingBox ^ that->hittingBox){
+				LPCSTR text = TEXT(("Element::isTouchedBy方法中两个对象的碰撞箱状态不一致\n\nElement名称 : " + this->id).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 				return false;
 			}
-			if(this->HittingBox){
-				double thisleft = this->pos.x - (this->HBwidth >> 1) * this->scale / 100.00;
-				double thatleft = that->pos.x - (that->HBwidth >> 1) * that->scale / 100.00;
-				double thisright = this->pos.x + (this->HBwidth >> 1) * this->scale / 100.00;
-				double thatright = that->pos.x + (that->HBwidth >> 1) * that->scale / 100.00;
-				double thistop = this->pos.y - (this->HBheight >> 1) * this->scale / 100.00;
-				double thattop = that->pos.y - (that->HBheight >> 1) * that->scale / 100.00;
-				double thisbottom = this->pos.y + (this->HBheight >> 1) * this->scale / 100.00;
-				double thatbottom = that->pos.y + (that->HBheight >> 1) * that->scale / 100.00;
-				if((thisleft <= thatright && (thistop <= thatbottom && thisbottom >= thattop)) || (thisright >= thatleft && (thistop <= thatbottom && thisbottom >= thattop))) return true;
+			if(this->hittingBox){
+				double thisLeft = this->pos.x - (this->HBwidth >> 1) * this->scale / 100.00;
+				double thatLeft = that->pos.x - (that->HBwidth >> 1) * that->scale / 100.00;
+				double thisRight = this->pos.x + (this->HBwidth >> 1) * this->scale / 100.00;
+				double thatRight = that->pos.x + (that->HBwidth >> 1) * that->scale / 100.00;
+				double thisTop = this->pos.y - (this->HBheight >> 1) * this->scale / 100.00;
+				double thatTop = that->pos.y - (that->HBheight >> 1) * that->scale / 100.00;
+				double thisBottom = this->pos.y + (this->HBheight >> 1) * this->scale / 100.00;
+				double thatBottom = that->pos.y + (that->HBheight >> 1) * that->scale / 100.00;
+				if((thisLeft <= thatRight && (thisTop <= thatBottom && thisBottom >= thatTop)) || (thisRight >= thatLeft && (thisTop <= thatBottom && thisBottom >= thatTop))) return true;
 				return false;
 			}
 			
-			this->draw_to_private_image();
-			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
-				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
+			this->drawToPrivateImage();
+			for(int x = this->pos.x - getwidth(this->imageVector[this->currentImage]); x <= this->pos.x + getwidth(this->imageVector[this->currentImage]); ++ x) {
+				for(int y = this->pos.y - getheight(this->imageVector[this->currentImage]); y <= this->pos.y + getheight(this->imageVector[this->currentImage]); ++ y) {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
-					if(getpixel(x,y,this->__visible_image) == 65796) continue;
-					if(getpixel(x,y,that->__visible_image) == 65796) continue;
-					lastpixel = {(double)x,(double)y};
+					if(getpixel(x,y,this->__visibleImage) == 65796) continue;
+					if(getpixel(x,y,that->__visibleImage) == 65796) continue;
+					lastPixel = {(double)x,(double)y};
 					return true;
 				}
 			}
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-			for(int i = 0; i < nextclonecount; ++ i) {
+			for(int i = 0; i < nextCloneCount; ++ i) {
 				if(e[i] == nullptr) continue;
 				if(!this->deletedList[i]) continue;
 				int size = this->removeList.size();
@@ -650,217 +650,217 @@ class Element {
 				}
 			}
 			this->removeList.clear();
-			for(int i = 0; i < nextclonecount; ++ i) if(!this->deletedList[i]) {
+			for(int i = 0; i < nextCloneCount; ++ i) if(!this->deletedList[i]) {
 					deletedList[i] = true;
-					e[i] = newElement(this->id + "_" + to_string(clonecount ++),"",this->pos.x,this->pos.y);
+					e[i] = newElement(this->id + "_" + to_string(cloneCount ++),"",this->pos.x,this->pos.y);
 					e[i]->angle = this->angle;
 					e[i]->scale = this->scale;
-					e[i]->set_variable(1,(long long)this);
-					e[i]->disabled_draw_to_private_image = this->disabled_draw_to_private_image;
-					e[i]->is_show = this->is_show;
-					e[i]->image_vector = this->image_vector;
-					reg_Element(e[i]);
-					for(auto it : this->on_clone_function_set) it.second(this);
-					for(auto it : this->on_clone_clones_function_set) it.second(e[i]);
+					e[i]->setVariable(1,(long long)this);
+					e[i]->disabledDrawToPrivateImage = this->disabledDrawToPrivateImage;
+					e[i]->isShow = this->isShow;
+					e[i]->imageVector = this->imageVector;
+					regElement(e[i]);
+					for(auto it : this->onCloneFunctionSet) it.second(this);
+					for(auto it : this->onCloneClonesFunctionSet) it.second(e[i]);
 					return e[i];
 				}
-			deletedList[nextclonecount] = true;
-			e[nextclonecount] = newElement(this->id + "_" + to_string(clonecount ++),"",this->pos.x,this->pos.y);
-			e[nextclonecount]->image_vector = this->image_vector;
-			e[nextclonecount]->angle = this->angle;
-			e[nextclonecount]->scale = this->scale;
-			e[nextclonecount]->set_variable(1,(long long)this);
-			e[nextclonecount]->is_show = this->is_show;
-			reg_Element(e[nextclonecount]);
-			for(auto it : this->on_clone_function_set) it.second(this);
-			for(auto it : this->on_clone_clones_function_set) it.second(e[nextclonecount]);
-			return e[nextclonecount ++];
+			deletedList[nextCloneCount] = true;
+			e[nextCloneCount] = newElement(this->id + "_" + to_string(cloneCount ++),"",this->pos.x,this->pos.y);
+			e[nextCloneCount]->imageVector = this->imageVector;
+			e[nextCloneCount]->angle = this->angle;
+			e[nextCloneCount]->scale = this->scale;
+			e[nextCloneCount]->setVariable(1,(long long)this);
+			e[nextCloneCount]->isShow = this->isShow;
+			regElement(e[nextCloneCount]);
+			for(auto it : this->onCloneFunctionSet) it.second(this);
+			for(auto it : this->onCloneClonesFunctionSet) it.second(e[nextCloneCount]);
+			return e[nextCloneCount ++];
 		}
 		inline void cloneImage(){
-			for(int i = 0;i < this->image_vector.size();++ i){
-				if(this->image_vector[i] == nullptr) continue;
+			for(int i = 0;i < this->imageVector.size();++ i){
+				if(this->imageVector[i] == nullptr) continue;
 				PIMAGE img = newimage();
-				getimage(img,this->image_vector[i],0,0,getwidth(this->image_vector[i]),getheight(this->image_vector[i]));
-				this->image_vector[i] = img;
+				getimage(img,this->imageVector[i],0,0,getwidth(this->imageVector[i]),getheight(this->imageVector[i]));
+				this->imageVector[i] = img;
 			}
 		}
 		inline string getId() {
 			return this->id;
 		}
-		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
-			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set[identifier] = function ;
+		inline virtual void listen(int listenMode,string identifier,function<void(Element*)> function) {
+			if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet[identifier] = function ;
 			else{
-				LPCSTR text = TEXT(("Element::listen方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				LPCSTR text = TEXT(("Element::listen方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		inline virtual void stop(int listen_mode,string identifier) {
-			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set.erase(identifier) ;
+		inline virtual void stop(int listenMode,string identifier) {
+			if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier) ;
 			else{
-				LPCSTR text = TEXT(("Element::stop方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				LPCSTR text = TEXT(("Element::stop方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		inline Element* deletethis();
-		inline void cancel_x() {
-			this->is_cancel_x = true;
+		inline Element* deleteThis();
+		inline void cancelX() {
+			this->isCancelX = true;
 		}
-		inline void cancel_y() {
-			this->is_cancel_y = true;
+		inline void cancelY() {
+			this->isCancelY = true;
 		}
-		inline void cancel_move() {
-			this->is_cancel_x = true;
-			this->is_cancel_y = true;
+		inline void cancelMove() {
+			this->isCancelX = true;
+			this->isCancelY = true;
 		}
-		inline short get_alpha() {
+		inline short getAlpha() {
 			return this->alpha;
 		}
-		inline void set_alpha(short alpha) {
+		inline void setAlpha(short alpha) {
 			this->alpha = alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		inline void decrease_alpha(short alpha) {
+		inline void decreaseAlpha(short alpha) {
 			if(this->alpha - alpha < 0) this->alpha = 0;
 			else this->alpha -= alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		inline void increase_alpha(short alpha) {
+		inline void increaseAlpha(short alpha) {
 			if(this->alpha + alpha > 255) this->alpha = 255;
 			else this->alpha += alpha;
 			this->alpha %= 256;
 			if(this->alpha < 0) this->alpha += 256;
 		}
-		inline void nextimage() {
+		inline void nextImage() {
 			do {
-				this->current_image ++;
-				this->current_image %= 100;
-			} while(this->image_vector[current_image] == nullptr);
+				this->currentImage ++;
+				this->currentImage %= 100;
+			} while(this->imageVector[currentImage] == nullptr);
 		}
 #ifndef NO_THREAD
-		inline void loadImage(string ImagePath,int id) {
-			thread([this,ImagePath,id]() {
+		inline void loadImage(string imagePath,int id) {
+			thread([this,imagePath,id]() {
 				PIMAGE image = newimage();
 				int statu = 0;
 				do {
-					statu = getimage(image,TEXT(ImagePath.c_str()));
+					statu = getimage(image,TEXT(imagePath.c_str()));
 					this_thread::sleep_for(chrono::milliseconds(10));
 				} while(statu != 0);
-				while(this->image_lock) this_thread::sleep_for(chrono::milliseconds(1));
-				this->image_lock = true;
-				this->image_vector[id] = image;
-				this->image_lock = false;
+				while(this->imageLock) this_thread::sleep_for(chrono::milliseconds(1));
+				this->imageLock = true;
+				this->imageVector[id] = image;
+				this->imageLock = false;
 			}).detach();
 		}
 		inline void deleteImage(int id) {
 			thread([this,id]() {
-				delimage(this->image_vector[id]);
+				delimage(this->imageVector[id]);
 			}).detach();
 		}
 #endif
-		inline void disable_draw_to_private_image() {
-			this->disabled_draw_to_private_image = true;
+		inline void disableDrawToPrivateImage() {
+			this->disabledDrawToPrivateImage = true;
 		}
-		inline void enable_draw_to_private_image() {
-			this->disabled_draw_to_private_image = false;
+		inline void enableDrawToPrivateImage() {
+			this->disabledDrawToPrivateImage = false;
 		}
 		inline void ignoreBlack() {
-			int XX = getwidth(this->image_vector[this->current_image]);
-			int YY = getheight(this->image_vector[this->current_image]);
+			int XX = getwidth(this->imageVector[this->currentImage]);
+			int YY = getheight(this->imageVector[this->currentImage]);
 			for(int i = 0; i < XX; ++ i) {
 				for(int j = 0; j < YY; ++ j) {
-					if(getpixel(i,j,this->image_vector[this->current_image]) == (color_t)BLACK) putpixel_f(i,j,EGERGBA(0,0,0,0),this->image_vector[this->current_image]);
+					if(getpixel(i,j,this->imageVector[this->currentImage]) == (color_t)BLACK) putpixel_f(i,j,EGERGBA(0,0,0,0),this->imageVector[this->currentImage]);
 				}
 			}
 		}
 #ifdef TEST_FUNCTION 
 		inline void useHittingBox(){
-			this->HittingBox = true;
+			this->hittingBox = true;
 		} 
 		inline void stopHittingBox(){
-			this->HittingBox = false;
+			this->hittingBox = false;
 		}
 
 		// PhysicEngine
 		inline void enablePhysicEngine() {
-			this->PhysicEngineStatu = true;
+			this->physicEngineStatu = true;
 		}
 		inline void disablePhysicEngine() {
-			this->PhysicEngineStatu = false;
+			this->physicEngineStatu = false;
 		}
-		inline void PhysicForce(double angle,double force) {
-			this->ForceX += cos(angle * PIE / 180.00) * force;
-			this->ForceY -= sin(angle * PIE / 180.00) * force;
+		inline void physicForce(double angle,double force) {
+			this->forceX += cos(angle * pie / 180.00) * force;
+			this->forceY -= sin(angle * pie / 180.00) * force;
 		}
-		inline void PhysicSpeed(double angle,double speed) {
-			this->SpeedX += cos(angle * PIE / 180.00) * speed;
-			this->SpeedY -= sin(angle * PIE / 180.00) * speed;
+		inline void physicSpeed(double angle,double speed) {
+			this->speedX += cos(angle * pie / 180.00) * speed;
+			this->speedY -= sin(angle * pie / 180.00) * speed;
 		}
-		inline void PhysicResistance(double angle,double resistance) {
-			this->ResistanceX += cos(angle * PIE / 180.00) * resistance;
-			this->ResistanceY -= sin(angle * PIE / 180.00) * resistance;
+		inline void physicResistance(double angle,double resistance) {
+			this->resistanceX += cos(angle * pie / 180.00) * resistance;
+			this->resistanceY -= sin(angle * pie / 180.00) * resistance;
 		}
-		inline void UpdatePhysicSpeed() {
-			this->SpeedX += ForceX;
-			this->SpeedY += ForceY;
-			bool XX = this->SpeedX * ResistanceX > 0;
-			bool YY = this->SpeedY * ResistanceY > 0;
-			if(XX && fabs(this->SpeedX) >= fabs(this->ResistanceX)) this->SpeedX -= this->ResistanceX;
-			else if(XX)this->SpeedX = 0;
-			if(YY && fabs(this->SpeedY) >= fabs(this->ResistanceY)) this->SpeedY -= this->ResistanceY;
-			else if(YY) this->SpeedY = 0;
+		inline void updatePhysicSpeed() {
+			this->speedX += forceX;
+			this->speedY += forceY;
+			bool XX = this->speedX * resistanceX > 0;
+			bool YY = this->speedY * resistanceY > 0;
+			if(XX && fabs(this->speedX) >= fabs(this->resistanceX)) this->speedX -= this->resistanceX;
+			else if(XX)this->speedX = 0;
+			if(YY && fabs(this->speedY) >= fabs(this->resistanceY)) this->speedY -= this->resistanceY;
+			else if(YY) this->speedY = 0;
 		}
-		inline void UpdatePhysicPosition() {
-			this->pos.x += SpeedX * GlobalRating;
-			this->pos.y += SpeedY * GlobalRating;
+		inline void updatePhysicPosition() {
+			this->pos.x += speedX * globalRating;
+			this->pos.y += speedY * globalRating;
 //			cout<<"updated\n";
 		}
 		inline double getSpeedX() {
-			return this->SpeedX;
+			return this->speedX;
 		}
 		inline double getSpeedY() {
-			return this->SpeedY;
+			return this->speedY;
 		}
-		inline void PhysicArcSpeedX() {
-			this->SpeedX = -this->SpeedX;
+		inline void physicArcSpeedX() {
+			this->speedX = -this->speedX;
 		}
-		inline void PhysicArcSpeedY() {
-			this->SpeedY = -this->SpeedY;
+		inline void physicArcSpeedY() {
+			this->speedY = -this->speedY;
 		}
-		inline void PhysicRemoveSpeedX() {
-			this->SpeedX = 0;
+		inline void physicRemoveSpeedX() {
+			this->speedX = 0;
 		}
-		inline void PhysicRemoveSpeedY() {
-			this->SpeedY = 0;
+		inline void physicRemoveSpeedY() {
+			this->speedY = 0;
 		}
-		inline void PhysicRemoveForceX() {
-			this->ForceX = 0;
+		inline void physicRemoveForceX() {
+			this->forceX = 0;
 		}
-		inline void PhysicRemoveForceY() {
-			this->ForceY = 0;
+		inline void physicRemoveForceY() {
+			this->forceY = 0;
 		}
 		
 		// Move Animated
-		inline void move_with_animation(double xpixel,double ypixel,const Animate& animate,function<void(Element*)> callback = nullptr){
+		inline void moveWithAnimation(double xPixel,double yPixel,const Animate& animate,function<void(Element*)> callback = nullptr){
 			static int cur = 0;
-			animate_states[++ cur] = 0;
+			animateStates[++ cur] = 0;
 			Position p = animate.function(animate.end);
-			animations.emplace_back(make_pair(make_pair(cur,make_pair((p.x == 0 ? 0 : xpixel / p.x),(p.y == 0 ? 0 : ypixel / p.y))),animate));
+			animations.emplace_back(make_pair(make_pair(cur,make_pair((p.x == 0 ? 0 : xPixel / p.x),(p.y == 0 ? 0 : yPixel / p.y))),animate));
 			if(callback == nullptr) return;
-			this->animate_callbacks[cur] = callback;
+			this->animateCallbacks[cur] = callback;
 		}
 #endif
 
@@ -870,35 +870,35 @@ class Element {
 
 class InputBoxSet{
 	protected:
-		bool is_enabled;
+		bool isEnabled;
 		set<Element*> childs;
-		Element* selected_InputBox;
+		Element* selectedInputBox;
 		
 	public:
 		InputBoxSet(){
-			this->is_enabled = false;
+			this->isEnabled = false;
 		}
 		inline void enable(){
-			this->is_enabled = true;
+			this->isEnabled = true;
 		}
 		inline void disable(){
-			this->is_enabled = false;
+			this->isEnabled = false;
 		}
-		inline bool get_enable_statu(){
-			return this->is_enabled;
+		inline bool getEnableStatu(){
+			return this->isEnabled;
 		}
-		inline void insert(Element* inputbox){
-			this->childs.insert(inputbox);
+		inline void insert(Element* inputBox){
+			this->childs.insert(inputBox);
 		}
-		inline void erase(Element* inputbox){
-			this->childs.erase(inputbox); 
+		inline void erase(Element* inputBox){
+			this->childs.erase(inputBox); 
 		}
-		inline void select(Element* inputbox){
+		inline void select(Element* inputBox){
 			
 		}
 		inline void call(){
-			for(Element* inputbox : childs){
-				inputbox->call();
+			for(Element* inputBox : childs){
+				inputBox->call();
 			}
 		}
 		~InputBoxSet(){	}
@@ -906,107 +906,107 @@ class InputBoxSet{
 
 class InputBox : public Element{
 	protected:
-		bool is_enabled;
+		bool isEnabled;
 		InputBoxSet* father;
-		Element* submit_button;
+		Element* submitButton;
 	public:
 		InputBox(){
 			this->father = nullptr;
-			this->submit_button = nullptr;
+			this->submitButton = nullptr;
 		}
-		InputBox(InputBoxSet* father,Element* submit_button): father(father),submit_button(submit_button) { };
+		InputBox(InputBoxSet* father,Element* submitButton): father(father),submitButton(submitButton) { };
 		inline void bind(InputBoxSet* father){
 			if(this->father != nullptr) this->father->erase(this);
 			this->father = father;
 		}
 		inline void enable(){
-			this->is_enabled = true;
+			this->isEnabled = true;
 		}
 		inline void disable(){
-			this->is_enabled = false;
+			this->isEnabled = false;
 		}
-		inline bool get_enable_statu(){
-			return this->is_enabled;
+		inline bool getEnableStatu(){
+			return this->isEnabled;
 		}
-		inline virtual void listen(int listen_mode,string identifier,function<void(Element*)> function) {
-			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set[identifier] = function ;
-			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set[identifier] = function ;
+		inline virtual void listen(int listenMode,string identifier,function<void(Element*)> function) {
+			if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet[identifier] = function ;
+			else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet[identifier] = function ;
 			else{
-				LPCSTR text = TEXT(("InputBox::listen方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				LPCSTR text = TEXT(("InputBox::listen方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		inline virtual void stop(int listen_mode,string identifier) {
-			if(listen_mode == FeEGE::EventType.frame) this->frame_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_put_on) this->on_mouse_put_on_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_hitting) this->on_mouse_hitting_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_mouse_move_away) this->on_mouse_move_away_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_click) this->on_click_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.on_clone) this->on_clone_function_set.erase(identifier) ;
-			else if(listen_mode == FeEGE::EventType.clones.on_clone) this->on_clone_clones_function_set.erase(identifier) ;
+		inline virtual void stop(int listenMode,string identifier) {
+			if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet.erase(identifier) ;
+			else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier) ;
 			else{
-				LPCSTR text = TEXT(("InputBox::stop方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listen_mode)).c_str());
+				LPCSTR text = TEXT(("InputBox::stop方法中被传入了不恰当的事件\n\nInputBox名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 				MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 			}
 		}
-		inline void reflush_mouse_statu() override {
+		inline void reflushMouseStatu() override {
 			/*
 				Test click
 			*/
-			if(this->ismousein()) {
-				int statu = this->get_variable(0);
-				if(this->ishit()) {
+			if(this->isMouseIn()) {
+				int statu = this->getVariable(0);
+				if(this->isHit()) {
 					if(statu == 1) {
-						this->set_variable(0,2);
-						if(this->is_enabled)
-							for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+						this->setVariable(0,2);
+						if(this->isEnabled)
+							for(auto it :this->onMouseHittingFunctionSet) it.second(this);
 					}
 				} else {
 					if(statu == 0) {
-						this->set_variable(0,1);
-						if(this->is_enabled)
-							for(auto it : this->on_mouse_put_on_function_set) it.second(this);
+						this->setVariable(0,1);
+						if(this->isEnabled)
+							for(auto it : this->onMousePutOnFunctionSet) it.second(this);
 					} else if(statu == 2) {
-						this->set_variable(0,0);
-						if(this->is_enabled){
+						this->setVariable(0,0);
+						if(this->isEnabled){
 							this->father->select(this);
-							for(auto it : this->on_click_function_set) it.second(this);
+							for(auto it : this->onClickFunctionSet) it.second(this);
 						}
 					}
 				}
 			} else {
-				if(this->get_variable(0) == 1)	{
-					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
-					if(this->is_enabled)
-							this->set_variable(0,0);
+				if(this->getVariable(0) == 1)	{
+					for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
+					if(this->isEnabled)
+							this->setVariable(0,0);
 				}
 			}
 		}
 		inline void call() override {
-			this->backup_pos = pos;
-			this->reflush_mouse_statu();
-			for(auto it : this->frame_function_set) it.second(this);
-			if(this->ishit())
+			this->backupPos = pos;
+			this->reflushMouseStatu();
+			for(auto it : this->frameFunctionSet) it.second(this);
+			if(this->isHit())
 			if(this->deleted) return;
-			if(!this->is_show) return;
+			if(!this->isShow) return;
 
 			//backup
-			if(this->is_cancel_x) {
-				this->is_cancel_x = false;
-				this->pos.x = this->backup_pos.x;
+			if(this->isCancelX) {
+				this->isCancelX = false;
+				this->pos.x = this->backupPos.x;
 			}
-			if(this->is_cancel_y) {
-				this->is_cancel_y = false;
-				this->pos.y = this->backup_pos.y;
+			if(this->isCancelY) {
+				this->isCancelY = false;
+				this->pos.y = this->backupPos.y;
 			}
 			
 			this->drawed = false;
-			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			putimage_rotatezoom(nullptr,this->imageVector[this->currentImage],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * pie,this->scale / 100.00f,1,this->alpha);
 		}
 		~InputBox(){
 			this->father->erase(this);
@@ -1015,243 +1015,243 @@ class InputBox : public Element{
 
 class Button : public Element{
 	protected:
-		bool is_enabled;
+		bool isEnabled;
 	public:
-		Button(){
-			this->is_enabled = false;
+				Button(){
+			this->isEnabled = false;
 		}
 		inline void enable(){
-			this->is_enabled = true;
+			this->isEnabled = true;
 		}
 		inline void disable(){
-			this->is_enabled = false;
+			this->isEnabled = false;
 		}
-		inline bool get_enable_statu(){
-			return this->is_enabled;
+		inline bool getEnableStatu(){
+			return this->isEnabled;
 		}
-		inline void reflush_mouse_statu() override {
+		inline void reflushMouseStatu() override {
 			/*
 				Test click
 			*/
-			if(this->ismousein()) {
-				int statu = this->get_variable(0);
-				if(this->ishit()) {
+			if(this->isMouseIn()) {
+				int statu = this->getVariable(0);
+				if(this->isHit()) {
 					if(statu == 1) {
-						this->set_variable(0,2);
-						if(this->is_enabled)
-							for(auto it :this->on_mouse_hitting_function_set) it.second(this);
+						this->setVariable(0,2);
+						if(this->isEnabled)
+							for(auto it :this->onMouseHittingFunctionSet) it.second(this);
 					}
 				} else {
 					if(statu == 0) {
-						this->set_variable(0,1);
-						if(this->is_enabled)
-							for(auto it : this->on_mouse_put_on_function_set) it.second(this);
+						this->setVariable(0,1);
+						if(this->isEnabled)
+							for(auto it : this->onMousePutOnFunctionSet) it.second(this);
 					} else if(statu == 2) {
-						this->set_variable(0,0);
-						if(this->is_enabled)
-							for(auto it : this->on_click_function_set) it.second(this);
+						this->setVariable(0,0);
+						if(this->isEnabled)
+							for(auto it : this->onClickFunctionSet) it.second(this);
 					}
 				}
 			} else {
-				if(this->get_variable(0) == 1)	{
-					for(auto it : this->on_mouse_move_away_function_set) it.second(this);
-					if(this->is_enabled)
-							this->set_variable(0,0);
+				if(this->getVariable(0) == 1)	{
+					for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
+					if(this->isEnabled)
+							this->setVariable(0,0);
 				}
 			}
 		}
 		inline void call() override {
-			this->backup_pos = pos;
-			this->reflush_mouse_statu();
-			for(auto it : this->frame_function_set) it.second(this);
-//			if(this->ishit())
+			this->backupPos = pos;
+			this->reflushMouseStatu();
+			for(auto it : this->frameFunctionSet) it.second(this);
+//			if(this->isHit())
 			if(this->deleted) return;
-			if(!this->is_show) return;
+			if(!this->isShow) return;
 
 			//backup
-			if(this->is_cancel_x) {
-				this->is_cancel_x = false;
-				this->pos.x = this->backup_pos.x;
+			if(this->isCancelX) {
+				this->isCancelX = false;
+				this->pos.x = this->backupPos.x;
 			}
-			if(this->is_cancel_y) {
-				this->is_cancel_y = false;
-				this->pos.y = this->backup_pos.y;
+			if(this->isCancelY) {
+				this->isCancelY = false;
+				this->pos.y = this->backupPos.y;
 			}
 			
 			this->drawed = false;
-			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			putimage_rotatezoom(nullptr,this->imageVector[this->currentImage],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * pie,this->scale / 100.00f,1,this->alpha);
 		}
 		~Button(){ }
 };
 
-int current_reg_order = 0;
+int currentRegOrder = 0;
 unsigned long long frame = 0;
-queue<Element*>FreeList;
+queue<Element*> freeList;
 
 class cmp {
 	public:
 		bool operator()(Element* _A,Element* _B) {
-			if(_A->get_order() == _B->get_order()) return _A->get_reg_order() < _B->get_reg_order();
-			return _A->get_order() < _B->get_order();
+			if(_A->getOrder() == _B->getOrder()) return _A->getRegOrder() < _B->getRegOrder();
+			return _A->getOrder() < _B->getOrder();
 		}
 };
 
-set<Element*,cmp>Element_queue;
+set<Element*,cmp> elementQueue;
 
-void Element::increase_order(int count) {
-	Element_queue.erase(this);
+void Element::increaseOrder(int count) {
+	elementQueue.erase(this);
 	this->order += count;
-	Element_queue.insert(this);
+	elementQueue.insert(this);
 }
 
-void Element::decrease_order(int count) {
-	Element_queue.erase(this);
+void Element::decreaseOrder(int count) {
+	elementQueue.erase(this);
 	this->order -= count;
-	Element_queue.insert(this);
+	elementQueue.insert(this);
 }
 
-void Element::set_order(int count) {
-	Element_queue.erase(this);
+void Element::setOrder(int count) {
+	elementQueue.erase(this);
 	this->order = count;
-	Element_queue.insert(this);
+	elementQueue.insert(this);
 }
 
 namespace pen {
 	int order = 0;
-	int fontscale = 1;
-	short penalpha = 255;
-	int penType = FeEGE::PenType.left;
-	int charwidth,charheight;
+	int fontScale = 1;
+	short penAlpha = 255;
+	int penType = FeEGE::penType.left;
+	int charWidth,charHeight;
 	inline void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
-		if(penType == FeEGE::PenType.middle) {
-			x -= charwidth * str.length() >> 1;
-			y -= charheight >> 1;
+		if(penType == FeEGE::penType.middle) {
+			x -= charWidth * str.length() >> 1;
+			y -= charHeight >> 1;
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
 	inline void print(int x,int y,wstring str) {
 		if(pen_image == nullptr) return;
-		if(penType == FeEGE::PenType.middle) {
-			x -= charwidth * str.length() >> 1;
-			y -= charheight >> 1;
+		if(penType == FeEGE::penType.middle) {
+			x -= charWidth * str.length() >> 1;
+			y -= charHeight >> 1;
 		}
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
-	inline void font(int scale,string fontname = "幼圆") {
+	inline void font(int scale,string fontName = "幼圆") {
 		if(pen_image == nullptr) return;
-		fontscale = scale;
-		setfont(scale,0,fontname.c_str(),pen_image);
-		charwidth = textwidth('t',pen_image);
-		charheight = textheight('t',pen_image);
+		fontScale = scale;
+		setfont(scale,0,fontName.c_str(),pen_image);
+		charWidth = textwidth('t',pen_image);
+		charHeight = textheight('t',pen_image);
 	}
 	inline void color(color_t color) {
 		if(pen_image == nullptr) return;
 		setcolor(color,pen_image);
 	}
-	inline void type(int Type) {
-		penType = Type;
+	inline void type(int type) {
+		penType = type;
 	}
 	inline void clear(int x,int y,int ex,int ey) {
 		if(pen_image == nullptr) return;
 		bar(x,y,ex,ey,pen_image);
 	}
-	inline void clear_char(int x,int y) {
+	inline void clearChar(int x,int y) {
 		if(pen_image == nullptr) return;
-		bar(x,y,x + charwidth,y + charheight,pen_image);
+		bar(x,y,x + charWidth,y + charHeight,pen_image);
 	}
-	inline void clear_chars(int x,int y,int charcount) {
+	inline void clearChars(int x,int y,int charCount) {
 		if(pen_image == nullptr) return;
-		bar(x,y,x + charwidth * charcount,y + charwidth,pen_image);
+		bar(x,y,x + charWidth * charCount,y + charWidth,pen_image);
 	}
-	inline void clear_all() {
+	inline void clearAll() {
 		if(pen_image == nullptr) return;
 		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
 	}
-	inline void setorder(int value) {
+	inline void setOrder(int value) {
 		order = value;
 	}
-	inline void set_alpha(short alpha) {
-		penalpha = alpha;
-		penalpha %= 256;
-		if(penalpha < 0) penalpha += 256;
+	inline void setAlpha(short alpha) {
+		penAlpha = alpha;
+		penAlpha %= 256;
+		if(penAlpha < 0) penAlpha += 256;
 	}
-	inline short get_alpha() {
-		return penalpha;
+	inline short getAlpha() {
+		return penAlpha;
 	}
-	inline void increase_alpha(short alpha){
-		penalpha += alpha;
-		penalpha %= 256;
-		if(penalpha < 0) penalpha += 256;
+	inline void increaseAlpha(short alpha){
+		penAlpha += alpha;
+		penAlpha %= 256;
+		if(penAlpha < 0) penAlpha += 256;
 	}
-	inline void decrease_alpha(short alpha){
-		penalpha -= alpha;
-		penalpha %= 256;
-		if(penalpha < 0) penalpha += 256;
+	inline void decreaseAlpha(short alpha){
+		penAlpha -= alpha;
+		penAlpha %= 256;
+		if(penAlpha < 0) penAlpha += 256;
 	}
-	inline void print_line(int x1,int y1,int x2,int y2){
+	inline void printLine(int x1,int y1,int x2,int y2){
 		line(x1,y1,x2,y2,pen_image);
 	}
-	inline void print_bar(int left,int top,int right,int bottom){
+	inline void printBar(int left,int top,int right,int bottom){
 		bar(left,top,right,bottom,pen_image);
 	}
 }
 
 //Functions
 
-void reg_Element(Element* element) {
-	element->set_reg_order(current_reg_order ++);
-	Element_queue.insert(element);
+void regElement(Element* element) {
+	element->setRegOrder(currentRegOrder ++);
+	elementQueue.insert(element);
 	__SIZE__ ++;
-	ElementIsIn[element] = true;
-	IdToElement[element->getId()] = element;
+	elementIsIn[element] = true;
+	idToElement[element->getId()] = element;
 }
 
 
 mutex M;
-Element* FeEGE::getElementById(string ElementId) {
+Element* FeEGE::getElementById(string elementId) {
 	M.lock();
-	Element* res = IdToElement[ElementId];
+	Element* res = idToElement[elementId];
 	M.unlock();
 	return res;
 }
 
-Element* FeEGE::getElementByPtr(Element* ElementPtr) {
-	return (ElementIsIn.find(ElementPtr) != ElementIsIn.end()) ? ElementPtr : nullptr;
+Element* FeEGE::getElementByPtr(Element* elementPtr) {
+	return (elementIsIn.find(elementPtr) != elementIsIn.end()) ? elementPtr : nullptr;
 }
 
-Element ElementPool[MAXELEMENTCOUNT];
-bool ElementPoolUsed[MAXELEMENTCOUNT] = {};
+Element elementPool[MAXELEMENTCOUNT];
+bool elementPoolUsed[MAXELEMENTCOUNT] = {};
 
-Element* Element::deletethis() {
-	FreeList.push(this);
+Element* Element::deleteThis() {
+	freeList.push(this);
 	return this;
 }
 
 Element* Element::deleteElement() {
-	if(((Element*)this->get_variable(1)) != nullptr){
-		((Element*)this->get_variable(1))->removeList.push_back(this);
+	if(((Element*)this->getVariable(1)) != nullptr){
+		((Element*)this->getVariable(1))->removeList.push_back(this);
 	} 
-	Element_queue.erase(this);
+	elementQueue.erase(this);
 	this->deleted = true;
-	ElementPoolUsed[this->PoolIndex] = false;
-	this->frame_function_set.clear();
-	if((Element*)this->private_variables[1] == nullptr){
-		for(auto i : this->image_vector) delimage(i);
+	elementPoolUsed[this->poolIndex] = false;
+	this->frameFunctionSet.clear();
+	if((Element*)this->privateVariables[1] == nullptr){
+		for(auto i : this->imageVector) delimage(i);
 	}
-	if(this->__visible_image != nullptr) delimage(this->__visible_image);
-	this->image_vector.clear();
+	if(this->__visibleImage != nullptr) delimage(this->__visibleImage);
+	this->imageVector.clear();
 	this->clones.clear();
 	this->removeList.clear();
-	this->on_mouse_put_on_function_set.clear();
-	this->on_mouse_hitting_function_set.clear();
-	this->on_mouse_move_away_function_set.clear();
-	this->on_click_function_set.clear();
-	this->on_clone_function_set.clear();
-	this->on_clone_clones_function_set.clear();
+	this->onMousePutOnFunctionSet.clear();
+	this->onMouseHittingFunctionSet.clear();
+	this->onMouseMoveAwayFunctionSet.clear();
+	this->onClickFunctionSet.clear();
+	this->onCloneFunctionSet.clear();
+	this->onCloneClonesFunctionSet.clear();
 	this->deleted = true;
-	ElementIsIn[this] = false;
-	IdToElement[this->id] = nullptr;
+	elementIsIn[this] = false;
+	idToElement[this->id] = nullptr;
 	return this;
 }
 
@@ -1343,7 +1343,7 @@ std::string UTF8ToANSI(const std::string& utf8Str) {
     return ansiStr;
 }
 
-void runcmdAwait(const std::string cmd){
+void runCmdAwait(const std::string cmd){
 	STARTUPINFO si = { sizeof(si) };
     PROCESS_INFORMATION pi;
 
@@ -1357,17 +1357,17 @@ void runcmdAwait(const std::string cmd){
 }
 
 
-Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
-	ImagePath = resolvePath(ImagePath);
+Element* newElement(string id,string imagePath,double x = 0,double y = 0) {
+	imagePath = resolvePath(imagePath);
 	PIMAGE image = newimage();
-	if(ImagePath != "") getimage(image,TEXT(ImagePath.c_str()));
+	if(imagePath != "") getimage(image,TEXT(imagePath.c_str()));
 	else delimage(image);
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
-		if(!ElementPoolUsed[i]) {
-			ElementPoolUsed[i] = true;
-			Element* e = ElementPool[i].copy(id,image,i,x,y);
-			reg_Element(e);
-			e->set_type("Normal@native");
+		if(!elementPoolUsed[i]) {
+			elementPoolUsed[i] = true;
+			Element* e = elementPool[i].copy(id,image,i,x,y);
+			regElement(e);
+			e->setType("Normal@native");
 			return e;
 		}
 	}
@@ -1375,36 +1375,36 @@ Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	return nullptr;
 }
 
-Button* newButton(string id,string ImagePath,double x,double y,function<void(Element*)> put_on = nullptr,function<void(Element*)> move_away = nullptr,function<void(Element*)> on_click = nullptr) {
-	Button* button = (Button*)newElement(id,ImagePath,x,y);
+Button* newButton(string id,string imagePath,double x,double y,function<void(Element*)> putOn = nullptr,function<void(Element*)> moveAway = nullptr,function<void(Element*)> on_click = nullptr) {
+	Button* button = (Button*)newElement(id,imagePath,x,y);
 	if(button == nullptr) return nullptr;
-	button->set_type("Button@native");
+	button->setType("Button@native");
 	button->listen(FeEGE::EventType.on_click,"click@native",on_click);
-	button->listen(FeEGE::EventType.on_mouse_put_on,"hit@native",put_on);
-	button->listen(FeEGE::EventType.on_mouse_move_away,"hit@native",move_away);
+	button->listen(FeEGE::EventType.on_mouse_put_on,"hit@native",putOn);
+	button->listen(FeEGE::EventType.on_mouse_move_away,"hit@native",moveAway);
 	return button;
 }
 
-void SelectInputBox(InputBox* inputBox){
+void selectInputBox(InputBox* inputBox){
 	
 }
 
-Element* newInputBox(string id,string ImagePath,double x,double y,Element* submit_button,function<void(Element*)> on_submit = nullptr,function<void(Element*)> on_selected = nullptr){
-	Element* inputBox = newElement(id,ImagePath,x,y);
+Element* newInputBox(string id,string imagePath,double x,double y,Element* submitButton,function<void(Element*)> onSubmit = nullptr,function<void(Element*)> onSelected = nullptr){
+	Element* inputBox = newElement(id,imagePath,x,y);
 	if(inputBox == nullptr) return nullptr;
-	inputBox->set_type("InputBox@native");
-	submit_button->listen(EventType.on_click,id + "SUBMIT EVENT",on_submit);
-	inputBox->listen(EventType.InputBox.on_select,"SELECT",on_selected);
+	inputBox->setType("InputBox@native");
+	submitButton->listen(EventType.on_click,id + "SUBMIT EVENT",onSubmit);
+	inputBox->listen(EventType.inputBox.onSelect,"SELECT",onSelected);
 	return inputBox;
 }
 
 #if true
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
-		if(!ElementPoolUsed[i]) {
-			ElementPoolUsed[i] = true;
-			Element* e = ElementPool[i].copy(id,image,i,x,y);
-			reg_Element(e);
+		if(!elementPoolUsed[i]) {
+			elementPoolUsed[i] = true;
+			Element* e = elementPool[i].copy(id,image,i,x,y);
+			regElement(e);
 			return e;
 		}
 	}
@@ -1413,14 +1413,14 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 }
 #endif
 
-void globalListen(int listen_mode,string identifier,auto function){
-	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set[identifier] = function ;
-	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set[identifier] = function ;
+void globalListen(int listenMode,string identifier,auto function){
+	if(listenMode == FeEGE::EventType.frame) globalListenFrameFunctionSet[identifier] = function ;
+	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet[identifier] = function ;
 }
 
-void stopGlobalListen(int listen_mode,string identifier){
-	if(listen_mode == FeEGE::EventType.frame) globalListen_frame_function_set.erase(identifier) ;
-	if(listen_mode == FeEGE::EventType.on_click) globalListen_on_click_function_set.erase(identifier) ;
+void stopGlobalListen(int listenMode,string identifier){
+	if(listenMode == FeEGE::EventType.frame) globalListenFrameFunctionSet.erase(identifier) ;
+	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet.erase(identifier) ;
 }
 
 void reflush() {
@@ -1429,36 +1429,36 @@ void reflush() {
 	mousepos(&x,&y);
 	mousePos = {(double)x,(double)y};
 
-	while(!FreeList.empty()) {
-		FreeList.front()->deleteElement();
-		FreeList.pop();
+	while(!freeList.empty()) {
+		freeList.front()->deleteElement();
+		freeList.pop();
 	}
 	
 	// run schedule
-	vector<function<void(void)>> schedule_backup;
-	schedule_backup.swap(schedule);
-	for(auto func : schedule_backup) func();
+	vector<function<void(void)>> scheduleBackup;
+	scheduleBackup.swap(schedule);
+	for(auto func : scheduleBackup) func();
 	
 	// check timeOut
 	double currentTime = getMs();
-	while(!schedule_timeOut.empty() && (*schedule_timeOut.begin()).first < currentTime){
-		auto vec = (*schedule_timeOut.begin()).second;
-		schedule_timeOut.erase(schedule_timeOut.begin());
+	while(!scheduleTimeOut.empty() && (*scheduleTimeOut.begin()).first < currentTime){
+		auto vec = (*scheduleTimeOut.begin()).second;
+		scheduleTimeOut.erase(scheduleTimeOut.begin());
 		for(const auto& func : vec) func();
 	}
 	
-	bool pen_nprinted = true;
+	bool penNprinted = true;
 	cleardevice();
 
-	for(Element* it : Element_queue) {
-		if(it == nullptr || it == *Element_queue.end()) continue;
-		if(pen_nprinted && it->get_order() >= pen::order) {
-			pen_nprinted = false;
-			putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
+	for(Element* it : elementQueue) {
+		if(it == nullptr || it == *elementQueue.end()) continue;
+		if(penNprinted && it->getOrder() >= pen::order) {
+			penNprinted = false;
+			putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penAlpha);
 		}
 		it->call();
 	}
-	if(pen_nprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penalpha);
+	if(penNprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penAlpha);
 	flushmouse();
 	#ifdef FPS
 	static char fps[32];
@@ -1466,8 +1466,8 @@ void reflush() {
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
 	#endif
-	#ifndef BigScreen
-	builtin_getkey();
+	#ifndef bigScreen
+	builtinGetKey();
 	#endif
 	delay_ms(1);
 }
@@ -1476,7 +1476,7 @@ void init(int x,int y,int mode = INIT_RENDERMANUAL){
 	setinitmode(mode);
 	initgraph(x,y);
 	initXY();
-	FeEGE::initpen();
+	FeEGE::initPen();
 }
 
 void start() {
@@ -1485,8 +1485,8 @@ void start() {
 	randomize();
 	while(!closeGraph && is_run()) {
 		reflush();
-		for(auto it : globalListen_frame_function_set) it.second();
-		if(!reg_pause) continue;
+		for(auto it : globalListenFrameFunctionSet) it.second();
+		if(!regPause) continue;
 #ifndef NO_THREAD
 #ifdef Ppause
 		if(FeEGE::getkey('p') || FeEGE::getkey('P')) {
@@ -1502,6 +1502,5 @@ void start() {
 		delay_jfps(120);
 	}
 }
-
 
 #endif
