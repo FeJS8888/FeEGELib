@@ -7,7 +7,7 @@ namespace FeEGE{
 	
 static PenetrationInfo last_info;
 
-// Vector2 ÊµÏÖ
+// Vector2 å®ç°
 Vector2::Vector2() : x(0), y(0) {}
 Vector2::Vector2(double _x, double _y) : x(_x), y(_y) {}
 
@@ -27,7 +27,7 @@ Vector2 Vector2::perpendicular() const {
     return Vector2(-y, x);
 }
 
-// Support º¯Êı
+// Support å‡½æ•°
 static Vector2 support(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, const Vector2& dir) {
     auto getFarthestPoint = [](const std::vector<Vector2>& shape, const Vector2& dir) {
         double maxDot = -std::numeric_limits<double>::infinity();
@@ -47,7 +47,7 @@ static Vector2 support(const std::vector<Vector2>& shapeA, const std::vector<Vec
     return p1 - p2;
 }
 
-// GJK simplex ¸üĞÂÂß¼­
+// GJK simplex æ›´æ–°é€»è¾‘
 static bool doSimplex(std::vector<Vector2>& simplex, Vector2& dir) {
     if (simplex.size() == 2) {
         Vector2 B = simplex[0];
@@ -87,7 +87,7 @@ static bool doSimplex(std::vector<Vector2>& simplex, Vector2& dir) {
     return false;
 }
 
-// GJK Ö÷Ìå
+// GJK ä¸»ä½“
 static bool gjk(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, std::vector<Vector2>& simplex) {
     Vector2 dir(1, 0);
     simplex.push_back(support(shapeA, shapeB, dir));
@@ -104,7 +104,7 @@ static bool gjk(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& 
     }
 }
 
-// EPA ¸¨Öú½á¹¹
+// EPA è¾…åŠ©ç»“æ„
 class Edge {
 public:
     Vector2 normal;
@@ -131,7 +131,7 @@ static Edge findClosestEdge(const std::vector<Vector2>& polytope) {
     return closest;
 }
 
-// EPA Ö÷Ìå
+// EPA ä¸»ä½“
 static PenetrationInfo epa(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, std::vector<Vector2>& simplex) {
     const double tolerance = 0.0001f;
     while (true) {
@@ -148,7 +148,7 @@ static PenetrationInfo epa(const std::vector<Vector2>& shapeA, const std::vector
     }
 }
 
-// Íâ²¿½Ó¿Ú£ºÊÇ·ñÏà½»
+// å¤–éƒ¨æ¥å£ï¼šæ˜¯å¦ç›¸äº¤
 bool isTouched(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB) {
     std::vector<Vector2> simplex;
     if (gjk(shapeA, shapeB, simplex)) {
@@ -159,15 +159,15 @@ bool isTouched(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& s
     return false;
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»Ø×î½üÒ»´ÎÅö×²ĞÅÏ¢
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›æœ€è¿‘ä¸€æ¬¡ç¢°æ’ä¿¡æ¯
 const PenetrationInfo& getLastInfo() {
     return last_info;
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»ØÑØ·½ÏòdirÉÏµÄ´©Í¸Éî¶È£¨¼ÙÉèshapeAºÍshapeBÒÑ¾­Ïà½»£©
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›æ²¿æ–¹å‘dirä¸Šçš„ç©¿é€æ·±åº¦ï¼ˆå‡è®¾shapeAå’ŒshapeBå·²ç»ç›¸äº¤ï¼‰
 double getSeparateDistance(const std::vector<Vector2>& shapeA,const std::vector<Vector2>& shapeB,const Vector2& direction) {
-    Vector2 supportPt = support(shapeA, shapeB,direction); // ÔÚ·´·½ÏòÉÏÕÒ support µã
-    return supportPt.dot(direction); // ¾àÀë = support µãµ½Ô­µãµÄÍ¶Ó°³¤¶È£¨È¡¸º£©
+    Vector2 supportPt = support(shapeA, shapeB,direction); // åœ¨åæ–¹å‘ä¸Šæ‰¾ support ç‚¹
+    return supportPt.dot(direction); // è·ç¦» = support ç‚¹åˆ°åŸç‚¹çš„æŠ•å½±é•¿åº¦ï¼ˆå–è´Ÿï¼‰
 }
 
 }
