@@ -1,7 +1,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V1.3.1.0--upd2025-04-08"
+#define FeEGELib_version "V2.0.0.0--upd2025-04-18"
 #define version() FeEGELib_version
 
 #include<graphics.h>
@@ -394,7 +394,7 @@ namespace pen {
     extern int charWidth,charHeight;
     void print(int x,int y,string str);
     void print(int x,int y,wstring str);
-    void font(int scale,string fontName = "Ó×Ô²");
+    void font(int scale,string fontName = "å¹¼åœ†");
     void color(color_t color);
     void type(int type);
     void clear(int x,int y,int ex,int ey);
