@@ -26,7 +26,7 @@ public:
 };
 
 typedef std::vector<Vector2> Polygon;
-// Ö÷º¯Êıµ÷ÓÃ½Ó¿Ú
+// ä¸»å‡½æ•°è°ƒç”¨æ¥å£
 bool isTouched(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB);
 const PenetrationInfo& getLastInfo();
 double getSeparateDistance(const std::vector<Vector2>& shapeA,const std::vector<Vector2>& shapeB,const Vector2& direction); 
