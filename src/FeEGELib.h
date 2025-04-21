@@ -930,19 +930,66 @@ public:
  */
 class InputBoxSet{
 protected:
-    bool isEnabled;             ///< 启用状态
-    set<Element*> childs;       ///< 子元素集合
-    Element* selectedInputBox;  ///< 当前选中的输入框
-    
+    bool isEnabled;             ///< 标识集合是否处于启用状态
+    set<Element*> childs;       ///< 存储管理的输入框元素集合
+    Element* selectedInputBox;  ///< 当前被选中的输入框指针
+
 public:
+    /**
+     * @brief 构造函数，初始化输入框集合
+     */
     InputBoxSet();
+
+    /**
+     * @brief 启用输入框集合
+     * @details 启用后集合内的输入框可以响应交互事件
+     */
     void enable();
+
+    /**
+     * @brief 禁用输入框集合
+     * @details 禁用后集合内的输入框将不再响应交互事件
+     */
     void disable();
+
+    /**
+     * @brief 获取集合启用状态
+     * @return true-已启用 false-已禁用
+     */
     bool getEnableStatu();
+
+    /**
+     * @brief 向集合中添加输入框
+     * @param inputBox 要添加的输入框元素指针
+     * @note 如果inputBox已存在于集合中，则不会重复添加
+     */
     void insert(Element* inputBox);
+
+    /**
+     * @brief 从集合中移除输入框
+     * @param inputBox 要移除的输入框元素指针
+     * @note 如果inputBox是当前选中项，会同时清除选中状态
+     */
     void erase(Element* inputBox);
+
+    /**
+     * @brief 选中指定输入框
+     * @param inputBox 要选中的输入框元素指针
+     * @details 选中后会触发输入框的onSelect事件
+     * @note 如果inputBox不属于本集合，则不会执行选中操作
+     */
     void select(Element* inputBox);
+
+    /**
+     * @brief 主循环调用函数
+     * @details 处理集合内输入框的焦点切换等逻辑
+     */
     void call();
+
+    /**
+     * @brief 析构函数
+     * @details 清理集合内所有输入框的引用关系
+     */
     ~InputBoxSet();
 };
 
@@ -952,20 +999,87 @@ public:
  */
 class InputBox : public Element{
 protected:
-    bool isEnabled;         ///< 启用状态
-    InputBoxSet* father;    ///< 父集合
-    Element* submitButton;  ///< 提交按钮
+    bool isEnabled;         ///< 控件启用状态，true表示可交互，false表示禁用
+    InputBoxSet* father;    ///< 所属的输入框集合指针，用于管理多个输入框
+    Element* submitButton;  ///< 关联的提交按钮指针，触发提交事件
+
 public:
+    /**
+     * @brief 默认构造函数
+     * @details 初始化输入框，默认状态为启用，无父集合和提交按钮
+     */
     InputBox();
-    InputBox(InputBoxSet* father,Element* submitButton);
+
+    /**
+     * @brief 带参构造函数
+     * @param father 所属的输入框集合
+     * @param submitButton 关联的提交按钮
+     */
+    InputBox(InputBoxSet* father, Element* submitButton);
+
+    /**
+     * @brief 绑定到输入框集合
+     * @param father 要绑定的输入框集合
+     * @note 一个输入框只能属于一个集合
+     */
     void bind(InputBoxSet* father);
+
+    /**
+     * @brief 启用输入框
+     * @details 允许接收用户输入和交互事件
+     */
     void enable();
+
+    /**
+     * @brief 禁用输入框
+     * @details 禁止接收用户输入和交互事件
+     */
     void disable();
+
+    /**
+     * @brief 获取启用状态
+     * @return bool 当前启用状态
+     * @retval true 已启用
+     * @retval false 已禁用
+     */
     bool getEnableStatu();
-    virtual void listen(int listenMode,string identifier,function<void(Element*)> function);
-    virtual void stop(int listenMode,string identifier);
+
+    /**
+     * @brief 添加事件监听器
+     * @param listenMode 监听模式(如点击、悬停等)
+     * @param identifier 监听器唯一标识
+     * @param function 回调函数
+     * @override 重写Element类的listen方法
+     */
+    virtual void listen(int listenMode, string identifier, 
+                       function<void(Element*)> function);
+
+    /**
+     * @brief 移除事件监听器
+     * @param listenMode 监听模式
+     * @param identifier 要移除的监听器标识
+     * @override 重写Element类的stop方法
+     */
+    virtual void stop(int listenMode, string identifier);
+
+    /**
+     * @brief 刷新鼠标状态
+     * @details 检测鼠标交互并更新状态，处理焦点切换
+     * @override 重写Element类的reflushMouseStatu方法
+     */
     void reflushMouseStatu() override;
+
+    /**
+     * @brief 主循环处理函数
+     * @details 处理输入框的帧更新逻辑和事件触发
+     * @override 重写Element类的call方法
+     */
     void call() override;
+
+    /**
+     * @brief 析构函数
+     * @details 清理资源，自动从父集合中移除
+     */
     ~InputBox();
 };
 
@@ -975,14 +1089,51 @@ public:
  */
 class Button : public Element{
 protected:
-    bool isEnabled;  ///< 启用状态
+    bool isEnabled;  ///< 按钮启用状态标志，true表示启用，false表示禁用
+    
 public:
+    /**
+     * @brief 构造函数
+     * @details 初始化按钮元素，默认状态为启用
+     */
     Button();
+    
+    /**
+     * @brief 启用按钮
+     * @details 设置按钮为启用状态，使其可以响应交互事件
+     */
     void enable();
+    
+    /**
+     * @brief 禁用按钮  
+     * @details 设置按钮为禁用状态，使其不再响应交互事件
+     */
     void disable();
+    
+    /**
+     * @brief 获取按钮启用状态
+     * @return bool 返回当前启用状态，true表示启用，false表示禁用
+     */
     bool getEnableStatu();
+    
+    /**
+     * @brief 刷新鼠标状态（重写父类方法）
+     * @details 检测鼠标是否悬停在按钮上，并更新相应的状态标志
+     * @override 重写Element类的reflushMouseStatu方法
+     */
     void reflushMouseStatu() override;
+    
+    /**
+     * @brief 按钮主循环处理（重写父类方法）
+     * @details 处理按钮的帧更新逻辑，包括状态检测和事件触发
+     * @override 重写Element类的call方法  
+     */
     void call() override;
+    
+    /**
+     * @brief 析构函数
+     * @details 清理按钮占用的资源
+     */
     ~Button();
 };
 
@@ -1014,38 +1165,225 @@ extern short penAlpha;      ///< 画笔透明度
 extern int penType;         ///< 画笔类型
 extern int charWidth, charHeight;  ///< 字符宽度和高度
 
-void print(int x,int y,string str);
-void print(int x,int y,wstring str);
-void font(int scale,string fontName = "幼圆");
-void color(color_t color);
-void type(int type);
-void clear(int x,int y,int ex,int ey);
-void clearChar(int x,int y);
-void clearChars(int x,int y,int charCount);
-void clearAll();
-void setOrder(int value);
-void setAlpha(short alpha);
-short getAlpha();
-void increaseAlpha(short alpha);
-void decreaseAlpha(short alpha);
-void printLine(int x1,int y1,int x2,int y2);
-void printBar(int left,int top,int right,int bottom);
+/**
+     * @brief 在指定位置打印字符串(ANSI)
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param str 要打印的字符串
+     */
+    void print(int x, int y, string str);
+
+    /**
+     * @brief 在指定位置打印宽字符串(Unicode)
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param str 要打印的宽字符串
+     */
+    void print(int x, int y, wstring str);
+
+    /**
+     * @brief 设置字体样式和大小
+     * @param scale 字体缩放比例
+     * @param fontName 字体名称(默认为"幼圆")
+     */
+    void font(int scale, string fontName = "幼圆");
+
+    /**
+     * @brief 设置画笔颜色
+     * @param color 颜色值(color_t类型)
+     */
+    void color(color_t color);
+
+    /**
+     * @brief 设置画笔类型
+     * @param type 画笔类型(0x01-左键, 0x02-中键等)
+     */
+    void type(int type);
+
+    /**
+     * @brief 清除指定矩形区域
+     * @param x 左上角x坐标
+     * @param y 左上角y坐标
+     * @param ex 右下角x坐标
+     * @param ey 右下角y坐标
+     */
+    void clear(int x, int y, int ex, int ey);
+
+    /**
+     * @brief 清除指定位置的单个字符
+     * @param x 字符x坐标
+     * @param y 字符y坐标
+     */
+    void clearChar(int x, int y);
+
+    /**
+     * @brief 清除从指定位置开始的多个字符
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param charCount 要清除的字符数量
+     */
+    void clearChars(int x, int y, int charCount);
+
+    /**
+     * @brief 清除整个画布
+     */
+    void clearAll();
+
+    /**
+     * @brief 设置绘制顺序
+     * @param value 顺序值(数值越大越后绘制)
+     */
+    void setOrder(int value);
+
+    /**
+     * @brief 设置画笔透明度
+     * @param alpha 透明度值(0-255)
+     */
+    void setAlpha(short alpha);
+
+    /**
+     * @brief 获取当前画笔透明度
+     * @return 当前透明度值(0-255)
+     */
+    short getAlpha();
+
+    /**
+     * @brief 增加画笔透明度
+     * @param alpha 要增加的透明度值
+     */
+    void increaseAlpha(short alpha);
+
+    /**
+     * @brief 降低画笔透明度
+     * @param alpha 要降低的透明度值
+     */
+    void decreaseAlpha(short alpha);
+
+    /**
+     * @brief 绘制直线
+     * @param x1 起点x坐标
+     * @param y1 起点y坐标
+     * @param x2 终点x坐标
+     * @param y2 终点y坐标
+     */
+    void printLine(int x1, int y1, int x2, int y2);
+
+    /**
+     * @brief 绘制矩形条
+     * @param left 左边界
+     * @param top 上边界
+     * @param right 右边界
+     * @param bottom 下边界
+     */
+    void printBar(int left, int top, int right, int bottom);
 
 }
 
 // 函数声明
+/**
+ * @brief 刷新整个画布
+ * @details 强制重绘所有元素，更新显示内容
+ */
 void reflush();
-void init(int x,int y,int mode = INIT_RENDERMANUAL);
-void start();
-void globalListen(int listenMode,string identifier,auto function);
-void stopGlobalListen(int listenMode,string identifier);
-Button* newButton(string id,string imagePath,double x,double y,function<void(Element*)> putOn = nullptr,function<void(Element*)> moveAway = nullptr,function<void(Element*)> on_click = nullptr);
-Element* newInputBox(string id,string imagePath,double x,double y,Element* submitButton,function<void(Element*)> onSubmit = nullptr,function<void(Element*)> onSelected = nullptr);
-string getCurrentPath();
-string resolvePath(string s);
-bool isValidUTF8(const string& fileContent);
-std::string detectEncoding(const std::string& fileContent);
-std::string UTF8ToANSI(const std::string& utf8Str);
-void runCmdAwait(const std::string cmd);
 
+/**
+ * @brief 初始化图形窗口
+ * @param x 窗口宽度
+ * @param y 窗口高度
+ * @param mode 初始化模式(默认为INIT_RENDERMANUAL手动渲染模式)
+ */
+void init(int x, int y, int mode = INIT_RENDERMANUAL);
+
+/**
+ * @brief 启动主事件循环
+ * @details 开始处理输入事件和渲染循环
+ */
+void start();
+
+/**
+ * @brief 注册全局事件监听
+ * @param listenMode 监听模式(如帧事件、点击事件等)
+ * @param identifier 监听器唯一标识符
+ * @param function 回调函数
+ */
+void globalListen(int listenMode, string identifier, auto function);
+
+/**
+ * @brief 取消全局事件监听
+ * @param listenMode 监听模式
+ * @param identifier 要移除的监听器标识符
+ */
+void stopGlobalListen(int listenMode, string identifier);
+
+/**
+ * @brief 创建新按钮元素
+ * @param id 按钮唯一ID
+ * @param imagePath 按钮图像路径
+ * @param x x坐标位置
+ * @param y y坐标位置
+ * @param putOn 鼠标悬停回调(可选)
+ * @param moveAway 鼠标移开回调(可选)
+ * @param on_click 点击回调(可选)
+ * @return 创建的按钮指针
+ */
+Button* newButton(string id, string imagePath, double x, double y,
+                 function<void(Element*)> putOn = nullptr,
+                 function<void(Element*)> moveAway = nullptr,
+                 function<void(Element*)> on_click = nullptr);
+
+/**
+ * @brief 创建新输入框元素
+ * @param id 输入框唯一ID
+ * @param imagePath 输入框图像路径
+ * @param x x坐标位置
+ * @param y y坐标位置
+ * @param submitButton 关联的提交按钮
+ * @param onSubmit 提交回调(可选)
+ * @param onSelected 选中回调(可选)
+ * @return 创建的输入框指针
+ */
+Element* newInputBox(string id, string imagePath, double x, double y,
+                   Element* submitButton,
+                   function<void(Element*)> onSubmit = nullptr,
+                   function<void(Element*)> onSelected = nullptr);
+
+/**
+ * @brief 获取当前工作目录路径
+ * @return 当前路径字符串
+ */
+string getCurrentPath();
+
+/**
+ * @brief 解析路径字符串
+ * @param s 原始路径字符串
+ * @return 解析后的标准路径
+ */
+string resolvePath(string s);
+
+/**
+ * @brief 检查是否为有效UTF-8编码
+ * @param fileContent 文件内容
+ * @return 是否有效UTF-8编码
+ */
+bool isValidUTF8(const string& fileContent);
+
+/**
+ * @brief 检测文本编码格式
+ * @param fileContent 文件内容
+ * @return 编码类型字符串
+ */
+std::string detectEncoding(const std::string& fileContent);
+
+/**
+ * @brief UTF-8转ANSI编码
+ * @param utf8Str UTF-8字符串
+ * @return 转换后的ANSI字符串
+ */
+std::string UTF8ToANSI(const std::string& utf8Str);
+
+/**
+ * @brief 执行命令并等待完成
+ * @param cmd 要执行的命令字符串
+ */
+void runCmdAwait(const std::string cmd);
 #endif
