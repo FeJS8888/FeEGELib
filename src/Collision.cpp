@@ -1,4 +1,5 @@
 #include "Collision.h"
+#include "base.h"
 #include <cmath>
 #include <limits>
 #include <algorithm>
@@ -7,31 +8,38 @@ namespace FeEGE{
 	
 static PenetrationInfo last_info;
 
-// Vector2 å®ç°
-Vector2::Vector2() : x(0), y(0) {}
-Vector2::Vector2(double _x, double _y) : x(_x), y(_y) {}
+Position transformPoint(const Position& p, const Position& origin, double angle, double scale) {
+    // 1. Æ½ÒÆµ½Ô­µã
+    Position translated = p - origin;
 
-Vector2 Vector2::operator+(const Vector2& rhs) const { return Vector2(x + rhs.x, y + rhs.y); }
-Vector2 Vector2::operator-(const Vector2& rhs) const { return Vector2(x - rhs.x, y - rhs.y); }
-Vector2 Vector2::operator*(double s) const { return Vector2(x * s, y * s); }
+    // 2. Ëõ·Å
+    translated = translated * scale;
 
-double Vector2::dot(const Vector2& rhs) const { return x * rhs.x + y * rhs.y; }
-double Vector2::length() const { return std::sqrt(x * x + y * y); }
+    // 3. Ğı×ª
+    double cosA = std::cos(angle);
+    double sinA = std::sin(angle);
+    Position rotated(
+        translated.x * cosA - translated.y * sinA,
+        translated.x * sinA + translated.y * cosA
+    );
 
-Vector2 Vector2::normalize() const {
-    double len = length();
-    return len == 0 ? Vector2(0, 0) : Vector2(x / len, y / len);
+    // 4. Æ½ÒÆ»ØÈ¥
+    return rotated + origin;
 }
 
-Vector2 Vector2::perpendicular() const {
-    return Vector2(-y, x);
+std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle){
+    std::vector<Position> result;
+    for (const auto& p : shape) {
+        result.push_back(transformPoint(p, rotationOrigin, rotationAngle, scale));
+    }
+    return result;
 }
 
-// Support å‡½æ•°
-static Vector2 support(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, const Vector2& dir) {
-    auto getFarthestPoint = [](const std::vector<Vector2>& shape, const Vector2& dir) {
+// Support º¯Êı
+static Position support(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& dir) {
+    auto getFarthestPoint = [](const std::vector<Position>& shape, const Position& dir) {
         double maxDot = -std::numeric_limits<double>::infinity();
-        Vector2 bestPoint;
+        Position bestPoint;
         for (const auto& p : shape) {
             double d = p.dot(dir);
             if (d > maxDot) {
@@ -42,29 +50,29 @@ static Vector2 support(const std::vector<Vector2>& shapeA, const std::vector<Vec
         return bestPoint;
     };
 
-    Vector2 p1 = getFarthestPoint(shapeA, dir);
-    Vector2 p2 = getFarthestPoint(shapeB, dir * -1);
+    Position p1 = getFarthestPoint(shapeA, dir);
+    Position p2 = getFarthestPoint(shapeB, dir * -1);
     return p1 - p2;
 }
 
-// GJK simplex æ›´æ–°é€»è¾‘
-static bool doSimplex(std::vector<Vector2>& simplex, Vector2& dir) {
+// GJK simplex ¸üĞÂÂß¼­
+static bool doSimplex(std::vector<Position>& simplex, Position& dir) {
     if (simplex.size() == 2) {
-        Vector2 B = simplex[0];
-        Vector2 A = simplex[1];
-        Vector2 AB = B - A;
-        Vector2 AO = A * -1;
-        dir = Vector2(AB.y, -AB.x);
+        Position B = simplex[0];
+        Position A = simplex[1];
+        Position AB = B - A;
+        Position AO = A * -1;
+        dir = Position(AB.y, -AB.x);
         if (dir.dot(AO) < 0) dir = dir * -1;
     } else if (simplex.size() == 3) {
-        Vector2 C = simplex[0];
-        Vector2 B = simplex[1];
-        Vector2 A = simplex[2];
-        Vector2 AB = B - A;
-        Vector2 AC = C - A;
-        Vector2 AO = A * -1;
+        Position C = simplex[0];
+        Position B = simplex[1];
+        Position A = simplex[2];
+        Position AB = B - A;
+        Position AC = C - A;
+        Position AO = A * -1;
 
-        Vector2 ABperp = Vector2(AB.y, -AB.x);
+        Position ABperp = Position(AB.y, -AB.x);
         if (ABperp.dot(AC) > 0) ABperp = ABperp * -1;
 
         if (ABperp.dot(AO) > 0) {
@@ -73,7 +81,7 @@ static bool doSimplex(std::vector<Vector2>& simplex, Vector2& dir) {
             return false;
         }
 
-        Vector2 ACperp = Vector2(-AC.y, AC.x);
+        Position ACperp = Position(-AC.y, AC.x);
         if (ACperp.dot(AB) > 0) ACperp = ACperp * -1;
 
         if (ACperp.dot(AO) > 0) {
@@ -87,14 +95,14 @@ static bool doSimplex(std::vector<Vector2>& simplex, Vector2& dir) {
     return false;
 }
 
-// GJK ä¸»ä½“
-static bool gjk(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, std::vector<Vector2>& simplex) {
-    Vector2 dir(1, 0);
+// GJK Ö÷Ìå
+static bool gjk(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, std::vector<Position>& simplex) {
+    Position dir(1, 0);
     simplex.push_back(support(shapeA, shapeB, dir));
     dir = simplex[0] * -1;
 
     while (true) {
-        Vector2 A = support(shapeA, shapeB, dir);
+        Position A = support(shapeA, shapeB, dir);
         if (A.dot(dir) <= 0)
             return false;
 
@@ -104,24 +112,24 @@ static bool gjk(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& 
     }
 }
 
-// EPA è¾…åŠ©ç»“æ„
+// EPA ¸¨Öú½á¹¹
 class Edge {
 public:
-    Vector2 normal;
+    Position normal;
     double distance;
     size_t index;
 };
 
-static Edge findClosestEdge(const std::vector<Vector2>& polytope) {
+static Edge findClosestEdge(const std::vector<Position>& polytope) {
     Edge closest;
     closest.distance = std::numeric_limits<double>::infinity();
 
     for (size_t i = 0; i < polytope.size(); ++i) {
         size_t j = (i + 1) % polytope.size();
-        Vector2 A = polytope[i];
-        Vector2 B = polytope[j];
-        Vector2 E = B - A;
-        Vector2 normal = Vector2(E.y, -E.x).normalize();
+        Position A = polytope[i];
+        Position B = polytope[j];
+        Position E = B - A;
+        Position normal = Position(E.y, -E.x).normalize();
         double dist = normal.dot(A);
 
         if (dist < closest.distance) {
@@ -131,43 +139,66 @@ static Edge findClosestEdge(const std::vector<Vector2>& polytope) {
     return closest;
 }
 
-// EPA ä¸»ä½“
-static PenetrationInfo epa(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB, std::vector<Vector2>& simplex) {
+// EPA Ö÷Ìå
+static PenetrationInfo epa(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, std::vector<Position>& simplex) {
     const double tolerance = 0.0001f;
     while (true) {
         Edge edge = findClosestEdge(simplex);
-        Vector2 p = support(shapeA, shapeB, edge.normal);
+        Position p = support(shapeA, shapeB, edge.normal);
         double d = p.dot(edge.normal);
         double diff = d - edge.distance;
 
         if (diff < tolerance) {
-            return { edge.normal, d };
+        	PenetrationInfo info;
+        	info.direction = edge.normal;
+        	info.depth = d;
+			return info;
         } else {
             simplex.insert(simplex.begin() + edge.index, p);
         }
     }
 }
 
-// å¤–éƒ¨æ¥å£ï¼šæ˜¯å¦ç›¸äº¤
-bool isTouched(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB) {
-    std::vector<Vector2> simplex;
+// Íâ²¿½Ó¿Ú£ºÊÇ·ñÏà½»
+bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB) {
+    std::vector<Position> simplex;
     if (gjk(shapeA, shapeB, simplex)) {
         last_info = epa(shapeA, shapeB, simplex);
-        last_info.direction = Vector2{0,0} - last_info.direction;
+        last_info.direction = Position{0,0} - last_info.direction;
         return true;
     }
     return false;
 }
 
-// å¤–éƒ¨æ¥å£ï¼šè¿”å›æœ€è¿‘ä¸€æ¬¡ç¢°æ’ä¿¡æ¯
+bool isTouched(
+    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
+    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB)
+{
+    std::vector<Position> transformedA = transformShape(shapeA, scaleA, originA, angleA);
+    std::vector<Position> transformedB = transformShape(shapeB, scaleB, originB, angleB);
+    return isTouched(transformedA, transformedB);
+}
+
+
+// Íâ²¿½Ó¿Ú£º·µ»Ø×î½üÒ»´ÎÅö×²ĞÅÏ¢
 const PenetrationInfo& getLastInfo() {
     return last_info;
 }
 
-// å¤–éƒ¨æ¥å£ï¼šè¿”å›æ²¿æ–¹å‘dirä¸Šçš„ç©¿é€æ·±åº¦ï¼ˆå‡è®¾shapeAå’ŒshapeBå·²ç»ç›¸äº¤ï¼‰
-double getSeparateDistance(const std::vector<Vector2>& shapeA,const std::vector<Vector2>& shapeB,const Vector2& direction) {
-    Vector2 supportPt = support(shapeA, shapeB,direction); // åœ¨åæ–¹å‘ä¸Šæ‰¾ support ç‚¹
-    return supportPt.dot(direction); // è·ç¦» = support ç‚¹åˆ°åŸç‚¹çš„æŠ•å½±é•¿åº¦ï¼ˆå–è´Ÿï¼‰
+// Íâ²¿½Ó¿Ú£º·µ»ØÑØ·½ÏòdirÉÏµÄ´©Í¸Éî¶È£¨¼ÙÉèshapeAºÍshapeBÒÑ¾­Ïà½»£©
+double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction) {
+    Position supportPt = support(shapeA, shapeB,direction); // ÔÚ·´·½ÏòÉÏÕÒ support µã
+    return supportPt.dot(direction); // ¾àÀë = support µãµ½Ô­µãµÄÍ¶Ó°³¤¶È£¨È¡¸º£©
+}
+
+// Íâ²¿½Ó¿Ú£º·µ»ØÑØ·½ÏòdirÉÏµÄ´©Í¸Éî¶È£¨¼ÙÉèshapeAºÍshapeBÒÑ¾­Ïà½»£©
+double getSeparateDistance(const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
+						   const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB,
+						   const Position& direction) 
+{
+	std::vector<Position> transformedA = transformShape(shapeA, scaleA, originA, angleA);
+    std::vector<Position> transformedB = transformShape(shapeB, scaleB, originB, angleB);
+    return getSeparateDistance(transformedA,transformedB,direction);
 }
 
 }

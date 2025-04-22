@@ -1,115 +1,85 @@
 #pragma once
+#include "Base.h"
 #include <vector>
-
+using namespace FeEGE;
+namespace FeEGE{
 /**
  * @namespace FeEGE
- * @brief FeEGEç‰©ç†å¼•æ“çš„ç¢°æ’æ£€æµ‹æ¨¡å—
+ * @brief FeEGEÎïÀíÒıÇæµÄÅö×²¼ì²âÄ£¿é
  */
-namespace FeEGE {
-    
-    /**
-     * @class Vector2
-     * @brief äºŒç»´å‘é‡ç±»ï¼Œç”¨äºè¡¨ç¤ºç‰©ç†å¼•æ“ä¸­çš„ä½ç½®ã€æ–¹å‘ç­‰
-     */
-    class Vector2 {
-    public:
-        double x, y;  ///< å‘é‡çš„xå’Œyåˆ†é‡
 
-        /**
-         * @brief é»˜è®¤æ„é€ å‡½æ•°
-         * @details åˆå§‹åŒ–å‘é‡ä¸º(0,0)
-         */
-        Vector2();
+typedef std::vector<Position> Polygon;  ///< ¶à±ßĞÎÀàĞÍ¶¨Òå£¬ÓÉ¶¥µãÏòÁ¿×é³É
 
-        /**
-         * @brief å¸¦å‚æ•°çš„æ„é€ å‡½æ•°
-         * @param _x xåˆ†é‡å€¼
-         * @param _y yåˆ†é‡å€¼
-         */
-        Vector2(double _x, double _y);
+/**
+ * @brief ¼ì²âÁ½¸öÍ¹¶à±ßĞÎÊÇ·ñÅö×²
+ * @param shapeA µÚÒ»¸ö¶à±ßĞÎ¶¥µã¼¯ºÏ
+ * @param shapeB µÚ¶ş¸ö¶à±ßĞÎ¶¥µã¼¯ºÏ
+ * @return ÊÇ·ñ·¢ÉúÅö×²
+ */
+bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB);
 
-        /**
-         * @brief å‘é‡åŠ æ³•è¿ç®—ç¬¦é‡è½½
-         * @param rhs å³æ“ä½œæ•°å‘é‡
-         * @return ç›¸åŠ åçš„æ–°å‘é‡
-         */
-        Vector2 operator+(const Vector2& rhs) const;
+/**
+ * @brief ¼ì²âÁ½¸ö¾­¹ıËõ·ÅÓëĞı×ª±ä»»ºóµÄÍ¹¶à±ßĞÎÊÇ·ñÏà½»¡£
+ *
+ * ´Ëº¯Êı»á¶Ô´«ÈëµÄĞÎ×´½øĞĞËõ·Å¡¢ÈÆÖ¸¶¨Ô­µãĞı×ªºó£¬ÔÙÍ¨¹ı GJK + EPA Ëã·¨½øĞĞÅö×²¼ì²â¡£
+ *
+ * @param shapeA Ô­Ê¼µÄÍ¹¶à±ßĞÎ A µã¼¯£¨¾Ö²¿¿Õ¼ä×ø±ê£©
+ * @param scaleA ¶à±ßĞÎ A µÄËõ·ÅÒò×Ó
+ * @param originA ¶à±ßĞÎ A µÄĞı×ªÖĞĞÄ
+ * @param angleA ¶à±ßĞÎ A µÄĞı×ª½Ç¶È£¨µ¥Î»£º»¡¶È£¬ÄæÊ±ÕëÎªÕı£©
+ * @param shapeB Ô­Ê¼µÄÍ¹¶à±ßĞÎ B µã¼¯£¨¾Ö²¿¿Õ¼ä×ø±ê£©
+ * @param scaleB ¶à±ßĞÎ B µÄËõ·ÅÒò×Ó
+ * @param originB ¶à±ßĞÎ B µÄĞı×ªÖĞĞÄ
+ * @param angleB ¶à±ßĞÎ B µÄĞı×ª½Ç¶È£¨µ¥Î»£º»¡¶È£¬ÄæÊ±ÕëÎªÕı£©
+ *
+ * @return true Èç¹ûÁ½¸öĞÎ×´ÔÚ±ä»»ºó·¢ÉúÁËÅö×²£¨ÓĞÖØµş£©
+ * @return false Èç¹ûÁ½¸öĞÎ×´ÔÚ±ä»»ºóÎ´·¢ÉúÅö×²
+ */
+bool isTouched(
+    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
+    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB
+);
 
-        /**
-         * @brief å‘é‡å‡æ³•è¿ç®—ç¬¦é‡è½½
-         * @param rhs å³æ“ä½œæ•°å‘é‡
-         * @return ç›¸å‡åçš„æ–°å‘é‡
-         */
-        Vector2 operator-(const Vector2& rhs) const;
+/**
+ * @brief »ñÈ¡×îºóÒ»´ÎÅö×²µÄÏêÏ¸ĞÅÏ¢
+ * @return °üº¬Åö×²·½ÏòºÍÉî¶ÈµÄPenetrationInfo¶ÔÏó
+ */
+const PenetrationInfo& getLastInfo();
 
-        /**
-         * @brief å‘é‡æ•°ä¹˜è¿ç®—ç¬¦é‡è½½
-         * @param s æ ‡é‡å€¼
-         * @return ç¼©æ”¾åçš„æ–°å‘é‡
-         */
-        Vector2 operator*(double s) const;
-
-        /**
-         * @brief è®¡ç®—å‘é‡ç‚¹ç§¯
-         * @param rhs å¦ä¸€ä¸ªå‘é‡
-         * @return ä¸¤ä¸ªå‘é‡çš„ç‚¹ç§¯å€¼
-         */
-        double dot(const Vector2& rhs) const;
-
-        /**
-         * @brief è®¡ç®—å‘é‡é•¿åº¦
-         * @return å‘é‡çš„æ¨¡é•¿
-         */
-        double length() const;
-
-        /**
-         * @brief å‘é‡å½’ä¸€åŒ–
-         * @return å½’ä¸€åŒ–åçš„å•ä½å‘é‡
-         */
-        Vector2 normalize() const;
-
-        /**
-         * @brief è·å–å‚ç›´å‘é‡
-         * @return å‚ç›´äºå½“å‰å‘é‡çš„å‘é‡
-         */
-        Vector2 perpendicular() const;
-    };
-
-    /**
-     * @class PenetrationInfo
-     * @brief ç¢°æ’ç©¿é€ä¿¡æ¯ç±»
-     */
-    class PenetrationInfo {
-    public:
-        Vector2 direction;  ///< ç¢°æ’æ–¹å‘(æ³•å‘é‡)
-        double depth;       ///< ç©¿é€æ·±åº¦
-    };
-
-    typedef std::vector<Vector2> Polygon;  ///< å¤šè¾¹å½¢ç±»å‹å®šä¹‰ï¼Œç”±é¡¶ç‚¹å‘é‡ç»„æˆ
-
-    /**
-     * @brief æ£€æµ‹ä¸¤ä¸ªå‡¸å¤šè¾¹å½¢æ˜¯å¦ç¢°æ’
-     * @param shapeA ç¬¬ä¸€ä¸ªå¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
-     * @param shapeB ç¬¬äºŒä¸ªå¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
-     * @return æ˜¯å¦å‘ç”Ÿç¢°æ’
-     */
-    bool isTouched(const std::vector<Vector2>& shapeA, const std::vector<Vector2>& shapeB);
-
-    /**
-     * @brief è·å–æœ€åä¸€æ¬¡ç¢°æ’çš„è¯¦ç»†ä¿¡æ¯
-     * @return åŒ…å«ç¢°æ’æ–¹å‘å’Œæ·±åº¦çš„PenetrationInfoå¯¹è±¡
-     */
-    const PenetrationInfo& getLastInfo();
-
-    /**
-     * @brief è®¡ç®—ä¸¤ä¸ªå½¢çŠ¶åœ¨æŒ‡å®šæ–¹å‘ä¸Šçš„åˆ†ç¦»è·ç¦»
-     * @param shapeA ç¬¬ä¸€ä¸ªå½¢çŠ¶
-     * @param shapeB ç¬¬äºŒä¸ªå½¢çŠ¶
-     * @param direction æ£€æµ‹æ–¹å‘
-     * @return åˆ†ç¦»è·ç¦»(è´Ÿå€¼è¡¨ç¤ºé‡å )
-     */
-    double getSeparateDistance(const std::vector<Vector2>& shapeA,
-                             const std::vector<Vector2>& shapeB,
-                             const Vector2& direction);
+/**
+ * @brief ¼ÆËãÁ½¸öĞÎ×´ÔÚÖ¸¶¨·½ÏòÉÏµÄ·ÖÀë¾àÀë
+ * @param shapeA µÚÒ»¸öĞÎ×´
+ * @param shapeB µÚ¶ş¸öĞÎ×´
+ * @param direction ¼ì²â·½Ïò
+ * @return ·ÖÀë¾àÀë(¸ºÖµ±íÊ¾ÖØµş)
+ */
+double getSeparateDistance(const std::vector<Position>& shapeA,
+                         const std::vector<Position>& shapeB,
+                         const Position& direction);
+                         
+/**
+ * @brief ¼ÆËãÁ½¸ö¾­¹ıËõ·ÅÓëĞı×ª±ä»»ºóµÄÍ¹¶à±ßĞÎÔÚ¸ø¶¨·½ÏòÉÏµÄ´©Í¸Éî¶È¡£
+ *
+ * ´Ëº¯ÊıÔÚ½«Á½¸öĞÎ×´¾­¹ıËõ·Å¡¢ÈÆÖ¸¶¨Ô­µãĞı×ª±ä»»Ö®ºó£¬
+ * Ê¹ÓÃ support Ó³ÉäµÄ·½Ê½£¬¼ÆËãËüÃÇÔÚÄ³Ò»·½ÏòÉÏµÄ Minkowski ²îµÄÍ¶Ó°¾àÀë¡£
+ * Í¨³£ÓÃÓÚÅö×²ºóĞŞÕı»ò·½ÏòĞÔÅĞ¶¨¡£
+ *
+ * @param shapeA Ô­Ê¼µÄÍ¹¶à±ßĞÎ A µã¼¯£¨¾Ö²¿¿Õ¼ä×ø±ê£©
+ * @param scaleA ¶à±ßĞÎ A µÄËõ·ÅÒò×Ó
+ * @param originA ¶à±ßĞÎ A µÄĞı×ªÖĞĞÄ
+ * @param angleA ¶à±ßĞÎ A µÄĞı×ª½Ç¶È£¨µ¥Î»£º»¡¶È£¬ÄæÊ±ÕëÎªÕı£©
+ * @param shapeB Ô­Ê¼µÄÍ¹¶à±ßĞÎ B µã¼¯£¨¾Ö²¿¿Õ¼ä×ø±ê£©
+ * @param scaleB ¶à±ßĞÎ B µÄËõ·ÅÒò×Ó
+ * @param originB ¶à±ßĞÎ B µÄĞı×ªÖĞĞÄ
+ * @param angleB ¶à±ßĞÎ B µÄĞı×ª½Ç¶È£¨µ¥Î»£º»¡¶È£¬ÄæÊ±ÕëÎªÕı£©
+ * @param direction Òª¼ÆËã´©Í¸µÄ·½ÏòÏòÁ¿£¨ÎŞĞèµ¥Î»»¯£©
+ *
+ * @return double ·µ»Ø shapeA Óë shapeB ÔÚ¸Ã·½ÏòÉÏµÄ´©Í¸Éî¶È£¨ÈôÎª¸ºÖµÔòËµÃ÷Î´ÖØµş£©
+ */
+double getSeparateDistance(
+    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
+    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB,
+    const Position& direction
+);
 
 } // namespace FeEGE
