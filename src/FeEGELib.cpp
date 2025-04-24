@@ -256,6 +256,7 @@ Element::Element() { }
 Element* Element::copy(string id,PIMAGE image,unsigned long long index,double x,double y) {
     this->id = id;
     this->__visibleImage = newimage(getwidth(),getheight());
+    ege_enable_aa(this->__visibleImage);
     setbkcolor(EGERGBA(1,1,4,0),this->__visibleImage);
     this->pos.x = x;
     this->pos.y = y;
@@ -584,15 +585,14 @@ bool Element::isTouchedBy(Element* that) {
 		return false;
 	}
 	if(this->hittingBox){
-		double thisLeft = this->pos.x - (this->HBwidth >> 1) * this->scale / 100.00;
-		double thatLeft = that->pos.x - (that->HBwidth >> 1) * that->scale / 100.00;
-		double thisRight = this->pos.x + (this->HBwidth >> 1) * this->scale / 100.00;
-		double thatRight = that->pos.x + (that->HBwidth >> 1) * that->scale / 100.00;
-		double thisTop = this->pos.y - (this->HBheight >> 1) * this->scale / 100.00;
-		double thatTop = that->pos.y - (that->HBheight >> 1) * that->scale / 100.00;
-		double thisBottom = this->pos.y + (this->HBheight >> 1) * this->scale / 100.00;
-		double thatBottom = that->pos.y + (that->HBheight >> 1) * that->scale / 100.00;
-		if((thisLeft <= thatRight && (thisTop <= thatBottom && thisBottom >= thatTop)) || (thisRight >= thatLeft && (thisTop <= thatBottom && thisBottom >= thatTop))) return true;
+		for(FeEGE::Polygon& x : this->polygonSet){
+			for(FeEGE::Polygon& y : that->polygonSet){
+				if(isTouched(
+						transformPosition(transformShape(x,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),this->pos),
+						transformPosition(transformShape(y,that->scale / 100.00f,Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->angle / 180.00f *  PI),that->pos)
+				   )) return true;
+			}
+		}
 		return false;
 	}
 	
@@ -786,14 +786,21 @@ void Element::ignoreBlack() {
 		}
 	}
 }
-#ifdef TEST_FUNCTION 
-void Element::useHittingBox(){
+
+void Element::useGJK(){
 	this->hittingBox = true;
+	this->disabledDrawToPrivateImage = true; 
 } 
-void Element::stopHittingBox(){
+void Element::stopGJK(){
 	this->hittingBox = false;
+	this->disabledDrawToPrivateImage = false;
 }
 
+void Element::addPolygon(const FeEGE::Polygon& shape){
+	this->polygonSet.push_back(shape);
+}
+
+#ifdef TEST_FUNCTION 
 // PhysicEngine
 void Element::enablePhysicEngine() {
 	this->physicEngineStatu = true;
@@ -1084,6 +1091,7 @@ void init(int x,int y,int mode){
 	initgraph(x,y);
 	initXY();
 	FeEGE::initPen();
+	ege_enable_aa(true);
 }
 
 void start() {

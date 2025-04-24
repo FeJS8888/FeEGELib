@@ -3,6 +3,8 @@
 
 namespace FeEGE{
 	
+typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
+	
 // Position 实现
 Position::Position() : x(0), y(0) {}
 Position::Position(double _x, double _y) : x(_x), y(_y) {}
@@ -24,3 +26,5 @@ Position Position::perpendicular() const {
 }
 
 }
+
+using FeEGE::Polygon;

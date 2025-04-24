@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.1.0
- * @date 2025-04-22
+ * @version 2.0.2.0
+ * @date 2025-04-24
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.1.0--upd2025-04-22"  ///< 库版本号
+#define FeEGELib_version "V2.0.2.0--upd2025-04-24"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -56,6 +56,7 @@
 #endif
 
 using namespace std;
+using namespace FeEGE;
 
 const double eps = 1e-7;       ///< 浮点数比较精度
 extern double globalRating;    ///< 全局评分变量
@@ -331,6 +332,7 @@ protected:
     bool drawed = false;                  ///< 已绘制标志
     int poolIndex;                        ///< 池索引
     bool hittingBox = false;              ///< 碰撞检测框标志
+    vector<FeEGE::Polygon> polygonSet;			  ///< 凸多边形集合 
     int HBheight, HBwidth;               ///< 碰撞检测框尺寸
 
     bool physicEngineStatu;   ///< 物理引擎状态
@@ -763,6 +765,8 @@ public:
 	 */
 	void nextImage();
 	
+	void addPolygon(const FeEGE::Polygon& shape);
+	
 	#ifndef NO_THREAD
 	/**
 	 * @brief 加载图像
@@ -793,17 +797,17 @@ public:
 	 */
 	void ignoreBlack();
 	
-	#ifdef TEST_FUNCTION 
 	/**
 	 * @brief 启用碰撞检测框
 	 */
-	void useHittingBox();
+	void useGJK();
 	
 	/**
 	 * @brief 禁用碰撞检测框
 	 */
-	void stopHittingBox();
+	void stopGJK();
 	
+	#ifdef TEST_FUNCTION 
 	// 物理引擎相关方法
 	
 	/**

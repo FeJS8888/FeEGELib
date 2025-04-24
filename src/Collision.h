@@ -8,8 +8,6 @@ namespace FeEGE{
  * @brief FeEGE物理引擎的碰撞检测模块
  */
 
-typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
-
 /**
  * @brief 检测两个凸多边形是否碰撞
  * @param shapeA 第一个多边形顶点集合
@@ -82,4 +80,7 @@ double getSeparateDistance(
     const Position& direction
 );
 
+std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle);
+
+std::vector<Position> transformPosition(const std::vector<Position>& shape,Position pos);
 } // namespace FeEGE

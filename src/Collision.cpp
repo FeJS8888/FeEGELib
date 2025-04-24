@@ -1,6 +1,7 @@
 #include "Collision.h"
 #include "base.h"
 #include <cmath>
+#include<iostream>
 #include <limits>
 #include <algorithm>
 
@@ -34,6 +35,14 @@ std::vector<Position> transformShape(const std::vector<Position>& shape,double s
     }
     return result;
 }
+
+std::vector<Position> transformPosition(const std::vector<Position>& shape,Position pos){
+	std::vector<Position> result;
+	for(const auto& p : shape){
+		result.push_back(Position{p.x + pos.x,p.y + pos.y});
+	}
+	return result;
+} 
 
 // Support º¯Êý
 static Position support(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& dir) {

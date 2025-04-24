@@ -1,4 +1,5 @@
 #pragma once
+#include<vector>
 
 namespace FeEGE {
 
@@ -79,5 +80,7 @@ public:
     Position direction;  ///< 碰撞方向(法向量)
     double depth;       ///< 穿透深度
 };
+
+typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
 
 }
