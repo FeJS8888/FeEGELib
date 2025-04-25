@@ -1,5 +1,7 @@
 [![Page Views Count](https://badges.toozhao.com/badges/01JH01V78N1S0P0A9RVFJ5SWXZ/blue.svg)](https://badges.toozhao.com/stats/01JH01V78N1S0P0A9RVFJ5SWXZ "Get your own page views count badge on badges.toozhao.com")
 
+[Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=FeJS8888&repo=FeEGELib&show_owner=true&theme=catppuccin_latte)](https://github.com/FeJS8888/FeEGELib)
+
 FeEGELib V2.0.3.0
 
 upd: 2025/04/25
