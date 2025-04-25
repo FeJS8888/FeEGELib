@@ -25,7 +25,7 @@ Position transformPoint(const Position& p, const Position& origin, double angle,
     );
 
     // 4. 平移回去
-    return rotated + origin;
+    return (rotated + origin);
 }
 
 std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle){
@@ -36,10 +36,10 @@ std::vector<Position> transformShape(const std::vector<Position>& shape,double s
     return result;
 }
 
-std::vector<Position> transformPosition(const std::vector<Position>& shape,Position pos){
+std::vector<Position> transformPosition(const std::vector<Position>& shape,const Position& origin,const Position& pos){
 	std::vector<Position> result;
 	for(const auto& p : shape){
-		result.push_back(Position{p.x + pos.x,p.y + pos.y});
+		result.push_back(Position{p.x + pos.x - origin.x,p.y + pos.y - origin.y});
 	}
 	return result;
 } 
@@ -179,16 +179,6 @@ bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>&
     return false;
 }
 
-bool isTouched(
-    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
-    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB)
-{
-    std::vector<Position> transformedA = transformShape(shapeA, scaleA, originA, angleA);
-    std::vector<Position> transformedB = transformShape(shapeB, scaleB, originB, angleB);
-    return isTouched(transformedA, transformedB);
-}
-
-
 // 外部接口：返回最近一次碰撞信息
 const PenetrationInfo& getLastInfo() {
     return last_info;
@@ -200,14 +190,24 @@ double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector
     return supportPt.dot(direction); // 距离 = support 点到原点的投影长度（取负）
 }
 
-// 外部接口：返回沿方向dir上的穿透深度（假设shapeA和shapeB已经相交）
-double getSeparateDistance(const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
-						   const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB,
-						   const Position& direction) 
-{
-	std::vector<Position> transformedA = transformShape(shapeA, scaleA, originA, angleA);
-    std::vector<Position> transformedB = transformShape(shapeB, scaleB, originB, angleB);
-    return getSeparateDistance(transformedA,transformedB,direction);
+// 外部接口：返回点是否在多边形内 
+bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position& point) {
+    int n = polygon.size();
+    bool hasPositive = false;
+    bool hasNegative = false;
+
+    for (int i = 0; i < n; ++i) {
+        Position A = polygon[i];
+        std::cout<<A.x<<" "<<A.y<<"\n";
+        Position B = polygon[(i + 1) % n];
+        Position AB = B - A;
+        Position AP = point - A;
+        double cross = AB.x * AP.y - AB.y * AP.x;
+        if (cross > 0) hasPositive = true;
+        if (cross < 0) hasNegative = true;
+        if (hasPositive && hasNegative) return false; // 不在同侧
+    }
+    return true;
 }
 
 }

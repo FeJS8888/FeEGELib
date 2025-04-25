@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.2.0
- * @date 2025-04-24
+ * @version 2.0.3.0
+ * @date 2025-04-25
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.2.0--upd2025-04-24"  ///< 库版本号
+#define FeEGELib_version "V2.0.3.0--upd2025-04-25"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -470,25 +470,25 @@ public:
 	 * @brief 获取元素缩放比例
 	 * @return 缩放比例值
 	 */
-	short getScale();
+	double getScale();
 	
 	/**
 	 * @brief 增加缩放比例
 	 * @param scale 要增加的比例值
 	 */
-	void increaseScale(short scale);
+	void increaseScale(double scale);
 	
 	/**
 	 * @brief 减小缩放比例
 	 * @param scale 要减小的比例值
 	 */
-	void decreaseScale(short scale);
+	void decreaseScale(double scale);
 	
 	/**
 	 * @brief 设置缩放比例
 	 * @param scale 新的缩放比例值
 	 */
-	void setScale(short scale);
+	void setScale(double scale);
 	
 	/**
 	 * @brief 显示元素

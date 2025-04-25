@@ -421,24 +421,24 @@ void Element::moveTo(Position position) {
 color_t Element::getPixel(int x,int y) {
 	return getpixel(x,y,this->__visibleImage);
 }
-short Element::getScale() {
+double Element::getScale() {
 	return this->scale;
 }
-void Element::increaseScale(short scale) {
-	if(this->scale + scale <= 255) this->scale += scale;
-	else this->scale = 255;
-	this->scale %= 255;
-	if(this->scale < 0) this->scale += 255;
+void Element::increaseScale(double scale) {
+	if(this->scale + scale <= 1000) this->scale += scale;
+	else this->scale = 1000;
+	if(this->scale < 0) this->scale = 0;
+	if(this->scale > 1000) this->scale = 1000;
 }
-void Element::decreaseScale(short scale) {
+void Element::decreaseScale(double scale) {
 	if(this->scale > scale) this->scale -= scale;
 	else this->scale = 0;
-	this->scale %= 255;
-	if(this->scale < 0) this->scale += 101;
+	if(this->scale < 0) this->scale = 0;
+	if(this->scale > 1000) this->scale = 1000;
 }
-void Element::setScale(short scale) {
+void Element::setScale(double scale) {
 	this->scale = scale;
-	this->scale %= 255;
+	this->scale = fmod(this->scale,1000);
 }
 void Element::show() {
 	this->isShow = true;
@@ -532,6 +532,25 @@ bool Element::isMouseIn() {
 	if(!this->isShow) return false;
 	int x = getMousePos().x,y = getMousePos().y;
 	if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
+	if(this->hittingBox){
+		for(const auto& a : this->polygonSet){
+			vector<Position> shape = transformPosition(transformShape(a,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
+			cout<<"??? "<<x<<" "<<y<<"\n";
+			for(const auto& p : a){
+				cout<<p.x<<" "<<p.y<<"\n";
+			}
+			cout<<"T = \n";
+			vector<Position> v = transformShape(a,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI);
+			for(const auto& p : v){
+				cout<<p.x<<" "<<p.y<<"\n";
+			}
+			cout<<"====\n";
+			if(isPointInConvexPolygon(shape,Position{(double)x,(double)y})){
+				return true;
+			}
+		}
+		return false;
+	}
 	this->drawToPrivateImage();
 	color_t pixel = getpixel(x,y,this->__visibleImage);
 	int size = removeColors.size();
@@ -544,7 +563,6 @@ bool Element::isHit() {
 }
 void Element::setVariable(unsigned int which,long long value) {
 	this->privateVariables[which] = value;
-//			// cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 }
 long long& Element::getVariable(unsigned int which) {
 	return this->privateVariables[which];
@@ -586,11 +604,10 @@ bool Element::isTouchedBy(Element* that) {
 	}
 	if(this->hittingBox){
 		for(FeEGE::Polygon& x : this->polygonSet){
+			vector<Position> shapeX = transformPosition(transformShape(x,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
 			for(FeEGE::Polygon& y : that->polygonSet){
-				if(isTouched(
-						transformPosition(transformShape(x,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),this->pos),
-						transformPosition(transformShape(y,that->scale / 100.00f,Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->angle / 180.00f *  PI),that->pos)
-				   )) return true;
+				vector<Position> shapeY = transformPosition(transformShape(y,that->scale / 100.00f,Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->angle / 180.00f *  PI),Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->pos);
+				if(isTouched(shapeX,shapeY)) return true;
 			}
 		}
 		return false;

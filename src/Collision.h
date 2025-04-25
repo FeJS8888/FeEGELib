@@ -17,28 +17,6 @@ namespace FeEGE{
 bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB);
 
 /**
- * @brief 检测两个经过缩放与旋转变换后的凸多边形是否相交。
- *
- * 此函数会对传入的形状进行缩放、绕指定原点旋转后，再通过 GJK + EPA 算法进行碰撞检测。
- *
- * @param shapeA 原始的凸多边形 A 点集（局部空间坐标）
- * @param scaleA 多边形 A 的缩放因子
- * @param originA 多边形 A 的旋转中心
- * @param angleA 多边形 A 的旋转角度（单位：弧度，逆时针为正）
- * @param shapeB 原始的凸多边形 B 点集（局部空间坐标）
- * @param scaleB 多边形 B 的缩放因子
- * @param originB 多边形 B 的旋转中心
- * @param angleB 多边形 B 的旋转角度（单位：弧度，逆时针为正）
- *
- * @return true 如果两个形状在变换后发生了碰撞（有重叠）
- * @return false 如果两个形状在变换后未发生碰撞
- */
-bool isTouched(
-    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
-    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB
-);
-
-/**
  * @brief 获取最后一次碰撞的详细信息
  * @return 包含碰撞方向和深度的PenetrationInfo对象
  */
@@ -49,38 +27,43 @@ const PenetrationInfo& getLastInfo();
  * @param shapeA 第一个形状
  * @param shapeB 第二个形状
  * @param direction 检测方向
- * @return 分离距离(负值表示重叠)
+ * @return 分离距离
  */
-double getSeparateDistance(const std::vector<Position>& shapeA,
-                         const std::vector<Position>& shapeB,
-                         const Position& direction);
-                         
-/**
- * @brief 计算两个经过缩放与旋转变换后的凸多边形在给定方向上的穿透深度。
- *
- * 此函数在将两个形状经过缩放、绕指定原点旋转变换之后，
- * 使用 support 映射的方式，计算它们在某一方向上的 Minkowski 差的投影距离。
- * 通常用于碰撞后修正或方向性判定。
- *
- * @param shapeA 原始的凸多边形 A 点集（局部空间坐标）
- * @param scaleA 多边形 A 的缩放因子
- * @param originA 多边形 A 的旋转中心
- * @param angleA 多边形 A 的旋转角度（单位：弧度，逆时针为正）
- * @param shapeB 原始的凸多边形 B 点集（局部空间坐标）
- * @param scaleB 多边形 B 的缩放因子
- * @param originB 多边形 B 的旋转中心
- * @param angleB 多边形 B 的旋转角度（单位：弧度，逆时针为正）
- * @param direction 要计算穿透的方向向量（无需单位化）
- *
- * @return double 返回 shapeA 与 shapeB 在该方向上的穿透深度（若为负值则说明未重叠）
- */
-double getSeparateDistance(
-    const std::vector<Position>& shapeA, double scaleA, const Position& originA, double angleA,
-    const std::vector<Position>& shapeB, double scaleB, const Position& originB, double angleB,
-    const Position& direction
-);
+double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction);
 
+/**
+ * @brief 变换多边形形状（缩放和旋转）
+ * @param shape 原始多边形顶点集合
+ * @param scale 缩放比例（1.0为原始大小）
+ * @param rotationOrigin 旋转中心点坐标
+ * @param rotationAngle 旋转角度（弧度制）
+ * @return 变换后的多边形顶点集合
+ * @note 先进行缩放，再进行旋转
+ */
 std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle);
 
-std::vector<Position> transformPosition(const std::vector<Position>& shape,Position pos);
+/**
+ * @brief 对多边形顶点集合进行位置变换（平移）
+ * @param shape 原始多边形顶点集合
+ * @param origin 变换基准点（局部坐标系原点）
+ * @param pos 目标位置（世界坐标系）
+ * @return 变换后的多边形顶点集合
+ * @details 将多边形从局部坐标系（以origin为原点）平移到世界坐标系中的pos位置
+ * @note 1. 首先将多边形顶点转换为相对于origin的局部坐标
+ *       2. 然后将局部坐标平移到目标pos位置
+ *       3. 保持多边形的形状和方向不变
+ */
+std::vector<Position> transformPosition(const std::vector<Position>& shape,const Position& origin,const Position& pos);
+
+/**
+ * @brief 判断点是否在凸多边形内
+ * @param polygon 凸多边形顶点集合（按顺时针或逆时针顺序排列）
+ * @param point 要检测的点坐标
+ * @return 点是否在多边形内
+ * @retval true 点在多边形内或边上
+ * @retval false 点在多边形外
+ * @note 使用射线法实现，要求多边形必须是凸多边形
+ */
+bool isPointInConvexPolygon(const std::vector<Position>& polygon,const Position& point);
+
 } // namespace FeEGE
