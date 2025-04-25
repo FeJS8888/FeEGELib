@@ -1,7 +1,16 @@
 #pragma once
 #include "Base.h"
+#include "json.hpp"
 #include <vector>
+#include <string>
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <algorithm>
+#include <fstream>
+
 using namespace FeEGE;
+
 namespace FeEGE{
 /**
  * @namespace FeEGE
@@ -66,4 +75,5 @@ std::vector<Position> transformPosition(const std::vector<Position>& shape,const
  */
 bool isPointInConvexPolygon(const std::vector<Position>& polygon,const Position& point);
 
+std::vector<Position> readPolygonFromJSON(const std::string& file,const std::string& id);
 } // namespace FeEGE

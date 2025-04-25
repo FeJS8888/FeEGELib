@@ -314,7 +314,7 @@ void Element::reflushMouseStatu() {
 		}
 		else if(this->getVariable(0) == 2 && !getkey(leftButton)){
 			this->setVariable(0,0);
-			for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
+			for(auto it : this->onMouseHitButMoveAwaySet) it.second(this);
 		}
 	}
 }
@@ -535,16 +535,6 @@ bool Element::isMouseIn() {
 	if(this->hittingBox){
 		for(const auto& a : this->polygonSet){
 			vector<Position> shape = transformPosition(transformShape(a,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
-			cout<<"??? "<<x<<" "<<y<<"\n";
-			for(const auto& p : a){
-				cout<<p.x<<" "<<p.y<<"\n";
-			}
-			cout<<"T = \n";
-			vector<Position> v = transformShape(a,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI);
-			for(const auto& p : v){
-				cout<<p.x<<" "<<p.y<<"\n";
-			}
-			cout<<"====\n";
 			if(isPointInConvexPolygon(shape,Position{(double)x,(double)y})){
 				return true;
 			}
@@ -676,26 +666,28 @@ string Element::getId() {
 	return this->id;
 }
 void Element::listen(int listenMode,string identifier,function<void(Element*)> function) {
-	if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet[identifier] = function ;
-	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet[identifier] = function ;
+	if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) this->onMouseHitButMoveAwaySet[identifier] = function;
+	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet[identifier] = function;
 	else{
 		LPCSTR text = TEXT(("Element::listen方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
 	}
 }
 void Element::stop(int listenMode,string identifier) {
-	if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet.erase(identifier) ;
-	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier) ;
+	if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_mouse_move_away) this->onMouseMoveAwayFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_click) this->onClickFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_clone) this->onCloneFunctionSet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) this->onMouseHitButMoveAwaySet.erase(identifier);
+	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier);
 	else{
 		LPCSTR text = TEXT(("Element::stop方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);

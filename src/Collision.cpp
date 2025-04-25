@@ -1,9 +1,14 @@
 #include "Collision.h"
-#include "base.h"
+#include "Base.h"
+#include "json.hpp"
 #include <cmath>
-#include<iostream>
+#include <iostream>
 #include <limits>
 #include <algorithm>
+#include <string>
+#include <fstream>
+
+using nlohmann::json;
 
 namespace FeEGE{
 	
@@ -198,7 +203,6 @@ bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position
 
     for (int i = 0; i < n; ++i) {
         Position A = polygon[i];
-        std::cout<<A.x<<" "<<A.y<<"\n";
         Position B = polygon[(i + 1) % n];
         Position AB = B - A;
         Position AP = point - A;
@@ -208,6 +212,18 @@ bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position
         if (hasPositive && hasNegative) return false; // 不在同侧
     }
     return true;
+}
+
+// 外部接口：从 JSON 读取多边形 
+std::vector<Position> readPolygonFromJSON(const std::string& file,const std::string& id){
+	std::ifstream in(file);
+	json dat = json::parse(in);
+	std::vector<Position> res;
+	for(auto vec : dat["FeEGE"]["point"][id]){
+		res.push_back(Position{vec[0],vec[1]});
+	}
+	in.close();
+	return res;
 }
 
 }

@@ -1,7 +1,7 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.3.0
+ * @version 2.0.4.0
  * @date 2025-04-25
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
@@ -10,30 +10,31 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.3.0--upd2025-04-25"  ///< 库版本号
+#define FeEGELib_version "V2.0.4.0--upd2025-04-25"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
 #include "Base.h"
 #include "Collision.h"
-#include<graphics.h>
-#include<vector>
-#include<thread>
-#include<set>
-#include<map>
-#include<unordered_map>
-#include<string>
-#include<windows.h>
-#include<algorithm>
-#include<iostream>
-#include<fstream>
-#include<queue>
-#include<math.h>
-#include<stdlib.h>
-#include<malloc.h>
-#include<time.h>
-#include<locale>
-#include<mutex>
+#include <graphics.h>
+#include <vector>
+#include <thread>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <string>
+#include <windows.h>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <queue>
+#include <math.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <time.h>
+#include <locale>
+#include <mutex>
+#include <assert.h>
 
 #ifndef MAXCLONESCOUNT
 #define MAXCLONESCOUNT 100   ///< 最大克隆数量默认值
@@ -200,7 +201,7 @@ namespace FeEGE {
      */
     class ClonesEvent {
         public:
-            int on_clone = 0x06;  ///< 克隆事件类型
+            int on_clone = 0x07;  ///< 克隆事件类型
     };
     
     /**
@@ -209,7 +210,7 @@ namespace FeEGE {
      */
     class InputBoxEvent {
         public:
-            int onSelect = 0x06;  ///< 选择事件类型
+            int onSelect = 0x08;  ///< 选择事件类型
     };
 
     /**
@@ -224,6 +225,7 @@ namespace FeEGE {
             int on_mouse_move_away = 0x03;    ///< 鼠标移开事件
             int on_click = 0x04;             ///< 点击事件
             int on_clone = 0x05;             ///< 克隆事件
+            int on_mouse_hit_but_move_away = 0x06;      ///< 鼠标点击事件
             ClonesEvent clones;              ///< 克隆事件实例
             InputBoxEvent inputBox;          ///< 输入框事件实例
     };
@@ -312,9 +314,10 @@ protected:
     vector<Element*> removeList; ///< 待移除列表
     map<string,function<void(Element*)> > frameFunctionSet;               ///< 帧函数集合
     map<string,function<void(Element*)> > onMousePutOnFunctionSet;        ///< 鼠标悬停函数集合
-    map<string,function<void(Element*)> > onMouseHittingFunctionSet;      ///< 鼠标点击函数集合
+    map<string,function<void(Element*)> > onMouseHittingFunctionSet;      ///< 鼠标按下函数集合
     map<string,function<void(Element*)> > onMouseMoveAwayFunctionSet;    ///< 鼠标移开函数集合
-    map<string,function<void(Element*)> > onClickFunctionSet;            ///< 点击函数集合
+    map<string,function<void(Element*)> > onMouseHitButMoveAwaySet;		 ///< 鼠标按下但离开函数集合 
+    map<string,function<void(Element*)> > onClickFunctionSet;            ///< 鼠标点击函数集合
     map<string,function<void(Element*)> > onCloneFunctionSet;            ///< 克隆函数集合
     map<string,function<void(Element*)> > onCloneClonesFunctionSet;      ///< 克隆体函数集合
     vector<pair<pair<double,pair<double,double> >,Animate> > animations; ///< 动画列表
