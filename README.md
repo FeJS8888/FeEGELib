@@ -2,11 +2,11 @@
 
 ![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=FeJS8888&repo=FeEGELib&show_owner=true&theme=catppuccin_latte)
 
-FeEGELib V2.0.3.0
+FeEGELib V2.0.4.0
 
 upd: 2025/04/25
 
-基于 EGE V24.04 开发的一套轮子
+基于 EGE V24.04 开发的一套图形开发框架
 
 EGE项目仓库：https://github.com/wysaid/xege
 
