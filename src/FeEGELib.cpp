@@ -52,7 +52,7 @@ Position& FeEGE::getMousePos(){
 }
 
 #ifndef bigScreen
-bool FeEGE::builtinGetKey(){
+void FeEGE::builtinGetKey(){
 	for(int i = 0;i <= 0xFF;++ i){
 		vkState[i] = GetAsyncKeyState(i) & 0x8000;
 	}
@@ -613,6 +613,8 @@ bool Element::isTouchedBy(Element* that) {
 			return true;
 		}
 	}
+	
+	return false; 
 }
 Element* Element::clone() {
 	static Element* e[MAXCLONESCOUNT];

@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.4.0
- * @date 2025-04-25
+ * @version 2.0.5.0
+ * @date 2025-05-04
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.4.0--upd2025-04-25"  ///< 库版本号
+#define FeEGELib_version "V2.0.5.0--upd2025-05-04"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -137,7 +137,7 @@ namespace FeEGE {
      * @brief 内置按键检测函数
      * @return 是否有按键按下
      */
-    bool builtinGetKey();
+    void builtinGetKey();
     
     /**
      * @brief 检测指定按键状态
