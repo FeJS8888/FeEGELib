@@ -811,6 +811,14 @@ void Element::addPolygon(const FeEGE::Polygon& shape){
 	this->polygonSet.push_back(shape);
 }
 
+vector<FeEGE::Polygon> Element::getPolygonSet(){
+	return this->polygonSet;
+}
+
+FeEGE::Polygon Element::transformPolygon(const FeEGE::Polygon& x){
+	return transformPosition(transformShape(x,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
+}
+
 #ifdef TEST_FUNCTION 
 // PhysicEngine
 void Element::enablePhysicEngine() {

@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.5.0
- * @date 2025-05-04
+ * @version 2.0.6.0
+ * @date 2025-05-07
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.5.0--upd2025-05-04"  ///< 库版本号
+#define FeEGELib_version "V2.0.6.0--upd2025-05-07"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -809,6 +809,16 @@ public:
 	 * @brief 禁用碰撞检测框
 	 */
 	void stopGJK();
+	
+	/**
+	 * @brief 获取多边形数组 
+	 */
+	vector<FeEGE::Polygon> getPolygonSet(); 
+	
+	/**
+	 * @brief 转换多边形数据 
+	 */
+	FeEGE::Polygon transformPolygon(const FeEGE::Polygon& x);
 	
 	#ifdef TEST_FUNCTION 
 	// 物理引擎相关方法
