@@ -204,8 +204,17 @@ const PenetrationInfo& getLastInfo() {
 
 // 外部接口：返回沿方向dir上的穿透深度（假设shapeA和shapeB已经相交）
 double getSeparateDistance(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& direction) {
-    Position supportPt = support(shapeA, shapeB, direction); // 在反方向上找 support 点
-    return supportPt.dot(direction);                             // 距离 = support 点到原点的投影长度（取负）
+    if(isTouched(shapeA, shapeB)){
+    	PenetrationInfo info = getLastInfo();
+    	return -info.depth * info.direction.normalize().dot(direction.normalize());
+	}
+	return 0.00;
+}
+
+// 外部接口：返回沿方向dir上的可移动距离
+double getSafeDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction){
+    Position supportPt = support(shapeA, shapeB, direction);
+    return supportPt.dot(direction);
 }
 
 // 外部接口：返回点是否在多边形内

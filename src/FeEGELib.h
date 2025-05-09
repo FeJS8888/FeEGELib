@@ -1,7 +1,7 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.7.0
+ * @version 2.0.8.0
  * @date 2025-05-09
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.7.0--upd2025-05-09"  ///< 库版本号
+#define FeEGELib_version "V2.0.8.0--upd2025-05-09"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -104,6 +104,7 @@ extern bool keyStatus[360];                          ///< 按键状态数组
 extern map<string,function<void(void)>> globalListenFrameFunctionSet;      ///< 全局帧监听函数集合
 extern map<string,function<void(void)>> globalListenOnClickFunctionSet;    ///< 全局点击监听函数集合
 extern map<int,bool> vkState;                        ///< 虚拟键状态映射
+extern set<string> ElementListenStoppedSet;			 ///< 监听事件暂停列表 
 
 extern int WIDTH;    ///< 屏幕宽度
 extern int HEIGHT;   ///< 屏幕高度
@@ -299,7 +300,7 @@ protected:
     string id;                  ///< 元素ID
     string elementType;         ///< 元素类型
     short scale;                ///< 缩放比例
-    int angle;                  ///< 旋转角度
+    double angle;                  ///< 旋转角度
     int order;                  ///< 显示顺序
     short alpha;                ///< 透明度
     int regOrder;               ///< 注册顺序
@@ -507,19 +508,19 @@ public:
 	 * @brief 向右旋转元素
 	 * @param angle 旋转角度
 	 */
-	void turnRight(int angle);
+	void turnRight(double angle);
 	
 	/**
 	 * @brief 向左旋转元素
 	 * @param angle 旋转角度
 	 */
-	void turnLeft(int angle);
+	void turnLeft(double angle);
 	
 	/**
 	 * @brief 旋转到指定角度
 	 * @param angle 目标角度
 	 */
-	void turnTo(int angle);
+	void turnTo(double angle);
 	
 	/**
 	 * @brief 使元素朝向另一个元素
@@ -529,10 +530,18 @@ public:
 	bool faceTo(Element* that);
 	
 	/**
+	 * @brief 使元素朝向某个坐标 
+	 * @param pos 目标元素指针
+	 * @return 是否成功
+	 * @note 该函数总是返回成功 
+	 */
+	bool faceTo(const Position& pos);
+	
+	/**
 	 * @brief 获取当前角度
 	 * @return 当前角度值
 	 */
-	int getAngle();
+	double getAngle();
 	
 	/**
 	 * @brief 获取当前位置
@@ -716,7 +725,23 @@ public:
 	 * @param listenMode 监听模式
 	 * @param identifier 标识符
 	 */
+	virtual void unlisten(int listenMode,string identifier);
+	
+	/**
+	 * @brief 暂停事件监听
+	 * @param listenMode 监听模式
+	 * @param identifier 标识符
+	 */
 	virtual void stop(int listenMode,string identifier);
+	
+	/**
+	 * @brief 重新开始事件监听
+	 * @param listenMode 监听模式
+	 * @param identifier 标识符
+	 */
+	virtual void begin(int listenMode,string identifier);
+	
+	
 	
 	/**
 	 * @brief 删除当前元素
@@ -808,7 +833,7 @@ public:
 	/**
 	 * @brief 禁用碰撞检测框
 	 */
-	void stopGJK();
+	void unlistenGJK();
 	
 	/**
 	 * @brief 获取多边形数组 
@@ -1068,9 +1093,9 @@ public:
      * @brief 移除事件监听器
      * @param listenMode 监听模式
      * @param identifier 要移除的监听器标识
-     * @override 重写Element类的stop方法
+     * @override 重写Element类的unlisten方法
      */
-    virtual void stop(int listenMode, string identifier);
+    virtual void unlisten(int listenMode, string identifier);
 
     /**
      * @brief 刷新鼠标状态
@@ -1323,7 +1348,7 @@ void globalListen(int listenMode, string identifier, auto function);
  * @param listenMode 监听模式
  * @param identifier 要移除的监听器标识符
  */
-void stopGlobalListen(int listenMode, string identifier);
+void GlobalUnlisten(int listenMode, string identifier);
 
 /**
  * @brief 创建新按钮元素

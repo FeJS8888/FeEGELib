@@ -14,6 +14,7 @@ bool keyStatus[360];
 map<string,function<void(void)>> globalListenFrameFunctionSet;
 map<string,function<void(void)>> globalListenOnClickFunctionSet;
 map<int,bool> vkState;
+set<string> ElementListenStoppedSet;
 
 int WIDTH;
 int HEIGHT;
@@ -287,34 +288,52 @@ void Element::reflushMouseStatu() {
 			#ifdef bigScreen
 			if(statu == 0){
 				this->setVariable(0,2);
-				for(auto it :this->onMouseHittingFunctionSet) it.second(this);
+				for(auto it :this->onMouseHittingFunctionSet){
+					if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_mouse_hitting" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+					it.second(this);
+				}
 			}
 			#endif
 			
 			if(statu == 1){
 				this->setVariable(0,2);
-				for(auto it :this->onMouseHittingFunctionSet) it.second(this);
+				for(auto it :this->onMouseHittingFunctionSet){
+					if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_mouse_hitting" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+					it.second(this);
+				} 
 			}
 		} 
 		else {
 			if(statu == 0){
 				this->setVariable(0,1);
-				for(auto it : this->onMousePutOnFunctionSet) it.second(this);
+				for(auto it : this->onMousePutOnFunctionSet){
+					if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_mouse_put_on" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+					it.second(this);
+				} 
 			} 
 			else if(statu == 2) {
 				this->setVariable(0,0);
-				for(auto it : this->onClickFunctionSet) it.second(this);
+				for(auto it : this->onClickFunctionSet){
+					if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_click" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+					it.second(this);
+				}
 			}
 		}
 	} 
 	else {
 		if(this->getVariable(0) == 1){
 			this->setVariable(0,0);
-			for(auto it : this->onMouseMoveAwayFunctionSet) it.second(this);
+			for(auto it : this->onMouseMoveAwayFunctionSet){
+				if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_mouse_move_away" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+				it.second(this);
+			}
 		}
 		else if(this->getVariable(0) == 2 && !getkey(leftButton)){
 			this->setVariable(0,0);
-			for(auto it : this->onMouseHitButMoveAwaySet) it.second(this);
+			for(auto it : this->onMouseHitButMoveAwaySet){
+				if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.on_mouse_hit_but_move_away" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+				it.second(this);
+			}
 		}
 	}
 }
@@ -365,7 +384,10 @@ void Element::callAnimations(){
 void Element::call() {
 	this->backupPos = pos;
 	this->reflushMouseStatu();
-	for(auto it : this->frameFunctionSet) it.second(this);
+	for(auto it : this->frameFunctionSet){
+		if(ElementListenStoppedSet.find(this->id + "@" + "FeEGE::EventType.frame" + "@" + it.first) != ElementListenStoppedSet.end()) continue;
+		it.second(this);
+	}
 	if(this->deleted) return;
 	this->callAnimations();
 	if(!this->isShow) return;
@@ -426,7 +448,7 @@ double Element::moveSafely(Position pixelsDir,const vector<Element*>& limit){
 		if(this->isTouchedBy(ptr)){
 			Position tr = pixelsDir.normalize() * getSeparateDistance(this->transformPolygon(this->getPolygonSet()[0]),ptr->transformPolygon(ptr->getPolygonSet()[0]),pixelsDir.normalize());
 			this->pos = this->pos - tr;
-			this->pos = this->pos - (pixelsDir.normalize()) * 0.5;
+			this->pos = this->pos - (pixelsDir.normalize()) * 0.005;
 		}
 	}
 	return (this->pos - backup).length();
@@ -459,14 +481,14 @@ void Element::show() {
 void Element::hide() {
 	this->isShow = false;
 }
-void Element::turnRight(int angle) {
-	this->angle = (this->angle - angle) % 360;
+void Element::turnRight(double angle) {
+	this->angle = fmod((this->angle - angle),360);
 }
-void Element::turnLeft(int angle) {
-	this->angle = (this->angle + angle) % 360;
+void Element::turnLeft(double angle) {
+	this->angle = fmod(this->angle + angle,360);
 }
-void Element::turnTo(int angle) {
-	this->angle = angle % 360;
+void Element::turnTo(double angle) {
+	this->angle = fmod(angle,360);
 }
 bool Element::faceTo(Element* that){
 	if(that == nullptr) {
@@ -486,7 +508,19 @@ bool Element::faceTo(Element* that){
 	this->angle = atan2(dy,dx) / pie * 180.00f;
 	return true;
 }
-int Element::getAngle() {
+bool Element::faceTo(const Position& pos){
+	double dx = pos.x - this->pos.x;
+	double dy = pos.y - this->pos.y;
+	if(!sgn(dx)) return true;
+	if(!sgn(dy)){
+		if(dx > 0) this->angle = 0;
+		else this->angle = 180;
+		return true;
+	}
+	this->angle = atan2(dy,dx) / pie * 180.00f;
+	return true;
+}
+double Element::getAngle() {
 	return this->angle;
 }
 Position Element::getPosition() {
@@ -692,9 +726,10 @@ void Element::listen(int listenMode,string identifier,function<void(Element*)> f
 	else{
 		LPCSTR text = TEXT(("Element::listen方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+		return;
 	}
 }
-void Element::stop(int listenMode,string identifier) {
+void Element::unlisten(int listenMode,string identifier) {
 	if(listenMode == FeEGE::EventType.frame) this->frameFunctionSet.erase(identifier);
 	else if(listenMode == FeEGE::EventType.on_mouse_put_on) this->onMousePutOnFunctionSet.erase(identifier);
 	else if(listenMode == FeEGE::EventType.on_mouse_hitting) this->onMouseHittingFunctionSet.erase(identifier);
@@ -704,9 +739,50 @@ void Element::stop(int listenMode,string identifier) {
 	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) this->onMouseHitButMoveAwaySet.erase(identifier);
 	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier);
 	else{
+		LPCSTR text = TEXT(("Element::unlisten方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+		return;
+	}
+}
+void Element::begin(int listenMode,string identifier) {
+	string res = this->id; 
+	res += "@";
+	if(listenMode == FeEGE::EventType.frame) res += "FeEGE::EventType.frame";
+	else if(listenMode == FeEGE::EventType.on_mouse_put_on) res += "FeEGE::EventType.on_mouse_put_on";
+	else if(listenMode == FeEGE::EventType.on_mouse_hitting) res += "FeEGE::EventType.on_mouse_hitting";
+	else if(listenMode == FeEGE::EventType.on_mouse_move_away) res += "FeEGE::EventType.on_mouse_move_away";
+	else if(listenMode == FeEGE::EventType.on_click) res += "FeEGE::EventType.on_click";
+	else if(listenMode == FeEGE::EventType.on_clone) res += "FeEGE::EventType.on_clone";
+	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) res += "FeEGE::EventType.on_mouse_hit_but_move_away";
+	else if(listenMode == FeEGE::EventType.clones.on_clone) res += "FeEGE::EventType.clones.on_clone";
+	else{
+		LPCSTR text = TEXT(("Element::begin方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+		return;
+	}
+	res += "@";
+	res += identifier;
+	ElementListenStoppedSet.erase(res);
+}
+void Element::stop(int listenMode,string identifier) {
+	string res = this->id; 
+	res += "@";
+	if(listenMode == FeEGE::EventType.frame) res += "FeEGE::EventType.frame";
+	else if(listenMode == FeEGE::EventType.on_mouse_put_on) res += "FeEGE::EventType.on_mouse_put_on";
+	else if(listenMode == FeEGE::EventType.on_mouse_hitting) res += "FeEGE::EventType.on_mouse_hitting";
+	else if(listenMode == FeEGE::EventType.on_mouse_move_away) res += "FeEGE::EventType.on_mouse_move_away";
+	else if(listenMode == FeEGE::EventType.on_click) res += "FeEGE::EventType.on_click";
+	else if(listenMode == FeEGE::EventType.on_clone) res += "FeEGE::EventType.on_clone";
+	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) res += "FeEGE::EventType.on_mouse_hit_but_move_away";
+	else if(listenMode == FeEGE::EventType.clones.on_clone) res += "FeEGE::EventType.clones.on_clone";
+	else{
 		LPCSTR text = TEXT(("Element::stop方法中被传入了不恰当的事件\n\nElement名称 : " + this->id + "    事件id ：" + to_string(listenMode)).c_str());
 		MessageBox(getHWnd(),text,"警告",MB_ICONWARNING | MB_OK);
+		return;
 	}
+	res += "@";
+	res += identifier;
+	ElementListenStoppedSet.insert(res);
 }
 Element* Element::deleteThis() {
 	freeList.push(this);
@@ -815,7 +891,7 @@ void Element::useGJK(){
 	this->hittingBox = true;
 	this->disabledDrawToPrivateImage = true; 
 } 
-void Element::stopGJK(){
+void Element::unlistenGJK(){
 	this->hittingBox = false;
 	this->disabledDrawToPrivateImage = false;
 }
@@ -1064,7 +1140,7 @@ void globalListen(int listenMode,string identifier,auto function){
 	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet[identifier] = function ;
 }
 
-void stopGlobalListen(int listenMode,string identifier){
+void GlobalUnlisten(int listenMode,string identifier){
 	if(listenMode == FeEGE::EventType.frame) globalListenFrameFunctionSet.erase(identifier) ;
 	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet.erase(identifier) ;
 }

@@ -41,6 +41,22 @@ const PenetrationInfo& getLastInfo();
 double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction);
 
 /**
+ * @brief 获取两个凸多边形在指定方向上的支持点间投影距离
+ * 
+ * @param shapeA 第一个多边形
+ * @param shapeB 第二个多边形
+ * @param direction 单位方向向量
+ * @return double 在给定方向上的估算间距（支持函数差投影）
+ * 
+ * @note
+ * - 当多边形未接触时，返回正值，表示最小间距的估计；
+ * - 当多边形接触或穿透时，返回值可能为 0 或负数，但**不等价于实际穿透深度**；
+ * - 若需获取真实的穿透深度，请使用 `getLastInfo()` 并投影其 `direction * depth`；
+ * - 本函数常用于移动预测中的快速间距估计。
+ */
+double getSafeDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction);
+
+/**
  * @brief 变换多边形形状（缩放和旋转）
  * @param shape 原始多边形顶点集合
  * @param scale 缩放比例（1.0为原始大小）
