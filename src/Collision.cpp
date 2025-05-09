@@ -10,9 +10,22 @@
 
 using nlohmann::json;
 
-namespace FeEGE{
-	
+namespace FeEGE {
+
 static PenetrationInfo last_info;
+
+// 安全比较浮点数是否接近零
+static bool isZero(double val) {
+    return std::abs(val) < std::numeric_limits<double>::epsilon();
+}
+
+// 安全获取符号函数
+static int sgnSafe(double val) {
+    if (isZero(val)) {
+        return 0;
+    }
+    return (val > 0) ? 1 : -1;
+}
 
 Position transformPoint(const Position& p, const Position& origin, double angle, double scale) {
     // 1. 平移到原点
@@ -33,7 +46,7 @@ Position transformPoint(const Position& p, const Position& origin, double angle,
     return (rotated + origin);
 }
 
-std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle){
+std::vector<Position> transformShape(const std::vector<Position>& shape, double scale, const Position& rotationOrigin, double rotationAngle) {
     std::vector<Position> result;
     for (const auto& p : shape) {
         result.push_back(transformPoint(p, rotationOrigin, rotationAngle, scale));
@@ -41,13 +54,13 @@ std::vector<Position> transformShape(const std::vector<Position>& shape,double s
     return result;
 }
 
-std::vector<Position> transformPosition(const std::vector<Position>& shape,const Position& origin,const Position& pos){
-	std::vector<Position> result;
-	for(const auto& p : shape){
-		result.push_back(Position{p.x + pos.x - origin.x,p.y + pos.y - origin.y});
-	}
-	return result;
-} 
+std::vector<Position> transformPosition(const std::vector<Position>& shape, const Position& origin, const Position& pos) {
+    std::vector<Position> result;
+    for (const auto& p : shape) {
+        result.push_back(Position{p.x + pos.x - origin.x, p.y + pos.y - origin.y});
+    }
+    return result;
+}
 
 // Support 函数
 static Position support(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& dir) {
@@ -77,7 +90,7 @@ static bool doSimplex(std::vector<Position>& simplex, Position& dir) {
         Position AB = B - A;
         Position AO = A * -1;
         dir = Position(AB.y, -AB.x);
-        if (dir.dot(AO) < 0) dir = dir * -1;
+        if (sgnSafe(dir.dot(AO)) < 0) dir = dir * -1;
     } else if (simplex.size() == 3) {
         Position C = simplex[0];
         Position B = simplex[1];
@@ -87,19 +100,19 @@ static bool doSimplex(std::vector<Position>& simplex, Position& dir) {
         Position AO = A * -1;
 
         Position ABperp = Position(AB.y, -AB.x);
-        if (ABperp.dot(AC) > 0) ABperp = ABperp * -1;
+        if (sgnSafe(ABperp.dot(AC)) > 0) ABperp = ABperp * -1;
 
-        if (ABperp.dot(AO) > 0) {
-            simplex = { A, B };
+        if (sgnSafe(ABperp.dot(AO)) > 0) {
+            simplex = {A, B};
             dir = ABperp;
             return false;
         }
 
         Position ACperp = Position(-AC.y, AC.x);
-        if (ACperp.dot(AB) > 0) ACperp = ACperp * -1;
+        if (sgnSafe(ACperp.dot(AB)) > 0) ACperp = ACperp * -1;
 
-        if (ACperp.dot(AO) > 0) {
-            simplex = { A, C };
+        if (sgnSafe(ACperp.dot(AO)) > 0) {
+            simplex = {A, C};
             dir = ACperp;
             return false;
         }
@@ -117,7 +130,7 @@ static bool gjk(const std::vector<Position>& shapeA, const std::vector<Position>
 
     while (true) {
         Position A = support(shapeA, shapeB, dir);
-        if (A.dot(dir) <= 0)
+        if (sgnSafe(A.dot(dir)) <= 0)
             return false;
 
         simplex.push_back(A);
@@ -147,7 +160,7 @@ static Edge findClosestEdge(const std::vector<Position>& polytope) {
         double dist = normal.dot(A);
 
         if (dist < closest.distance) {
-            closest = { normal, dist, j };
+            closest = {normal, dist, j};
         }
     }
     return closest;
@@ -163,10 +176,10 @@ static PenetrationInfo epa(const std::vector<Position>& shapeA, const std::vecto
         double diff = d - edge.distance;
 
         if (diff < tolerance) {
-        	PenetrationInfo info;
-        	info.direction = edge.normal;
-        	info.depth = d;
-			return info;
+            PenetrationInfo info;
+            info.direction = edge.normal;
+            info.depth = d;
+            return info;
         } else {
             simplex.insert(simplex.begin() + edge.index, p);
         }
@@ -178,7 +191,7 @@ bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>&
     std::vector<Position> simplex;
     if (gjk(shapeA, shapeB, simplex)) {
         last_info = epa(shapeA, shapeB, simplex);
-        last_info.direction = Position{0,0} - last_info.direction;
+        last_info.direction = Position{0, 0} - last_info.direction;
         return true;
     }
     return false;
@@ -190,12 +203,12 @@ const PenetrationInfo& getLastInfo() {
 }
 
 // 外部接口：返回沿方向dir上的穿透深度（假设shapeA和shapeB已经相交）
-double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction) {
-    Position supportPt = support(shapeA, shapeB,direction); // 在反方向上找 support 点
-    return supportPt.dot(direction); // 距离 = support 点到原点的投影长度（取负）
+double getSeparateDistance(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& direction) {
+    Position supportPt = support(shapeA, shapeB, direction); // 在反方向上找 support 点
+    return supportPt.dot(direction);                             // 距离 = support 点到原点的投影长度（取负）
 }
 
-// 外部接口：返回点是否在多边形内 
+// 外部接口：返回点是否在多边形内
 bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position& point) {
     int n = polygon.size();
     bool hasPositive = false;
@@ -207,23 +220,23 @@ bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position
         Position AB = B - A;
         Position AP = point - A;
         double cross = AB.x * AP.y - AB.y * AP.x;
-        if (cross > 0) hasPositive = true;
-        if (cross < 0) hasNegative = true;
+        if (sgnSafe(cross) > 0) hasPositive = true;
+        if (sgnSafe(cross) < 0) hasNegative = true;
         if (hasPositive && hasNegative) return false; // 不在同侧
     }
     return true;
 }
 
-// 外部接口：从 JSON 读取多边形 
-std::vector<Position> readPolygonFromJSON(const std::string& file,const std::string& id){
-	std::ifstream in(file);
-	json dat = json::parse(in);
-	std::vector<Position> res;
-	for(auto vec : dat["FeEGE"]["point"][id]){
-		res.push_back(Position{vec[0],vec[1]});
-	}
-	in.close();
-	return res;
+// 外部接口：从 JSON 读取多边形
+std::vector<Position> readPolygonFromJSON(const std::string& file, const std::string& id) {
+    std::ifstream in(file);
+    json dat = json::parse(in);
+    std::vector<Position> res;
+    for (auto vec : dat["FeEGE"]["point"][id]) {
+        res.push_back(Position{vec[0], vec[1]});
+    }
+    in.close();
+    return res;
 }
 
-}
+} // namespace FeEGE

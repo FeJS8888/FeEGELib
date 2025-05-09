@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.6.0
- * @date 2025-05-07
+ * @version 2.0.7.0
+ * @date 2025-05-09
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.6.0--upd2025-05-07"  ///< 库版本号
+#define FeEGELib_version "V2.0.7.0--upd2025-05-09"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -905,6 +905,7 @@ public:
 	 * @brief 移除Y轴力
 	 */
 	void physicRemoveForceY();
+#endif
 	
 	/**
 	 * @brief 使用动画移动元素
@@ -914,8 +915,13 @@ public:
 	 * @param callback 完成回调函数
 	 */
 	void moveWithAnimation(double xPixel,double yPixel,const Animate& animate,function<void(Element*)> callback = nullptr);
-	#endif
 	
+	/**
+	 * @brief 安全的移动
+	 * @param pixelsDir XY移动距离
+	 * @param limit 限制对象指针数组 
+	 */
+	double moveSafely(Position pixelsDir,const vector<Element*>& limit);
 	/**
 	 * @brief 删除元素
 	 * @return 元素指针(通常为nullptr)

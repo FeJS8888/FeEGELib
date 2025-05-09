@@ -418,6 +418,19 @@ void Element::moveTo(double x,double y) {
 void Element::moveTo(Position position) {
 	this->pos = position;
 }
+double Element::moveSafely(Position pixelsDir,const vector<Element*>& limit){
+	pixelsDir.x = -pixelsDir.x;
+	Position backup = this->pos;
+	this->pos = this->pos + pixelsDir;
+	for(const auto& ptr : limit){
+		if(this->isTouchedBy(ptr)){
+			Position tr = pixelsDir.normalize() * getSeparateDistance(this->transformPolygon(this->getPolygonSet()[0]),ptr->transformPolygon(ptr->getPolygonSet()[0]),pixelsDir.normalize());
+			this->pos = this->pos - tr;
+			this->pos = this->pos - (pixelsDir.normalize()) * 0.5;
+		}
+	}
+	return (this->pos - backup).length();
+}
 color_t Element::getPixel(int x,int y) {
 	return getpixel(x,y,this->__visibleImage);
 }
@@ -534,7 +547,7 @@ bool Element::isMouseIn() {
 	if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
 	if(this->hittingBox){
 		for(const auto& a : this->polygonSet){
-			vector<Position> shape = transformPosition(transformShape(a,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
+			vector<Position> shape = transformPolygon(a);
 			if(isPointInConvexPolygon(shape,Position{(double)x,(double)y})){
 				return true;
 			}
@@ -594,9 +607,9 @@ bool Element::isTouchedBy(Element* that) {
 	}
 	if(this->hittingBox){
 		for(FeEGE::Polygon& x : this->polygonSet){
-			vector<Position> shapeX = transformPosition(transformShape(x,this->scale / 100.00f,Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->angle / 180.00f *  PI),Position{getwidth(this->imageVector[this->currentImage]) / 2.00f,getheight(this->imageVector[this->currentImage]) / 2.00f},this->pos);
+			vector<Position> shapeX = transformPolygon(x);
 			for(FeEGE::Polygon& y : that->polygonSet){
-				vector<Position> shapeY = transformPosition(transformShape(y,that->scale / 100.00f,Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->angle / 180.00f *  PI),Position{getwidth(that->imageVector[that->currentImage]) / 2.00f,getheight(that->imageVector[that->currentImage]) / 2.00f},that->pos);
+				vector<Position> shapeY = that->transformPolygon(y);
 				if(isTouched(shapeX,shapeY)) return true;
 			}
 		}
@@ -878,9 +891,10 @@ void Element::physicRemoveForceX() {
 void Element::physicRemoveForceY() {
 	this->forceY = 0;
 }
+#endif
 
 // Move Animated
-void Element::moveWithAnimation(double xPixel,double yPixel,const Animate& animate,function<void(Element*)> callback = nullptr){
+void Element::moveWithAnimation(double xPixel,double yPixel,const Animate& animate,function<void(Element*)> callback){
 	static int cur = 0;
 	animateStates[++ cur] = 0;
 	Position p = animate.function(animate.end);
@@ -888,7 +902,6 @@ void Element::moveWithAnimation(double xPixel,double yPixel,const Animate& anima
 	if(callback == nullptr) return;
 	this->animateCallbacks[cur] = callback;
 }
-#endif
 
 Element::~Element() {
 	
