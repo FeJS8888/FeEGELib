@@ -703,6 +703,9 @@ Element* Element::clone() {
 	for(auto it : this->onCloneClonesFunctionSet) it.second(e[nextCloneCount]);
 	return e[nextCloneCount ++];
 }
+vector<Element*> Element::getClones(){
+	return this->clones;
+}
 void Element::cloneImage(){
 	for(int i = 0;i < this->imageVector.size();++ i){
 		if(this->imageVector[i] == nullptr) continue;
