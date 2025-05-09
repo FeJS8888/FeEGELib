@@ -2,7 +2,7 @@
 
 ![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=FeJS8888&repo=FeEGELib&show_owner=true&theme=catppuccin_latte)
 
-FeEGELib V2.0.8.0
+FeEGELib V2.0.9.0
 
 upd: 2025/05/09
 
