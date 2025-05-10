@@ -441,7 +441,6 @@ void Element::moveTo(Position position) {
 	this->pos = position;
 }
 double Element::moveSafely(Position pixelsDir,const vector<Element*>& limit){
-	pixelsDir.x = -pixelsDir.x;
 	Position backup = this->pos;
 	this->pos = this->pos + pixelsDir;
 	for(const auto& ptr : limit){
