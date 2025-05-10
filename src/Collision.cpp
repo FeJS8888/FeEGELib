@@ -28,6 +28,7 @@ static int sgnSafe(double val) {
 }
 
 Position transformPoint(const Position& p, const Position& origin, double angle, double scale) {
+	angle = -angle;
     // 1. 平移到原点
     Position translated = p - origin;
 

@@ -1202,7 +1202,7 @@ void init(int x,int y,int mode){
 	initgraph(x,y);
 	initXY();
 	FeEGE::initPen();
-	ege_enable_aa(true);
+	ege_enable_aa(false);
 }
 
 void start() {
