@@ -239,14 +239,14 @@ bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position
 
 // 外部接口：从 JSON 读取多边形
 std::vector<Position> readPolygonFromJSON(const std::string& file, const std::string& id) {
-    std::ifstream in(file);
+    std::ifstream in(resolvePath(file));
     json dat = json::parse(in);
     std::vector<Position> res;
     for (auto vec : dat["FeEGE"]["point"][id]) {
         res.push_back(Position{vec[0], vec[1]});
     }
     in.close();
-    return sortPolygonCCW(res);
+    return res;
 }
 
 } // namespace FeEGE

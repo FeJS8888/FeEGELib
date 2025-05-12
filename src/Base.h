@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <math.h>
-#include<algorithm>
 
 namespace FeEGE {
 
@@ -84,21 +83,5 @@ public:
 };
 
 typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
-
-/**
- * @brief 计算三个点的叉积 (OA × OB)
- * @param O 原点
- * @param A 第一个点
- * @param B 第二个点
- * @return 叉积值
- */
-inline double cross(const Position& O, const Position& A, const Position& B);
-
-/**
- * @brief 使用Andrew算法对多边形顶点进行逆时针排序
- * @param polygon 输入的多边形顶点集
- * @return 按逆时针排序后的多边形顶点
- */
-FeEGE::Polygon sortPolygonCCW(const FeEGE::Polygon& polygon);
 
 }
