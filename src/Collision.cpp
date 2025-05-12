@@ -246,7 +246,7 @@ std::vector<Position> readPolygonFromJSON(const std::string& file, const std::st
         res.push_back(Position{vec[0], vec[1]});
     }
     in.close();
-    return res;
+    return sortPolygonCCW(res);
 }
 
 } // namespace FeEGE

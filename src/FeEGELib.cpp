@@ -580,7 +580,7 @@ bool Element::isMouseIn() {
 	if(x < 0 || y < 0 || x > WIDTH || y > HEIGHT) return false;
 	if(this->hittingBox){
 		for(const auto& a : this->polygonSet){
-			vector<Position> shape = transformPolygon(a);
+			vector<Position> shape = this->transformPolygon(a);
 			if(isPointInConvexPolygon(shape,Position{(double)x,(double)y})){
 				return true;
 			}
