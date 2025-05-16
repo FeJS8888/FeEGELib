@@ -13,6 +13,7 @@ mouse_msg mouseInfo;
 bool keyStatus[360];
 map<string,function<void(void)>> globalListenFrameFunctionSet;
 map<string,function<void(void)>> globalListenOnClickFunctionSet;
+
 map<int,bool> vkState;
 set<string> ElementListenStoppedSet;
 
@@ -27,6 +28,7 @@ bool closeGraph = false;
 mutex M;
 
 PIMAGE pen_image;
+PIMAGE textpen_image;
 
 unordered_map<string,Element*>idToElement;
 unordered_map<Element*,bool>elementIsIn;
@@ -40,7 +42,7 @@ namespace FeEGE {
 	
 Position lastPixel, mousePos;
 Events EventType;
-PenTypes penType;
+PenTypes PenType;
 
 }
 
@@ -88,6 +90,16 @@ void FeEGE::initPen() {
 	setfillcolor(EGERGBA(1,1,4,0),pen_image);
 }
 
+void FeEGE::initTextPen() {
+	WIDTH = getwidth();
+	HEIGHT = getheight();
+	if(textpen_image != nullptr) delimage(textpen_image);
+	textpen_image = newimage(WIDTH,HEIGHT);
+	setbkcolor(EGERGBA(1,1,4,0),textpen_image);
+	setcolor(EGERGB(255,0,0),textpen_image);
+	setfillcolor(EGERGBA(1,1,4,0),textpen_image);
+}
+
 double FeEGE::getMs(){
 	return (double)clock() / CLOCKS_PER_SEC * 1000;
 }
@@ -122,25 +134,33 @@ namespace pen {
     int order = 0;
     int fontScale = 1;
     short penAlpha = 255;
-    int penType = FeEGE::penType.left;
+    int penType = FeEGE::PenType.left;
+    int charWidth,charHeight;
+}
+
+namespace textpen {
+    int order = 0;
+    int fontScale = 1;
+    short penAlpha = 255;
+    int penType = FeEGE::PenType.left;
     int charWidth,charHeight;
 }
 
 void pen::print(int x,int y,string str) {
 	if(pen_image == nullptr) return;
-	if(penType == FeEGE::penType.middle) {
+	if(penType == FeEGE::PenType.middle) {
 		x -= charWidth * str.length() >> 1;
 		y -= charHeight >> 1;
 	}
-	outtextxy(x,y,str.c_str(),pen_image);
+	ege_outtextxy(x,y,str.c_str(),pen_image);
 }
 void pen::print(int x,int y,wstring str) {
 	if(pen_image == nullptr) return;
-	if(penType == FeEGE::penType.middle) {
+	if(penType == FeEGE::PenType.middle) {
 		x -= charWidth * str.length() >> 1;
 		y -= charHeight >> 1;
 	}
-	outtextxy(x,y,str.c_str(),pen_image);
+	ege_outtextxy(x,y,str.c_str(),pen_image);
 }
 void pen::font(int scale,string fontName) {
 	if(pen_image == nullptr) return;
@@ -198,6 +218,80 @@ void pen::printLine(int x1,int y1,int x2,int y2){
 }
 void pen::printBar(int left,int top,int right,int bottom){
 	bar(left,top,right,bottom,pen_image);
+}
+
+void textpen::print(int x,int y,string str) {
+	if(textpen_image == nullptr) return;
+	if(penType == FeEGE::PenType.middle) {
+		x -= charWidth * str.length() >> 1;
+		y -= charHeight >> 1;
+	}
+	ege_outtextxy(x,y,str.c_str(),textpen_image);
+}
+void textpen::print(int x,int y,wstring str) {
+	if(textpen_image == nullptr) return;
+	if(penType == FeEGE::PenType.middle) {
+		x -= charWidth * str.length() >> 1;
+		y -= charHeight >> 1;
+	}
+	ege_outtextxy(x,y,str.c_str(),textpen_image);
+}
+void textpen::font(int scale,string fontName) {
+	if(textpen_image == nullptr) return;
+	fontScale = scale;
+	setfont(scale,0,fontName.c_str(),textpen_image);
+	charWidth = textwidth('t',textpen_image);
+	charHeight = textheight('t',textpen_image);
+}
+void textpen::color(color_t color) {
+	if(textpen_image == nullptr) return;
+	setcolor(color,textpen_image);
+}
+void textpen::type(int type) {
+	penType = type;
+}
+void textpen::clear(int x,int y,int ex,int ey) {
+	if(textpen_image == nullptr) return;
+	bar(x,y,ex,ey,textpen_image);
+}
+void textpen::clearChar(int x,int y) {
+	if(textpen_image == nullptr) return;
+	bar(x,y,x + charWidth,y + charHeight,textpen_image);
+}
+void textpen::clearChars(int x,int y,int charCount) {
+	if(textpen_image == nullptr) return;
+	bar(x,y,x + charWidth * charCount,y + charWidth,textpen_image);
+}
+void textpen::clearAll() {
+	if(textpen_image == nullptr) return;
+	bar(0,0,getwidth(textpen_image),getheight(textpen_image),textpen_image);
+}
+void textpen::setOrder(int value) {
+	order = value;
+}
+void textpen::setAlpha(short alpha) {
+	penAlpha = alpha;
+	penAlpha %= 256;
+	if(penAlpha < 0) penAlpha += 256;
+}
+short textpen::getAlpha() {
+	return penAlpha;
+}
+void textpen::increaseAlpha(short alpha){
+	penAlpha += alpha;
+	penAlpha %= 256;
+	if(penAlpha < 0) penAlpha += 256;
+}
+void textpen::decreaseAlpha(short alpha){
+	penAlpha -= alpha;
+	penAlpha %= 256;
+	if(penAlpha < 0) penAlpha += 256;
+}
+void textpen::printLine(int x1,int y1,int x2,int y2){
+	line(x1,y1,x2,y2,textpen_image);
+}
+void textpen::printBar(int left,int top,int right,int bottom){
+	bar(left,top,right,bottom,textpen_image);
 }
 
 Element elementPool[MAXELEMENTCOUNT];
@@ -1096,6 +1190,106 @@ void runCmdAwait(const std::string cmd){
     CloseHandle(pi.hThread);
 }
 
+void showText(string identifier,function<string(int)> stringSolver,function<Position(int)> positionSolver,function<color_t(int)> colorSolver,function<int(int)> scaleSolver,const string& fontName,int pType,int milliseconds){
+	double beginTime = getMs();
+	globalListen(EventType.frame,identifier,[=](){
+		if(getMs() - beginTime > milliseconds){
+			pushSchedule([=](){
+				globalUnlisten(EventType.frame,identifier);
+			});
+		}
+		Position pos = positionSolver(getMs() - beginTime);
+		string str = stringSolver(getMs() - beginTime);
+		color_t color = colorSolver(getMs() - beginTime);
+		int scale = scaleSolver(getMs() - beginTime);
+		textpen::type(pType);
+		textpen::color(color);
+		textpen::font(scale,fontName);
+		textpen::print(pos.x,pos.y,str.c_str());
+	});
+}
+
+ShowTextBuilder& ShowTextBuilder::setIdentifier(std::string id) {
+    identifier = std::move(id);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setStringSolver(std::function<std::string(int)> f) {
+    stringSolver = std::move(f);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setPositionSolver(std::function<Position(int)> f) {
+    positionSolver = std::move(f);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setColorSolver(std::function<color_t(int)> f) {
+    colorSolver = std::move(f);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setScaleSolver(std::function<int(int)> f) {
+    scaleSolver = std::move(f);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setFontName(std::string name) {
+    fontName = std::move(name);
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setPType(int type) {
+    pType = type;
+    return *this;
+}
+
+ShowTextBuilder& ShowTextBuilder::setMilliseconds(int ms) {
+	if(ms == -1) ms = 2147483645;
+    milliseconds = ms;
+    return *this;
+}
+
+void ShowTextBuilder::show() {
+    // --- 必须参数检查 ---
+    if (!stringSolver) {
+        throw std::runtime_error("ShowTextBuilder error: stringSolver is not set.");
+    }
+    if (!positionSolver) {
+        throw std::runtime_error("ShowTextBuilder error: positionSolver is not set.");
+    }
+
+    // identifier 不能为空
+    if (identifier.empty()) {
+        throw std::runtime_error("ShowTextBuilder error: identifier is not set.");
+    }
+
+    // --- 设置默认参数 ---
+    if (!colorSolver) {
+        colorSolver = [](int) { return BLACK; };
+    }
+
+    if (!scaleSolver) {
+        scaleSolver = [](int) { return 25; };
+    }
+
+    if (fontName.empty()) {
+        fontName = "宋体";
+    }
+
+    if (pType == 0) {
+        pType = FeEGE::PenType.middle;
+    }
+
+    // --- 可选断言：防御性检查（开发期可开启） ---
+    assert(stringSolver);
+    assert(positionSolver);
+    assert(!fontName.empty());
+
+    // --- 调用底层 showText ---
+    showText(identifier, stringSolver, positionSolver, colorSolver, scaleSolver, fontName, pType, milliseconds);
+}
+ 
 void regElement(Element* element) {
     element->setRegOrder(currentRegOrder ++);
     elementQueue.insert(element);
@@ -1104,7 +1298,7 @@ void regElement(Element* element) {
     idToElement[element->getId()] = element;
 }
 
-Element* newElement(string id,string imagePath,double x = 0,double y = 0) {
+Element* newElement(string id,string imagePath,double x,double y) {
 	imagePath = resolvePath(imagePath);
 	PIMAGE image = newimage();
 	if(imagePath != "") getimage(image,TEXT(imagePath.c_str()));
@@ -1123,7 +1317,7 @@ Element* newElement(string id,string imagePath,double x = 0,double y = 0) {
 }
 
 #if true
-Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
+Element* newElement(string id,PIMAGE image,double x,double y) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!elementPoolUsed[i]) {
 			elementPoolUsed[i] = true;
@@ -1142,7 +1336,7 @@ void globalListen(int listenMode,string identifier,auto function){
 	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet[identifier] = function ;
 }
 
-void GlobalUnlisten(int listenMode,string identifier){
+void globalUnlisten(int listenMode,string identifier){
 	if(listenMode == FeEGE::EventType.frame) globalListenFrameFunctionSet.erase(identifier) ;
 	if(listenMode == FeEGE::EventType.on_click) globalListenOnClickFunctionSet.erase(identifier) ;
 }
@@ -1183,6 +1377,7 @@ void reflush() {
 		it->call();
 	}
 	if(penNprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penAlpha);
+	putimage_alphatransparent(nullptr,textpen_image,0,0,EGERGBA(1,1,4,0),textpen::penAlpha);
 	flushmouse();
 	#ifdef FPS
 	static char fps[32];
@@ -1201,6 +1396,7 @@ void init(int x,int y,int mode){
 	initgraph(x,y);
 	initXY();
 	FeEGE::initPen();
+	FeEGE::initTextPen();
 	ege_enable_aa(false);
 }
 
@@ -1210,6 +1406,7 @@ void start() {
 	randomize();
 	while(!closeGraph && is_run()) {
 		reflush();
+		textpen::clearAll();
 		for(auto it : globalListenFrameFunctionSet) it.second();
 		if(!regPause) continue;
 #ifndef NO_THREAD

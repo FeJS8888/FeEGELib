@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.10.4
- * @date 2025-05-12
+ * @version 2.0.12.0
+ * @date 2025-05-16
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,7 +10,7 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.10.4--upd2025-05-12"  ///< 库版本号
+#define FeEGELib_version "V2.0.12.0--upd2025-05-16"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
@@ -81,7 +81,7 @@ void regElement(Element* element);
  * @param y y坐标
  * @return 创建的元素指针
  */
-Element* newElement(string,PIMAGE,double,double);
+Element* newElement(string id,PIMAGE image,double x = 0,double y = 0);
 
 /**
  * @brief 创建新元素(文件路径版本)
@@ -91,7 +91,7 @@ Element* newElement(string,PIMAGE,double,double);
  * @param y y坐标
  * @return 创建的元素指针
  */
-Element* newElement(string,string,double,double);
+Element* newElement(string id,string imagePath,double x = 0,double y = 0);
 
 // 全局变量声明
 extern bool isKey;                                   ///< 按键状态标志
@@ -116,6 +116,7 @@ extern int removeSize;                   ///< 移除大小
 extern bool closeGraph;                  ///< 关闭图形标志
 
 extern PIMAGE pen_image;                 ///< 画笔图像
+extern PIMAGE textpen_image;                 ///< 文字画笔图像
 
 extern unordered_map<string,Element*>idToElement;    ///< ID到元素的映射
 extern unordered_map<Element*,bool>elementIsIn;      ///< 元素存在标志
@@ -176,6 +177,11 @@ namespace FeEGE {
      * @brief 初始化画笔
      */
     void initPen();
+    
+    /**
+     * @brief 初始化文字画笔
+     */
+    void initTextPen();
     
     /**
      * @brief 获取当前毫秒数
@@ -239,11 +245,11 @@ namespace FeEGE {
      */
     class PenTypes {
         public:
-            int left = 0x01;    ///< 左键
-            int middle = 0x02;  ///< 中键
+            int left = 0x01;    ///< 居左 
+            int middle = 0x02;  ///< 居中
     };
 
-    extern PenTypes penType;  ///< 全局画笔类型实例
+    extern PenTypes PenType;  ///< 全局画笔类型实例
 
     /**
      * @brief 获取上一个像素位置
@@ -531,7 +537,7 @@ public:
 	
 	/**
 	 * @brief 使元素朝向某个坐标 
-	 * @param pos 目标元素指针
+	 * @param pos 朝向坐标
 	 * @return 是否成功
 	 * @note 该函数总是返回成功 
 	 */
@@ -1320,6 +1326,132 @@ extern int charWidth, charHeight;  ///< 字符宽度和高度
 
 }
 
+/**
+ * @namespace textpen
+ * @brief 文本画笔相关功能命名空间
+ */
+namespace textpen {
+	
+extern int order;           ///< 绘制顺序
+extern int fontScale;       ///< 字体缩放
+extern short penAlpha;      ///< 画笔透明度
+extern int penType;         ///< 画笔类型
+extern int charWidth, charHeight;  ///< 字符宽度和高度
+
+/**
+     * @brief 在指定位置打印字符串(ANSI)
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param str 要打印的字符串
+     */
+    void print(int x, int y, string str);
+
+    /**
+     * @brief 在指定位置打印宽字符串(Unicode)
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param str 要打印的宽字符串
+     */
+    void print(int x, int y, wstring str);
+
+    /**
+     * @brief 设置字体样式和大小
+     * @param scale 字体缩放比例
+     * @param fontName 字体名称(默认为"幼圆")
+     */
+    void font(int scale, string fontName = "幼圆");
+
+    /**
+     * @brief 设置画笔颜色
+     * @param color 颜色值(color_t类型)
+     */
+    void color(color_t color);
+
+    /**
+     * @brief 设置画笔类型
+     * @param type 画笔类型(0x01-左键, 0x02-中键等)
+     */
+    void type(int type);
+
+    /**
+     * @brief 清除指定矩形区域
+     * @param x 左上角x坐标
+     * @param y 左上角y坐标
+     * @param ex 右下角x坐标
+     * @param ey 右下角y坐标
+     */
+    void clear(int x, int y, int ex, int ey);
+
+    /**
+     * @brief 清除指定位置的单个字符
+     * @param x 字符x坐标
+     * @param y 字符y坐标
+     */
+    void clearChar(int x, int y);
+
+    /**
+     * @brief 清除从指定位置开始的多个字符
+     * @param x 起始x坐标
+     * @param y 起始y坐标
+     * @param charCount 要清除的字符数量
+     */
+    void clearChars(int x, int y, int charCount);
+
+    /**
+     * @brief 清除整个画布
+     */
+    void clearAll();
+
+    /**
+     * @brief 设置绘制顺序
+     * @param value 顺序值(数值越大越后绘制)
+     */
+    void setOrder(int value);
+
+    /**
+     * @brief 设置画笔透明度
+     * @param alpha 透明度值(0-255)
+     */
+    void setAlpha(short alpha);
+
+    /**
+     * @brief 获取当前画笔透明度
+     * @return 当前透明度值(0-255)
+     */
+    short getAlpha();
+
+    /**
+     * @brief 增加画笔透明度
+     * @param alpha 要增加的透明度值
+     */
+    void increaseAlpha(short alpha);
+
+    /**
+     * @brief 降低画笔透明度
+     * @param alpha 要降低的透明度值
+     */
+    void decreaseAlpha(short alpha);
+
+    /**
+     * @brief 绘制直线
+     * @param x1 起点x坐标
+     * @param y1 起点y坐标
+     * @param x2 终点x坐标
+     * @param y2 终点y坐标
+     */
+    void printLine(int x1, int y1, int x2, int y2);
+
+    /**
+     * @brief 绘制矩形条
+     * @param left 左边界
+     * @param top 上边界
+     * @param right 右边界
+     * @param bottom 下边界
+     */
+    void printBar(int left, int top, int right, int bottom);
+
+}
+
 // 函数声明
 /**
  * @brief 刷新整个画布
@@ -1354,7 +1486,7 @@ void globalListen(int listenMode, string identifier, auto function);
  * @param listenMode 监听模式
  * @param identifier 要移除的监听器标识符
  */
-void GlobalUnlisten(int listenMode, string identifier);
+void globalUnlisten(int listenMode, string identifier);
 
 /**
  * @brief 创建新按钮元素
@@ -1427,4 +1559,77 @@ std::string UTF8ToANSI(const std::string& utf8Str);
  * @param cmd 要执行的命令字符串
  */
 void runCmdAwait(const std::string cmd);
+
+
+
+/**
+ * @brief 用于构建文本显示参数并调用 showText 的构建器类
+ */
+class ShowTextBuilder {
+public:
+    /**
+     * @brief 设置文本标识符
+     * @param id 文本 ID
+     */
+    ShowTextBuilder& setIdentifier(std::string id);
+
+    /**
+     * @brief 设置字符串生成函数
+     * @param f 输入 index 返回字符串的函数
+     */
+    ShowTextBuilder& setStringSolver(std::function<std::string(int)> f);
+
+    /**
+     * @brief 设置位置生成函数
+     * @param f 输入 index 返回位置的函数
+     */
+    ShowTextBuilder& setPositionSolver(std::function<Position(int)> f);
+
+    /**
+     * @brief 设置颜色生成函数（可选，默认 BLACK）
+     * @param f 输入 index 返回颜色的函数
+     */
+    ShowTextBuilder& setColorSolver(std::function<color_t(int)> f);
+
+    /**
+     * @brief 设置缩放因子生成函数（可选，默认 25）
+     * @param f 输入 index 返回缩放比例的函数
+     */
+    ShowTextBuilder& setScaleSolver(std::function<int(int)> f);
+
+    /**
+     * @brief 设置字体名称（可选，默认“宋体”）
+     * @param name 字体名
+     */
+    ShowTextBuilder& setFontName(std::string name);
+
+    /**
+     * @brief 设置绘图类型（可选，默认 FeEGE::penType::middle）
+     * @param type 类型标识
+     */
+    ShowTextBuilder& setPType(int type);
+
+    /**
+     * @brief 设置显示时间（毫秒）
+     * @param ms 显示时间
+     */
+    ShowTextBuilder& setMilliseconds(int ms);
+
+    /**
+     * @brief 执行文本显示逻辑，调用 showText 函数
+     */
+    void show();
+
+private:
+    std::string identifier;
+    std::function<std::string(int)> stringSolver;
+    std::function<Position(int)> positionSolver;
+    std::function<color_t(int)> colorSolver;
+    std::function<int(int)> scaleSolver;
+    std::string fontName;
+    int pType;
+    int milliseconds;
+};
+
+void showText(string identifier,function<string(int)> stringSolver,function<Position(int)> positionSolver,function<color_t(int)> colorSolver,function<int(int)> scaleSolevr,const string& fontName,int pType,int milliseconds);
 #endif
