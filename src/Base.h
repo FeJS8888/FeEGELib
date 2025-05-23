@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <math.h>
+#include <string>
 
 namespace FeEGE {
 
@@ -83,5 +84,14 @@ public:
 };
 
 typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
+
+// 模板函数：限制数值在区间内
+template<typename T>
+T clamp(T val, T minVal, T maxVal) {
+    return (val < minVal) ? minVal : (val > maxVal) ? maxVal : val;
+}
+
+// 传入 UTF-8 或 ANSI 编码字符串，自动转换后调用 EGE 输出文本
+void outtextxy_auto(int x, int y, const std::string& str);
 
 }

@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.0.12.0
- * @date 2025-05-16
+ * @version 2.1.0.0
+ * @date 2025-05-23
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */
@@ -10,12 +10,13 @@
 #ifndef _FEEGELIB_
 #define _FEEGELIB_
 
-#define FeEGELib_version "V2.0.12.0--upd2025-05-16"  ///< 库版本号
+#define FeEGELib_version "V2.1.0.0--upd2025-05-23"  ///< 库版本号
 #define version() FeEGELib_version                   ///< 获取版本号的宏
 
 // 包含必要的头文件
 #include "Base.h"
 #include "Collision.h"
+#include "Control.h"
 #include <graphics.h>
 #include <vector>
 #include <thread>
@@ -971,219 +972,6 @@ public:
 	~Element();
 };
 
-/**
- * @class InputBoxSet
- * @brief 输入框集合管理类
- */
-class InputBoxSet{
-protected:
-    bool isEnabled;             ///< 标识集合是否处于启用状态
-    set<Element*> childs;       ///< 存储管理的输入框元素集合
-    Element* selectedInputBox;  ///< 当前被选中的输入框指针
-
-public:
-    /**
-     * @brief 构造函数，初始化输入框集合
-     */
-    InputBoxSet();
-
-    /**
-     * @brief 启用输入框集合
-     * @details 启用后集合内的输入框可以响应交互事件
-     */
-    void enable();
-
-    /**
-     * @brief 禁用输入框集合
-     * @details 禁用后集合内的输入框将不再响应交互事件
-     */
-    void disable();
-
-    /**
-     * @brief 获取集合启用状态
-     * @return true-已启用 false-已禁用
-     */
-    bool getEnableStatu();
-
-    /**
-     * @brief 向集合中添加输入框
-     * @param inputBox 要添加的输入框元素指针
-     * @note 如果inputBox已存在于集合中，则不会重复添加
-     */
-    void insert(Element* inputBox);
-
-    /**
-     * @brief 从集合中移除输入框
-     * @param inputBox 要移除的输入框元素指针
-     * @note 如果inputBox是当前选中项，会同时清除选中状态
-     */
-    void erase(Element* inputBox);
-
-    /**
-     * @brief 选中指定输入框
-     * @param inputBox 要选中的输入框元素指针
-     * @details 选中后会触发输入框的onSelect事件
-     * @note 如果inputBox不属于本集合，则不会执行选中操作
-     */
-    void select(Element* inputBox);
-
-    /**
-     * @brief 主循环调用函数
-     * @details 处理集合内输入框的焦点切换等逻辑
-     */
-    void call();
-
-    /**
-     * @brief 析构函数
-     * @details 清理集合内所有输入框的引用关系
-     */
-    ~InputBoxSet();
-};
-
-/**
- * @class InputBox
- * @brief 输入框类，继承自Element
- */
-class InputBox : public Element{
-protected:
-    bool isEnabled;         ///< 控件启用状态，true表示可交互，false表示禁用
-    InputBoxSet* father;    ///< 所属的输入框集合指针，用于管理多个输入框
-    Element* submitButton;  ///< 关联的提交按钮指针，触发提交事件
-
-public:
-    /**
-     * @brief 默认构造函数
-     * @details 初始化输入框，默认状态为启用，无父集合和提交按钮
-     */
-    InputBox();
-
-    /**
-     * @brief 带参构造函数
-     * @param father 所属的输入框集合
-     * @param submitButton 关联的提交按钮
-     */
-    InputBox(InputBoxSet* father, Element* submitButton);
-
-    /**
-     * @brief 绑定到输入框集合
-     * @param father 要绑定的输入框集合
-     * @note 一个输入框只能属于一个集合
-     */
-    void bind(InputBoxSet* father);
-
-    /**
-     * @brief 启用输入框
-     * @details 允许接收用户输入和交互事件
-     */
-    void enable();
-
-    /**
-     * @brief 禁用输入框
-     * @details 禁止接收用户输入和交互事件
-     */
-    void disable();
-
-    /**
-     * @brief 获取启用状态
-     * @return bool 当前启用状态
-     * @retval true 已启用
-     * @retval false 已禁用
-     */
-    bool getEnableStatu();
-
-    /**
-     * @brief 添加事件监听器
-     * @param listenMode 监听模式(如点击、悬停等)
-     * @param identifier 监听器唯一标识
-     * @param function 回调函数
-     * @override 重写Element类的listen方法
-     */
-    virtual void listen(int listenMode, string identifier, 
-                       function<void(Element*)> function);
-
-    /**
-     * @brief 移除事件监听器
-     * @param listenMode 监听模式
-     * @param identifier 要移除的监听器标识
-     * @override 重写Element类的unlisten方法
-     */
-    virtual void unlisten(int listenMode, string identifier);
-
-    /**
-     * @brief 刷新鼠标状态
-     * @details 检测鼠标交互并更新状态，处理焦点切换
-     * @override 重写Element类的reflushMouseStatu方法
-     */
-    void reflushMouseStatu() override;
-
-    /**
-     * @brief 主循环处理函数
-     * @details 处理输入框的帧更新逻辑和事件触发
-     * @override 重写Element类的call方法
-     */
-    void call() override;
-
-    /**
-     * @brief 析构函数
-     * @details 清理资源，自动从父集合中移除
-     */
-    ~InputBox();
-};
-
-/**
- * @class Button
- * @brief 按钮类，继承自Element
- */
-class Button : public Element{
-protected:
-    bool isEnabled;  ///< 按钮启用状态标志，true表示启用，false表示禁用
-    
-public:
-    /**
-     * @brief 构造函数
-     * @details 初始化按钮元素，默认状态为启用
-     */
-    Button();
-    
-    /**
-     * @brief 启用按钮
-     * @details 设置按钮为启用状态，使其可以响应交互事件
-     */
-    void enable();
-    
-    /**
-     * @brief 禁用按钮  
-     * @details 设置按钮为禁用状态，使其不再响应交互事件
-     */
-    void disable();
-    
-    /**
-     * @brief 获取按钮启用状态
-     * @return bool 返回当前启用状态，true表示启用，false表示禁用
-     */
-    bool getEnableStatu();
-    
-    /**
-     * @brief 刷新鼠标状态（重写父类方法）
-     * @details 检测鼠标是否悬停在按钮上，并更新相应的状态标志
-     * @override 重写Element类的reflushMouseStatu方法
-     */
-    void reflushMouseStatu() override;
-    
-    /**
-     * @brief 按钮主循环处理（重写父类方法）
-     * @details 处理按钮的帧更新逻辑，包括状态检测和事件触发
-     * @override 重写Element类的call方法  
-     */
-    void call() override;
-    
-    /**
-     * @brief 析构函数
-     * @details 清理按钮占用的资源
-     */
-    ~Button();
-};
-
 // 全局变量声明
 extern int currentRegOrder;                  ///< 当前注册顺序
 extern unsigned long long frame;             ///< 帧计数器
@@ -1487,38 +1275,6 @@ void globalListen(int listenMode, string identifier, auto function);
  * @param identifier 要移除的监听器标识符
  */
 void globalUnlisten(int listenMode, string identifier);
-
-/**
- * @brief 创建新按钮元素
- * @param id 按钮唯一ID
- * @param imagePath 按钮图像路径
- * @param x x坐标位置
- * @param y y坐标位置
- * @param putOn 鼠标悬停回调(可选)
- * @param moveAway 鼠标移开回调(可选)
- * @param on_click 点击回调(可选)
- * @return 创建的按钮指针
- */
-Button* newButton(string id, string imagePath, double x, double y,
-                 function<void(Element*)> putOn = nullptr,
-                 function<void(Element*)> moveAway = nullptr,
-                 function<void(Element*)> on_click = nullptr);
-
-/**
- * @brief 创建新输入框元素
- * @param id 输入框唯一ID
- * @param imagePath 输入框图像路径
- * @param x x坐标位置
- * @param y y坐标位置
- * @param submitButton 关联的提交按钮
- * @param onSubmit 提交回调(可选)
- * @param onSelected 选中回调(可选)
- * @return 创建的输入框指针
- */
-Element* newInputBox(string id, string imagePath, double x, double y,
-                   Element* submitButton,
-                   function<void(Element*)> onSubmit = nullptr,
-                   function<void(Element*)> onSelected = nullptr);
 
 /**
  * @brief 获取当前工作目录路径

@@ -186,8 +186,11 @@ public:
     void killfocus()
 	{
 	    // 将焦点设置回主窗口或 NULL（无焦点）
-	    ::SetFocus(nullptr);
-
+	    msg_createwindow msg = {NULL};
+		msg.hwnd = GetForegroundWindow(); // 注意这里，这样可以不改变窗口活动状态
+		msg.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		PostMessageW(getHWnd(), WM_USER + 2, 0, (LPARAM)&msg);
+		WaitForSingleObject(msg.hEvent, INFINITE);
 	}
 
 

@@ -1,4 +1,5 @@
 #include "Base.h"
+#include "FeEGELib.h"
 #include <math.h>
 
 namespace FeEGE{
@@ -25,6 +26,15 @@ Position Position::perpendicular() const {
     return Position(-y, x);
 }
 
+// 自动判断编码并调用 EGE 输出
+void outtextxy_auto(int x, int y, const std::string& str) {
+    std::string text = str;
+
+    if (detectEncoding(text) == "UTF-8") {
+        text = UTF8ToANSI(text);
+    }
+
+    outtextxy(x, y, text.c_str());
 }
 
-using FeEGE::Polygon;
+}

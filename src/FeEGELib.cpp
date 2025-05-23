@@ -1081,11 +1081,6 @@ Element::~Element() {
 
 // ... (continue with all other method implementations)
 
-// InputBoxSet class implementation
-InputBoxSet::InputBoxSet(){
-    this->isEnabled = false;
-}
-
 // ... (continue with all other class implementations)
 
 // Global functions implementation
