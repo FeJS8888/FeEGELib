@@ -2,6 +2,7 @@
 #define SYS_EDIT_H
 
 #include <ege/egecontrolbase.h>
+#include <graphics.h>
 #define ARGBTOZBGR(c) ((color_t)((((c) & 0xFF) << 16) | (((c) & 0xFF0000) >> 16) | ((c) & 0xFF00)))
 #define EGE_CONVERT_TO_WSTR_WITH(mbStr, block)                                               \
     {                                                                                        \

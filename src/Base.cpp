@@ -1,9 +1,10 @@
 #include "Base.h"
-#include "FeEGELib.h"
+#include "Element.h"
 #include <math.h>
 
 namespace FeEGE{
-	
+
+bool Lpressed;
 typedef std::vector<Position> Polygon;  ///< 多边形类型定义，由顶点向量组成
 	
 // Position 实现
@@ -35,6 +36,17 @@ void outtextxy_auto(int x, int y, const std::string& str) {
     }
 
     outtextxy(x, y, text.c_str());
+}
+
+void reflushMouseStatu(mouse_msg msg){
+	if(msg.is_left()){
+		if(msg.is_down()){
+			Lpressed = true;
+		}
+		if(msg.is_up()){
+			Lpressed = false;
+		} 
+	}
 }
 
 }
