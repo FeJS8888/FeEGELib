@@ -20,49 +20,47 @@ Panel::Panel(int centerX, int centerY, double w, double h, double r, color_t bg)
 void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     children.push_back(child);
     childOffsets.push_back(Position{ offsetX, offsetY });
+    child->is_global = false;
 }
 
 void Panel::draw() {
 	double left = cx - width / 2;
 	double top = cy - height / 2;
-    setbkcolor_f(TRANSPARENT, layer);
+    setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
 
     // 绘制自身背景（圆角矩形）
     setfillcolor(bgColor, layer);
-    setcolor(bgColor, layer);
     ege_fillrect(0, 0, width, height, layer);
 
     // 绘制子控件
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
-        children[i]->draw(layer, childX, childY);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->draw(layer, childX, childY);
     }
 
     // 粘贴到主窗口
-//    putimage_withalpha(nullptr,layer,left,top);
     putimage_alphafilter(nullptr, layer, left, top, maskLayer, 0, 0, -1, -1);
 }
 
 void Panel::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
 	double top = y - height / 2;
-    setbkcolor_f(TRANSPARENT, layer);
+    setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
 
     // 绘制自身背景（圆角矩形）
     setfillcolor(bgColor, layer);
-    setcolor(bgColor, layer);
     ege_fillrect(0, 0, width, height, layer);
 
     // 绘制子控件
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
-        children[i]->draw(layer, childX, childY);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->draw(layer, childX, childY);
     }
 
     // 粘贴到主窗口
@@ -90,7 +88,6 @@ void Panel::setScale(double s){
 	for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
-        children[i]->draw(layer, childX, childY);
         children[i]->setScale(s);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
@@ -98,7 +95,7 @@ void Panel::setScale(double s){
 	setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 double Panel::getScale(){
@@ -138,15 +135,12 @@ Button::Button(int cx, int cy, double w, double h, double r)
     maskLayer = newimage(width, height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
-
-    setbkcolor_f(TRANSPARENT, btnLayer);
-    cleardevice(btnLayer);
     
     // 遮罩
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
 }
 
 Button::~Button() {
@@ -155,15 +149,28 @@ Button::~Button() {
 }
 
 void Button::draw(PIMAGE dst,int x,int y){
-	left = x - width / 2;
-    top = y - height / 2;
-    setbkcolor_f(TRANSPARENT, btnLayer);
+    int left = x - width / 2;
+    int top = y - height / 2;
+    if(!ripples.size() && !needRedraw){
+        // setfillcolor(EGERGB(245, 245, 235), dst);
+        // setcolor(EGERGB(245, 245, 235), dst);
+        // ege_fillroundrect(left, top, width, height, radius, radius, radius, radius, dst);
+        // setbkmode(TRANSPARENT, dst);
+        // settextcolor(BLACK, dst);
+        // setfont(23 * scale, 0, "宋体", dst);
+        // ege_outtextxy(x - textwidth(content.c_str(), btnLayer) / 2, 
+        //               y - textheight(content.c_str(), btnLayer) / 2, 
+        //               content.c_str(), dst);
+        putimage_withalpha(dst,btnLayer,left,top);
+        // (dst, btnLayer, x - width / 2, y - height / 2, maskLayer, 0, 0, -1, -1);
+        return;
+    }
+    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
-    setfillcolor(EGERGB(245, 245, 235), btnLayer);
-    setcolor(EGERGB(245, 245, 235), btnLayer);
-    ege_fillrect(0, 0, width, height, btnLayer);
+    setfillcolor(color, btnLayer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
@@ -184,15 +191,19 @@ void Button::draw(PIMAGE dst,int x,int y){
     
     // 应用遮罩绘制
     putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    needRedraw = false;
 }
 
 void Button::draw(){
-    setbkcolor_f(TRANSPARENT, btnLayer);
+    if(!ripples.size() && !needRedraw){
+        putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+        return;
+    }
+    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
-    setfillcolor(EGERGB(245, 245, 235), btnLayer);
-    setcolor(EGERGB(245, 245, 235), btnLayer);
+    setfillcolor(color, btnLayer);
     ege_fillrect(0, 0, width, height, btnLayer);
 
     // 更新并绘制 ripples
@@ -214,14 +225,16 @@ void Button::draw(){
     
     // 应用遮罩绘制
     putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    needRedraw = false;
 }
 
 void Button::handleEvent(const mouse_msg& msg) {
     if (msg.is_left() && msg.is_down() && isInside(msg.x, msg.y)) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        ripples.emplace_back(localX, localY, std::max(width, height) * 2, 80);
+        ripples.emplace_back(localX, localY, std::max(width, height) * 2, 40);
         if(on_click_event != nullptr) on_click_event();
+        needRedraw = true;
     }
 }
 
@@ -272,15 +285,24 @@ bool Button::isInside(int x, int y) const {
 }
 
 void Button::setContent(const string& str){
+    if(content == str) return;
 	content = str;
+    needRedraw = true;
+}
+
+std::string Button::getContent(){
+    return content;
 }
 
 void Button::setPosition(int x,int y){
-	left = x - width / 2;
+    if(sgn(left - x + width / 2) == 0 && sgn(top - y + height / 2) == 0) return;
+    left = x - width / 2;
 	top = y - height / 2;
+    needRedraw = true;
 }
 
 void Button::setScale(double s){
+    if(sgn(scale - s) == 0) return;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
@@ -289,11 +311,16 @@ void Button::setScale(double s){
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    needRedraw = true;
 }
 
 void Button::setOnClickEvent(std::function<void(void)> func){
 	on_click_event = func;
+}
+
+void Button::setColor(color_t col){
+    color = col;
 }
 
 // InputBox 类实现
@@ -309,9 +336,6 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r)
     maskLayer = newimage(width, height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
-
-    setbkcolor_f(TRANSPARENT, btnLayer);
-    cleardevice(btnLayer);
     
     // 遮罩
     setbkcolor_f(TRANSPARENT, maskLayer);
@@ -344,12 +368,11 @@ void InputBox::draw(PIMAGE dst,int x,int y)  {
         this->content = std::string(str);
     }
     
-    setbkcolor_f(TRANSPARENT, btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
-    setfillcolor(EGERGB(245, 245, 235), btnLayer);
-    setcolor(EGERGB(245, 245, 235), btnLayer);
+    setfillcolor(color, btnLayer);
     ege_fillrect(0, 0, width, height, btnLayer);
 
     // 更新并绘制 ripples
@@ -384,12 +407,11 @@ void InputBox::draw(){
         this->content = std::string(str);
     }
     
-    setbkcolor_f(TRANSPARENT, btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
-    setfillcolor(EGERGB(245, 245, 235), btnLayer);
-    setcolor(EGERGB(245, 245, 235), btnLayer);
+    setfillcolor(color, btnLayer);
     ege_fillrect(0, 0, width, height, btnLayer);
 
     // 更新并绘制 ripples
@@ -518,6 +540,9 @@ void Slider::create(int x, int y, double w, double h) {
 void Slider::draw(PIMAGE dst,int x,int y){
 	int left = x - width / 2;
     int top = y - height / 2;
+    // if(m_pressed){
+        // onPress();
+    // }
     // 动态更新缩放比例
     if (m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
@@ -552,6 +577,9 @@ void Slider::draw(PIMAGE dst,int x,int y){
 
 void Slider::draw(){
 	PIMAGE dst = nullptr;
+    // if(m_pressed){
+        // onPress();
+    // }
     // 动态更新缩放比例
     if (m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
@@ -718,10 +746,16 @@ ButtonBuilder& ButtonBuilder::setOnClick(std::function<void()> func) {
     return *this;
 }
 
+ButtonBuilder& ButtonBuilder::setColor(color_t col){
+    color = col;
+    return *this;
+}
+
 Button* ButtonBuilder::build() {
     auto btn = new Button(cx, cy, width, height, radius);
     btn->setContent(content);
     btn->setScale(scale);
+    btn->setColor(color);
     if (onClick) btn->setOnClickEvent(onClick);
     widgets.insert(btn);
     return btn;

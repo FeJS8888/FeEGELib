@@ -31,6 +31,7 @@ public:
     virtual ~Widget() {}
     
     virtual void handleEvent(const mouse_msg& msg);
+    bool is_global = true;
 
     /**
      * @brief 绘制控件到指定图像
@@ -153,12 +154,14 @@ private:
     double origin_width, origin_height;
     double origin_radius;
     double scale = 1;
-    int left, top;          ///< 左上角坐标
+    double left, top;          ///< 左上角坐标
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
     std::string content;
     std::function<void(void)> on_click_event = nullptr;
+    color_t color;
+    bool needRedraw = true;
 
 public:
     /**
@@ -190,6 +193,7 @@ public:
     virtual void handleEvent(const mouse_msg& msg);
     
     void setContent(const std::string& str);
+    std::string getContent();
 
     /**
      * @brief 检查点是否在按钮内
@@ -204,6 +208,8 @@ public:
     void setScale(double s) override;
     
     void setOnClickEvent(std::function<void(void)> func);
+
+    void setColor(color_t col);
 };
 
 /**
@@ -217,13 +223,14 @@ private:
     double origin_width, origin_height;
     double origin_radius;
     double scale = 1;
-    int left, top;         ///< 左上角坐标
+    double left, top;         ///< 左上角坐标
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
     std::string content;   ///< 输入内容
     FeEGE::sys_edit inv;   ///< 输入控件
     bool on_focus;         ///< 是否获得焦点
+    color_t color = EGERGB(245, 245, 235);
 
 public:
     /**
@@ -283,7 +290,7 @@ public:
  */
 class Slider : public Widget {
 private:
-    int left, top;
+    double left, top;
 	double width, height;    ///< 位置和尺寸
     double radius;              ///< 滑块半径
     double origin_width, origin_height;
@@ -406,6 +413,7 @@ public:
     ButtonBuilder& setContent(const std::string& text);
     ButtonBuilder& setScale(double s);
     ButtonBuilder& setOnClick(std::function<void()> func);
+    ButtonBuilder& setColor(color_t col);
     Button* build();
 
 private:
@@ -414,6 +422,7 @@ private:
     double radius = 8;
     std::string content = "Button";
     double scale = 1.0;
+    color_t color = EGERGB(245, 245, 235);
     std::function<void()> onClick = nullptr;
 };
 
