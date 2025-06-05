@@ -1389,16 +1389,16 @@ void reflush() {
         msg = getmouse();
         reflushMouseStatu(msg);
         for(Widget* w : widgets){
-        	cout<<w<<"\n";
         	w->handleEvent(msg);
 		}
     }
     for(Widget* w : widgets){
+		if(!w->is_global) continue;
     	w->draw();
 	}
 	
 	POINT pt;
-	::GetCursorPos(&pt);           // 获取当前鼠标位置
+	::GetCursorPos(&pt);            // 获取当前鼠标位置
 	::SetCursorPos(pt.x, pt.y);    // 设置回当前鼠标位置，触发鼠标事件
 	
 	delay_fps(120);
