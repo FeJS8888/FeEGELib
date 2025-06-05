@@ -231,6 +231,7 @@ private:
     FeEGE::sys_edit inv;   ///< 输入控件
     bool on_focus;         ///< 是否获得焦点
     color_t color = EGERGB(245, 245, 235);
+    bool needRedraw = true;
 
 public:
     /**
@@ -306,7 +307,7 @@ private:
 	double thickness = 4;
 	double origin_thickness = 4;
 	double scale = 1;
-
+    bool needRedraw = true;
 
 public:
     /**
@@ -376,6 +377,40 @@ public:
     
     void setPosition(int x,int y) override;
     
+    void setScale(double s) override;
+};
+
+class ProgressBar : public Widget {
+private:
+    int centerX, centerY;
+    double width, height;
+    double origin_width, origin_height;
+    double scale = 1.0;
+    double radius = 6;
+    double left, top;
+
+    color_t bgColor = EGERGB(230, 230, 230);
+    color_t fgColor = EGERGB(100, 180, 255);
+
+    double currentProgress = 0.0;  // 当前绘制进度
+    double targetProgress = 0.0;   // 实际设置目标
+    bool needRedraw = true;
+
+    PIMAGE barLayer = nullptr;
+
+public:
+    ProgressBar(int cx, int cy, double w, double h);
+    ~ProgressBar();
+
+    void setProgress(double p);      // 目标进度（0~1）
+    double getProgress() const;      // 返回 target 值
+    void setColor(color_t fg);       // 设置前景颜色
+    void setBackground(color_t bg);  // 设置背景颜色
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+    void setPosition(int x, int y) override;
     void setScale(double s) override;
 };
 
@@ -512,6 +547,25 @@ private:
     double progress = 0.0;
     double scale = 1.0;
     std::function<void(double)> onChange = nullptr;
+};
+
+class ProgressBarBuilder {
+public:
+    ProgressBarBuilder& setCenter(int x, int y);
+    ProgressBarBuilder& setSize(double w, double h);
+    ProgressBarBuilder& setScale(double s);
+    ProgressBarBuilder& setProgress(double p);
+    ProgressBarBuilder& setColor(color_t fg);
+    ProgressBarBuilder& setBackground(color_t bg);
+    ProgressBar* build();
+
+private:
+    int cx = 0, cy = 0;
+    double width = 200, height = 20;
+    double scale = 1.0;
+    double progress = 0.0;
+    color_t fgColor = EGERGB(100, 180, 255);
+    color_t bgColor = EGERGB(230, 230, 230);
 };
 
 extern std::set<Widget*> widgets;
