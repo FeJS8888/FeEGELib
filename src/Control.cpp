@@ -8,8 +8,8 @@ Panel::Panel(int centerX, int centerY, double w, double h, double r, color_t bg)
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
-	layer = newimage(width, height);	
 	ege_enable_aa(true,layer);
+    ege_enable_aa(true,maskLayer);
 	
 	setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
@@ -358,14 +358,18 @@ InputBox::~InputBox() {
     delimage(maskLayer);
 }
 
-void InputBox::draw(PIMAGE dst,int x,int y)  {
-	left = x - width / 2;
-    top = y - height / 2;
+void InputBox::draw(PIMAGE dst,int x,int y) {
+	int left = x - width / 2;
+    int top = y - height / 2;
     if (on_focus) {
         inv.setfocus();
         char str[512];
         inv.gettext(512, str);
-        this->content = std::string(str);
+        setContent(str);
+    }
+    if(!ripples.size() && !needRedraw){
+        putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+        return;
     }
     
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
@@ -397,6 +401,7 @@ void InputBox::draw(PIMAGE dst,int x,int y)  {
     }
     // 应用遮罩绘制
     putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    needRedraw = false;
 }
 
 void InputBox::draw(){
@@ -404,7 +409,12 @@ void InputBox::draw(){
         inv.setfocus();
         char str[512];
         inv.gettext(512, str);
-        this->content = std::string(str);
+        setContent(str);
+    }
+
+    if(!ripples.size() && !needRedraw){
+        putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+        return;
     }
     
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
@@ -436,6 +446,7 @@ void InputBox::draw(){
     }
     // 应用遮罩绘制
     putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    needRedraw = false;
 }
 
 void InputBox::handleEvent(const mouse_msg& msg) {
@@ -444,11 +455,13 @@ void InputBox::handleEvent(const mouse_msg& msg) {
         int localY = msg.y - top;
         ripples.emplace_back(localX, localY, std::max(width, height) * 2, 80);
         on_focus = true;
+        needRedraw = true;
         inv.setfocus();
     }
     else if (msg.is_left() && msg.is_down()) {
         on_focus = false;
         inv.killfocus();
+        needRedraw = true;
     }
 }
 
@@ -499,7 +512,9 @@ bool InputBox::isInside(int x, int y) const {
 }
 
 void InputBox::setContent(const std::string& s) {
+    if(content == s) return;
     content = s;
+    needRedraw = true;
 }
 
 void InputBox::setMaxlen(int maxlen) {
@@ -507,11 +522,14 @@ void InputBox::setMaxlen(int maxlen) {
 }
 
 void InputBox::setPosition(int x,int y){
+    if(sgn(left - (x - width / 2)) == 0 && sgn(top - (y - height / 2)) == 0) return;
 	left = x - width / 2;
 	top = y - height / 2;
+    needRedraw = true;
 }
 
 void InputBox::setScale(double s){
+    if(sgn(scale - s) == 0) return;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
@@ -521,6 +539,7 @@ void InputBox::setScale(double s){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    needRedraw = true;
 }
 
 // Slider 类实现
@@ -671,6 +690,102 @@ void Slider::setScale(double s){
     thickness = origin_thickness * s;
     radius = height / 2;
 	scale = s;
+}
+
+ProgressBar::ProgressBar(int cx, int cy, double w, double h)
+    : centerX(cx), centerY(cy),
+      width(w), height(h),
+      origin_width(w), origin_height(h) {
+    left = cx - width / 2;
+    top = cy - height / 2;
+    barLayer = newimage(width, height);
+    ege_enable_aa(true, barLayer);
+}
+
+ProgressBar::~ProgressBar() {
+    if (barLayer) delimage(barLayer);
+}
+
+void ProgressBar::setProgress(double p) {
+    p = clamp(p, 0.0, 1.0);
+    if (fabs(targetProgress - p) > 1e-6) {
+        targetProgress = p;
+        needRedraw = true;
+    }
+}
+
+double ProgressBar::getProgress() const {
+    return targetProgress;
+}
+
+void ProgressBar::setColor(color_t fg) {
+    if (fgColor != fg) {
+        fgColor = fg;
+        needRedraw = true;
+    }
+}
+
+void ProgressBar::setBackground(color_t bg) {
+    if (bgColor != bg) {
+        bgColor = bg;
+        needRedraw = true;
+    }
+}
+
+void ProgressBar::draw(PIMAGE dst, int x, int y) {
+    int left = x - width / 2;
+    int top = y - height / 2;
+
+    // 缓动到目标进度
+    currentProgress += (targetProgress - currentProgress) * 0.15;
+    if (fabs(currentProgress - targetProgress) < 0.005)
+        currentProgress = targetProgress;
+
+    if (!needRedraw && fabs(currentProgress - targetProgress) < 1e-4) {
+        putimage_withalpha(dst, barLayer, left, top);
+        return;
+    }
+
+    // 重绘
+    setbkcolor_f(EGEACOLOR(0, bgColor), barLayer);
+    cleardevice(barLayer);
+
+    setfillcolor(bgColor, barLayer);
+    ege_fillrect(0, 0, width, height, barLayer);
+
+    setfillcolor(fgColor, barLayer);
+    ege_fillrect(0, 0, width * currentProgress, height, barLayer);
+
+    putimage_withalpha(dst, barLayer, left, top);
+    needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
+}
+
+void ProgressBar::draw() {
+    draw(nullptr, centerX, centerY);
+}
+
+void ProgressBar::handleEvent(const mouse_msg& msg){
+
+}
+
+void ProgressBar::setPosition(int x, int y) {
+    if (centerX == x && centerY == y) return;
+    centerX = x;
+    centerY = y;
+    left = centerX - width / 2;
+    top = centerY - height / 2;
+    needRedraw = true;
+}
+
+void ProgressBar::setScale(double s) {
+    if (fabs(scale - s) < 1e-6) return;
+    scale = s;
+    width = origin_width * s;
+    height = origin_height * s;
+    if (barLayer) delimage(barLayer);
+    barLayer = newimage(width, height);
+    ege_enable_aa(true, barLayer);
+    needRedraw = true;
 }
 
 // PanelBuilder 实现
@@ -839,7 +954,7 @@ SliderBuilder& SliderBuilder::setOnChange(std::function<void(double)> callback) 
 
 Slider* SliderBuilder::build() {
     auto slider = new Slider();
-    slider->create(x, y, width, height);
+    slider->create(x - width / 2, y - height / 2, width, height);
     slider->setColor(bgColor, fgColor);
     slider->setThickness(thickness);
     slider->setProgress(progress);
@@ -847,4 +962,44 @@ Slider* SliderBuilder::build() {
     if (onChange) slider->setOnChange(onChange);
     widgets.insert(slider);
     return slider;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setProgress(double p) {
+    progress = p;
+    return *this;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setColor(color_t fg) {
+    fgColor = fg;
+    return *this;
+}
+
+ProgressBarBuilder& ProgressBarBuilder::setBackground(color_t bg) {
+    bgColor = bg;
+    return *this;
+}
+
+ProgressBar* ProgressBarBuilder::build() {
+    auto bar = new ProgressBar(cx, cy, width, height);
+    bar->setColor(fgColor);
+    bar->setBackground(bgColor);
+    bar->setProgress(progress);
+    bar->setScale(scale);
+    widgets.insert(bar);
+    return bar;
 }
