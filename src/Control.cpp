@@ -152,17 +152,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     int left = x - width / 2;
     int top = y - height / 2;
     if(!ripples.size() && !needRedraw){
-        // setfillcolor(EGERGB(245, 245, 235), dst);
-        // setcolor(EGERGB(245, 245, 235), dst);
-        // ege_fillroundrect(left, top, width, height, radius, radius, radius, radius, dst);
-        // setbkmode(TRANSPARENT, dst);
-        // settextcolor(BLACK, dst);
-        // setfont(23 * scale, 0, "宋体", dst);
-        // ege_outtextxy(x - textwidth(content.c_str(), btnLayer) / 2, 
-        //               y - textheight(content.c_str(), btnLayer) / 2, 
-        //               content.c_str(), dst);
         putimage_withalpha(dst,btnLayer,left,top);
-        // (dst, btnLayer, x - width / 2, y - height / 2, maskLayer, 0, 0, -1, -1);
         return;
     }
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
@@ -195,44 +185,14 @@ void Button::draw(PIMAGE dst,int x,int y){
 }
 
 void Button::draw(){
-    if(!ripples.size() && !needRedraw){
-        putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
-        return;
-    }
-    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
-    cleardevice(btnLayer);
-
-    // 按钮背景
-    setfillcolor(color, btnLayer);
-    ege_fillrect(0, 0, width, height, btnLayer);
-
-    // 更新并绘制 ripples
-    for (auto& r : ripples) {
-        r.update();
-        r.draw(btnLayer,scale);
-    }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
-
-    // 按钮文字
-    setbkmode(TRANSPARENT, btnLayer);
-    settextcolor(BLACK, btnLayer);
-    setfont(23 * scale, 0, "宋体", btnLayer);
-    ege_outtextxy(width / 2 - textwidth(content.c_str(), btnLayer) / 2, 
-                 height / 2 - textheight(content.c_str(), btnLayer) / 2, 
-                 content.c_str(), btnLayer);
-    
-    // 应用遮罩绘制
-    putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
-    needRedraw = false;
+    draw(nullptr,centerX,centerY);
 }
 
 void Button::handleEvent(const mouse_msg& msg) {
     if (msg.is_left() && msg.is_down() && isInside(msg.x, msg.y)) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        ripples.emplace_back(localX, localY, std::max(width, height) * 2, 40);
+        ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
         if(on_click_event != nullptr) on_click_event();
         needRedraw = true;
     }
@@ -368,7 +328,7 @@ void InputBox::draw(PIMAGE dst,int x,int y) {
         setContent(str);
     }
     if(!ripples.size() && !needRedraw){
-        putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+        putimage_withalpha(dst, btnLayer, left, top);
         return;
     }
     
@@ -377,7 +337,7 @@ void InputBox::draw(PIMAGE dst,int x,int y) {
 
     // 按钮背景
     setfillcolor(color, btnLayer);
-    ege_fillrect(0, 0, width, height, btnLayer);
+    ege_fillroundrect(0, 0, width, height,radius,radius,radius,radius, btnLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
@@ -405,55 +365,14 @@ void InputBox::draw(PIMAGE dst,int x,int y) {
 }
 
 void InputBox::draw(){
-    if (on_focus) {
-        inv.setfocus();
-        char str[512];
-        inv.gettext(512, str);
-        setContent(str);
-    }
-
-    if(!ripples.size() && !needRedraw){
-        putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
-        return;
-    }
-    
-    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
-    cleardevice(btnLayer);
-
-    // 按钮背景
-    setfillcolor(color, btnLayer);
-    ege_fillrect(0, 0, width, height, btnLayer);
-
-    // 更新并绘制 ripples
-    for (auto& r : ripples) {
-        r.update();
-        r.draw(btnLayer,scale);
-    }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
-
-    // 按钮文字
-    setbkmode(TRANSPARENT, btnLayer);
-    settextcolor(BLACK, btnLayer);
-    setfont(23 * scale, 0, "宋体", btnLayer);
-    ege_outtextxy(14, height / 2 - textheight(content.c_str(), btnLayer) / 2 - 1, 
-                 content.c_str(), btnLayer);
-    
-    if (on_focus) {
-        setfillcolor(EGEARGB(50, 30, 30, 30), btnLayer);
-        ege_fillrect(0, 0, width, height, btnLayer);
-    }
-    // 应用遮罩绘制
-    putimage_alphafilter(nullptr, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
-    needRedraw = false;
+    draw(nullptr,centerX,centerY);
 }
 
 void InputBox::handleEvent(const mouse_msg& msg) {
     if (msg.is_left() && msg.is_down() && isInside(msg.x, msg.y)) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        ripples.emplace_back(localX, localY, std::max(width, height) * 2, 80);
+        ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
         on_focus = true;
         needRedraw = true;
         inv.setfocus();
