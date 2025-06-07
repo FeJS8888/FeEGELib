@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>第一个 FeEGELib 程序</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            position: relative;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 3px 8px;
+            background: #e1e1e1;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #d1d1d1;
+        }
+        .copy-btn:active {
+            background: #c1c1c1;
+        }
+        .copy-success {
+            background: #4CAF50;
+            color: white;
+        }
+        code.hljs {
+            padding: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+
+    <script type="text/template" id="markdown-source">
+# 第一个 FeEGELib 程序
+```cpp
+#include "FeEGELib.h"
+using namespace FeEGE;
+
+int main(){
+    init(800,600); // 分别表示窗口的长和宽
+
+    // todo : 其余内容写在这里
+
+    start(); // 开始主程序循环
+    return 0;
+}
+```
+</script>
+
+<script>
+    // 获取原始 Markdown
+    const markdown = document.getElementById('markdown-source').textContent;
+    
+    // 创建自定义渲染器
+    const renderer = new marked.Renderer();
+    
+    // 重写code方法
+    renderer.code = function(code, language, isEscaped) {
+        const lang = (language || '').match(/\S*/)[0];
+        const id = 'code-' + Math.random().toString(36).substr(2, 9);
+        return `
+            <pre>
+                <button class="copy-btn" data-code-id="${id}">复制</button>
+                <code id="${id}" class="hljs ${lang}">${
+                    isEscaped ? code : escapeHtml(code)
+                }</code>
+            </pre>
+        `;
+    };
+
+    // 配置 marked + highlight.js
+    marked.setOptions({
+        highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                return hljs.highlight(lang, code).value;
+            }
+            return hljs.highlightAuto(code).value;
+        },
+        renderer: renderer
+    });
+
+    // 简单的HTML转义函数
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // 渲染到页面
+    document.getElementById('content').innerHTML = marked.parse(markdown);
+    hljs.highlightAll();
+
+    // 添加复制功能
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('copy-btn')) {
+            const codeId = e.target.getAttribute('data-code-id');
+            const codeElement = document.getElementById(codeId);
+            const codeText = codeElement.textContent;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                e.target.textContent = '已复制!';
+                e.target.classList.add('copy-success');
+                setTimeout(() => {
+                    e.target.textContent = '复制';
+                    e.target.classList.remove('copy-success');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                e.target.textContent = '复制失败';
+            });
+        }
+    });
+</script>
+</body> </html>
