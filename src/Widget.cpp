@@ -1,4 +1,4 @@
-#include "Control.h"
+#include "Widget.h"
 
 using namespace FeEGE;
 set<Widget*> widgets;
@@ -13,8 +13,8 @@ Panel::Panel(int centerX, int centerY, double w, double h, double r, color_t bg)
 	
 	setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
+    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 void Panel::addChild(Widget* child, double offsetX, double offsetY) {
@@ -94,7 +94,7 @@ void Panel::setScale(double s){
 	
 	setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
@@ -104,6 +104,35 @@ double Panel::getScale(){
 
 void Panel::handleEvent(const mouse_msg& msg){
 	
+}
+
+void Panel::setSize(double w,double h){
+    origin_width = width = w;
+    origin_height = height = h;
+    delimage(layer);
+    delimage(maskLayer);
+    layer = newimage(width,height);
+    maskLayer = newimage(width,height);
+    ege_enable_aa(true,layer);
+    ege_enable_aa(true,maskLayer);
+	
+	setbkcolor_f(TRANSPARENT, maskLayer);
+    cleardevice(maskLayer);
+    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
+    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+}
+
+void Panel::clearChildren(){
+    children.clear();
+    childOffsets.clear();
+}
+
+void Panel::setAlpha(double a) {
+    alpha = clamp(a, 0, 255);
+    setbkcolor_f(TRANSPARENT, maskLayer);
+    cleardevice(maskLayer);
+    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
+    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 // Ripple 结构体实现
@@ -132,15 +161,17 @@ Button::Button(int cx, int cy, double w, double h, double r)
     top = centerY - height / 2;
 
     btnLayer = newimage(width, height);
+    bgLayer = newimage(width, height);
     maskLayer = newimage(width, height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
+    ege_enable_aa(true, bgLayer);
     
     // 遮罩
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGERGBA(255,255,255,255), maskLayer);
+    ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 Button::~Button() {
@@ -156,11 +187,15 @@ void Button::draw(PIMAGE dst,int x,int y){
         return;
     }
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
     cleardevice(btnLayer);
+    cleardevice(bgLayer);
 
     // 按钮背景
     setfillcolor(color, btnLayer);
+    setfillcolor(color, bgLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, bgLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
@@ -180,7 +215,8 @@ void Button::draw(PIMAGE dst,int x,int y){
                  content.c_str(), btnLayer);
     
     // 应用遮罩绘制
-    putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
+    putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
 }
 
@@ -921,4 +957,193 @@ ProgressBar* ProgressBarBuilder::build() {
     bar->setScale(scale);
     widgets.insert(bar);
     return bar;
+}
+
+Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
+    : centerX(cx), centerY(cy), width(w), height(h), radius(r) {
+    mainButton = new Button(cx, cy, w, h, r);
+    mainButton->setOnClickEvent([this] { 
+        toggleDropdown(); 
+    });
+    dropdownPanel = new Panel(cx, cy + h, w, 0, r, color);  // 初始化为高度0
+    dropdownPanel->setScale(scale);
+}
+
+void Dropdown::addOption(const std::string& text, std::function<void()> onClick) {
+    double optionHeight = height;
+    Button* option = new Button(centerX, centerY, width, optionHeight, radius);
+    option->setContent(text);
+    option->setColor(color);
+    option->setOnClickEvent([this, onClick] {
+        // toggleDropdown();
+        onClick();
+    });
+    options.push_back(option);
+    updateDropdownLayout();
+}
+
+void Dropdown::updateDropdownLayout() {
+    double optionHeight = height;
+    dropdownPanel->setSize(width, optionHeight * options.size());
+    dropdownPanel->setPosition(centerX, centerY + height / 2 + optionHeight * options.size() / 2 + 4);
+    dropdownPanel->setScale(scale);
+    dropdownPanel->clearChildren();
+
+    for (size_t i = 0; i < options.size(); ++i) {
+        options[i]->setScale(scale);
+        cout<<"PUT "<<(-(double)options.size() / 2.0 + i + 0.5) * optionHeight<<"\n";
+        dropdownPanel->addChild(options[i], 0, (-(double)options.size() / 2.0 + i + 0.5) * optionHeight);
+    }
+}
+
+void Dropdown::draw(PIMAGE dst, int x, int y) {
+    // 主按钮正常绘制
+    mainButton->draw(dst, x, y);
+
+    // 如果展开中，或正在淡入淡出动画
+    if (expanded || fadeAlpha > 0.08) {
+        // 更新透明度（渐变）
+        if (fadingIn) {
+            fadeAlpha += 0.09;
+            if (fadeAlpha >= 1.0) {
+                fadeAlpha = 1.0;
+                fadingIn = false;
+            }
+        } else if (fadingOut) {
+            fadeAlpha -= 0.09;
+            if (fadeAlpha <= 0.0) {
+                fadeAlpha = 0.0;
+                fadingOut = false;
+                expanded = false;
+            }
+        }
+
+        // 设置透明度并绘制下拉面板
+        int actualAlpha = static_cast<int>(fadeAlpha * 255);
+        dropdownPanel->setAlpha(actualAlpha);
+        dropdownPanel->draw(dst, centerX, centerY + height / 2 + height * options.size() / 2 + 4);
+    }
+}
+
+void Dropdown::draw() {
+    draw(nullptr, centerX, centerY);
+}
+
+void Dropdown::handleEvent(const mouse_msg& msg) {
+    if (expanded) {
+        dropdownPanel->handleEvent(msg);
+        for (Button* btn : options) {
+            btn->handleEvent(msg);
+        }
+    }
+
+    mainButton->handleEvent(msg);
+
+    // 检测点击空白关闭
+    if (msg.is_left() && msg.is_down()) {
+        if (!isInside(msg.x, msg.y)) {
+            // 点到了空白区域，关闭下拉
+            fadingOut = true;
+            fadingIn = false;
+        }
+    }
+}
+
+void Dropdown::toggleDropdown() {
+    if (!expanded) {
+        expanded = true;
+        fadingIn = true;
+        fadingOut = false;
+    } else {
+        fadingOut = true;
+        fadingIn = false;
+    }
+}
+
+void Dropdown::setPosition(int x, int y) {
+    centerX = x; centerY = y;
+    mainButton->setPosition(x, y);
+    updateDropdownLayout();
+}
+
+void Dropdown::setScale(double s) {
+    scale = s;
+    mainButton->setScale(s);
+    updateDropdownLayout();
+}
+
+void Dropdown::setContent(const std::string& text) {
+    mainButton->setContent(text);
+}
+
+void Dropdown::setColor(color_t col) {
+    color = col;
+    mainButton->setColor(col);
+    for (auto& opt : options)
+        opt->setColor(col);
+}
+
+bool Dropdown::isInside(int x, int y) const {
+    // 检查是否在主按钮内
+    if (mainButton->isInside(x, y))
+        return true;
+
+    // 如果未展开，无需检查下拉项
+    if (!expanded && fadeAlpha <= 0.01)
+        return false;
+
+    // 检查是否在下拉选项内
+    for (Button* btn : options) {
+        if (btn->isInside(x, y))
+            return true;
+    }
+
+    return false;
+}
+
+DropdownBuilder& DropdownBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::setContent(const std::string& text) {
+    content = text;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::setColor(color_t col) {
+    color = col;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+DropdownBuilder& DropdownBuilder::addOption(const std::string& text, std::function<void()> onClick) {
+    optionList.emplace_back(text, onClick);
+    return *this;
+}
+
+Dropdown* DropdownBuilder::build() {
+    auto dropdown = new Dropdown(cx, cy, width, height, radius);
+    dropdown->setContent(content);
+    dropdown->setColor(color);
+    dropdown->setScale(scale);
+    for (const auto& pair : optionList) {
+        dropdown->addOption(pair.first, pair.second);
+    }
+    widgets.insert(dropdown);
+    return dropdown;
 }

@@ -1361,17 +1361,21 @@ void reflush() {
 	}
 	
 	bool penNprinted = true;
+	if(!is_run()) return;
 	cleardevice();
 
 	for(Element* it : elementQueue) {
 		if(it == nullptr || it == *elementQueue.end()) continue;
 		if(penNprinted && it->getOrder() >= pen::order) {
 			penNprinted = false;
+			if(!is_run()) return;
 			putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penAlpha);
 		}
 		it->call();
 	}
+	if(!is_run()) return;
 	if(penNprinted) putimage_alphatransparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0),pen::penAlpha);
+	if(!is_run()) return;
 	putimage_alphatransparent(nullptr,textpen_image,0,0,EGERGBA(1,1,4,0),textpen::penAlpha);
 	#ifdef FPS
 	static char fps[32];
@@ -1394,14 +1398,13 @@ void reflush() {
     }
     for(Widget* w : widgets){
 		if(!w->is_global) continue;
+		if(!is_run()) return;
     	w->draw();
 	}
 	
 	POINT pt;
 	::GetCursorPos(&pt);            // 获取当前鼠标位置
 	::SetCursorPos(pt.x, pt.y);    // 设置回当前鼠标位置，触发鼠标事件
-	
-	delay_fps(120);
 }
 
 void init(int x,int y,int mode){
@@ -1414,12 +1417,14 @@ void init(int x,int y,int mode){
 }
 
 void start() {
+try {
 	closeGraph = false;
 	initXY();
 	randomize();
 	while(!closeGraph && is_run()) {
 		reflush();
 		textpen::clearAll();
+		if(!is_run()) return;
 		for(auto it : globalListenFrameFunctionSet) it.second();
 #ifndef NO_THREAD
 #ifdef Ppause
@@ -1435,7 +1440,17 @@ void start() {
 		if(FeEGE::getkey(VK_ESCAPE)) break;
 #endif
 #endif
+		if(!is_run()) return;
+		delay_fps(120);
+		if(!is_run()) return;
 	}
+
+	closegraph();
+}
+catch (...) {
+    // 可以记录日志或输出提示信息
+    std::cout << "图形资源访问异常，窗口可能已关闭。\n";
+}
 }
 
 // ... (continue with all other function implementations)
