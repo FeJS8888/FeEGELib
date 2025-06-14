@@ -1,5 +1,5 @@
 /**
- * @file Control.h
+ * @file Widget.h
  * @brief 包含各种UI控件的声明（按钮、输入框、滑动条、文本等）
  * @author FeJS8888
  */
@@ -89,8 +89,14 @@ public:
     void setScale(double s) override;
     
     double getScale();
+
+    void setSize(double w,double h);
+
+    void clearChildren();
     
     void handleEvent(const mouse_msg& msg) override;
+
+    void setAlpha(double a);
 
 private:
     int cx, cy;  ///< 中心坐标
@@ -100,6 +106,7 @@ private:
     double origin_radius;
     color_t bgColor;
     double scale = 1;
+    double alpha = 255;
     PIMAGE layer = newimage(width, height);
     PIMAGE maskLayer = newimage(width,height);
 
@@ -158,6 +165,7 @@ private:
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
+    PIMAGE bgLayer = nullptr; ///< 背景图层
     std::string content;
     std::function<void(void)> on_click_event = nullptr;
     color_t color;
@@ -567,5 +575,62 @@ private:
     color_t fgColor = EGERGB(100, 180, 255);
     color_t bgColor = EGERGB(230, 230, 230);
 };
+
+class Dropdown : public Widget {
+public:
+    Dropdown(int cx, int cy, double w, double h, double r);
+
+    void addOption(const std::string& text, std::function<void()> onClick);
+    void setContent(const std::string& text);
+    void setColor(color_t col);
+    void setScale(double s) override;
+    void setPosition(int x, int y) override;
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+    bool isInside(int x, int y) const;
+
+
+private:
+    Button* mainButton;
+    Panel* dropdownPanel;
+    std::vector<Button*> options;
+    bool expanded = false;
+    int centerX, centerY;
+    double width, height, radius;
+    double scale = 1.0;
+    double fadeAlpha = 0.0;
+    bool fadingIn = false;
+    bool fadingOut = false;
+
+    color_t color = EGERGB(245, 245, 235);
+
+    void toggleDropdown();
+    void updateDropdownLayout();
+};
+
+class DropdownBuilder {
+public:
+    DropdownBuilder& setCenter(int x, int y);
+    DropdownBuilder& setSize(double w, double h);
+    DropdownBuilder& setRadius(double r);
+    DropdownBuilder& setContent(const std::string& text);
+    DropdownBuilder& setColor(color_t col);
+    DropdownBuilder& setScale(double s);
+    DropdownBuilder& addOption(const std::string& text, std::function<void()> onClick);
+    Dropdown* build();
+
+private:
+    int cx = 0, cy = 0;
+    double width = 100, height = 40;
+    double radius = 8;
+    double scale = 1.0;
+    std::string content = "菜单";
+    color_t color = EGERGB(245, 245, 235);
+
+    std::vector<std::pair<std::string, std::function<void()>>> optionList;
+};
+
 
 extern std::set<Widget*> widgets;

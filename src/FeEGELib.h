@@ -16,6 +16,6 @@
 #include "Base.h"
 #include "Collision.h"
 #include "Element.h"
-#include "Control.h"
+#include "Widget.h"
 
 #endif

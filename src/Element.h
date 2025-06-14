@@ -3,7 +3,7 @@
 // 包含必要的头文件
 #include "Base.h"
 #include "Collision.h"
-#include "Control.h"
+#include "Widget.h"
 #include <graphics.h>
 #include <vector>
 #include <thread>
@@ -1240,7 +1240,7 @@ void reflush();
  * @param y 窗口高度
  * @param mode 初始化模式(默认为INIT_RENDERMANUAL手动渲染模式)
  */
-void init(int x, int y, int mode = INIT_RENDERMANUAL);
+void init(int x, int y, int mode = INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
 
 /**
  * @brief 启动主事件循环
