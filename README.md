@@ -105,8 +105,5 @@ int main() {
 ## 📬 联系作者
 
 欢迎 issue / PR / Star！
+
 GitHub: [@FeJS8888](https://github.com/FeJS8888)
-
----
-
-如需进一步优化为 GitHub Pages 或支持语言切换，可继续拓展。是否需要英文版我也可以一并生成。
