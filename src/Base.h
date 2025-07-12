@@ -10,93 +10,116 @@ extern bool Lpressed;
 
 /**
  * @class Position
- * @brief ¶þÎ¬ÏòÁ¿Àà£¬ÓÃÓÚ±íÊ¾ÎïÀíÒýÇæÖÐµÄÎ»ÖÃ¡¢·½ÏòµÈ
+ * @brief ï¿½ï¿½Î¬ï¿½ï¿½ï¿½ï¿½ï¿½à£¬ï¿½ï¿½ï¿½Ú±ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Î»ï¿½Ã¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  */
 class Position {
 public:
-    double x, y;  ///< ÏòÁ¿µÄxºÍy·ÖÁ¿
+    double x, y;  ///< ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½xï¿½ï¿½yï¿½ï¿½ï¿½ï¿½
 
     /**
-     * @brief Ä¬ÈÏ¹¹Ôìº¯Êý
-     * @details ³õÊ¼»¯ÏòÁ¿Îª(0,0)
+     * @brief Ä¬ï¿½Ï¹ï¿½ï¿½ìº¯ï¿½ï¿½
+     * @details ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª(0,0)
      */
     Position();
 
     /**
-     * @brief ´ø²ÎÊýµÄ¹¹Ôìº¯Êý
-     * @param _x x·ÖÁ¿Öµ
-     * @param _y y·ÖÁ¿Öµ
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½ï¿½ìº¯ï¿½ï¿½
+     * @param _x xï¿½ï¿½ï¿½ï¿½Öµ
+     * @param _y yï¿½ï¿½ï¿½ï¿½Öµ
      */
     Position(double _x, double _y);
 
     /**
-     * @brief ÏòÁ¿¼Ó·¨ÔËËã·ûÖØÔØ
-     * @param rhs ÓÒ²Ù×÷ÊýÏòÁ¿
-     * @return Ïà¼ÓºóµÄÐÂÏòÁ¿
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½Ó·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @param rhs ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @return ï¿½ï¿½Óºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
      */
     Position operator+(const Position& rhs) const;
 
     /**
-     * @brief ÏòÁ¿¼õ·¨ÔËËã·ûÖØÔØ
-     * @param rhs ÓÒ²Ù×÷ÊýÏòÁ¿
-     * @return Ïà¼õºóµÄÐÂÏòÁ¿
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @param rhs ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
      */
     Position operator-(const Position& rhs) const;
 
     /**
-     * @brief ÏòÁ¿Êý³ËÔËËã·ûÖØÔØ
-     * @param s ±êÁ¿Öµ
-     * @return Ëõ·ÅºóµÄÐÂÏòÁ¿
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @param s ï¿½ï¿½ï¿½ï¿½Öµ
+     * @return ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
      */
     Position operator*(double s) const;
 
     /**
-     * @brief ¼ÆËãÏòÁ¿µã»ý
-     * @param rhs ÁíÒ»¸öÏòÁ¿
-     * @return Á½¸öÏòÁ¿µÄµã»ýÖµ
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @param rhs ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½ï¿½Öµ
      */
     double dot(const Position& rhs) const;
 
     /**
-     * @brief ¼ÆËãÏòÁ¿³¤¶È
-     * @return ÏòÁ¿µÄÄ£³¤
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½
      */
     double length() const;
 
     /**
-     * @brief ÏòÁ¿¹éÒ»»¯
-     * @return ¹éÒ»»¯ºóµÄµ¥Î»ÏòÁ¿
+     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+     * @return ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Äµï¿½Î»ï¿½ï¿½ï¿½ï¿½
      */
     Position normalize() const;
 
     /**
-     * @brief »ñÈ¡´¹Ö±ÏòÁ¿
-     * @return ´¹Ö±ÓÚµ±Ç°ÏòÁ¿µÄÏòÁ¿
+     * @brief ï¿½ï¿½È¡ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½
+     * @return ï¿½ï¿½Ö±ï¿½Úµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
      */
     Position perpendicular() const;
 };
 
 /**
  * @class PenetrationInfo
- * @brief Åö×²´©Í¸ÐÅÏ¢Àà
+ * @brief ï¿½ï¿½×²ï¿½ï¿½Í¸ï¿½ï¿½Ï¢ï¿½ï¿½
  */
 class PenetrationInfo {
 public:
-    Position direction;  ///< Åö×²·½Ïò(·¨ÏòÁ¿)
-    double depth;       ///< ´©Í¸Éî¶È
+    Position direction;  ///< ï¿½ï¿½×²ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    double depth;       ///< ï¿½ï¿½Í¸ï¿½ï¿½ï¿½
 };
 
-typedef std::vector<Position> Polygon;  ///< ¶à±ßÐÎÀàÐÍ¶¨Òå£¬ÓÉ¶¥µãÏòÁ¿×é³É
+typedef std::vector<Position> Polygon;  ///< ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¶ï¿½ï¿½å£¬ï¿½É¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-// Ä£°åº¯Êý£ºÏÞÖÆÊýÖµÔÚÇø¼äÄÚ
+// Ä£ï¿½åº¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 template<typename T1,typename T2,typename T3>
 T1 clamp(T1 val, T2 minVal, T3 maxVal) {
     return (val < minVal) ? minVal : (val > maxVal) ? maxVal : val;
 }
 
-// ´«Èë UTF-8 »ò ANSI ±àÂë×Ö·û´®£¬×Ô¶¯×ª»»ºóµ÷ÓÃ EGE Êä³öÎÄ±¾
+// ï¿½ï¿½ï¿½ï¿½ UTF-8 ï¿½ï¿½ ANSI ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ EGE ï¿½ï¿½ï¿½ï¿½Ä±ï¿½
 void outtextxy_auto(int x, int y, const std::string& str);
 
 void reflushMouseStatu(mouse_msg msg);
+
+std::wstring autoToWString(const std::string& str);
+
+template<typename T>
+class SimpleOptional {
+    bool has_val;
+    T val;
+
+public:
+    SimpleOptional() : has_val(false) {}
+    SimpleOptional(const T& value) : has_val(true), val(value) {}
+
+    bool hasValue() const { return has_val; }
+    operator bool() const { return has_val; }
+    const T& value() const { return val; }
+    T& value() { return val; }
+
+    const T& value_or(const T& default_val) const {
+        return has_val ? val : default_val;
+    }
+};
+
+inline const SimpleOptional<std::string> nullopt{};
 
 }

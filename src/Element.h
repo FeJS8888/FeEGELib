@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <string>
 #include <windows.h>
+#include <random>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -33,7 +34,7 @@
 #endif
 
 #define leftButton VK_LBUTTON  ///< 鼠标左键宏定义
-#define log printf             ///< 日志输出宏
+#define debugger printf             ///< 日志输出宏
 #define pie 3.141592653589793238462643383279502f  ///< 圆周率定义
 
 #define initXY() {WIDTH = getwidth();HEIGHT = getheight();}  ///< 初始化屏幕尺寸宏
@@ -80,6 +81,8 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0);
  * @return 创建的元素指针
  */
 Element* newElement(string id,string imagePath,double x = 0,double y = 0);
+
+PIMAGE getImage(const string& imagePath);
 
 // 全局变量声明
 extern bool isKey;                                   ///< 按键状态标志
@@ -970,7 +973,7 @@ extern queue<Element*> freeList;             ///< 空闲元素列表
  */
 class cmp {
 public:
-    bool operator()(Element* _A,Element* _B);  ///< 比较运算符重载
+    bool operator()(Element* _A,Element* _B) const ;  ///< 比较运算符重载
 };
 
 extern set<Element*,cmp> elementQueue;  ///< 元素队列

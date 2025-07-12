@@ -48,5 +48,27 @@ void reflushMouseStatu(mouse_msg msg){
 		} 
 	}
 }
+std::wstring autoToWString(const std::string& str) {
+    // 优先尝试 UTF-8
+    int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str.c_str(), -1, nullptr, 0);
+    if (len > 0) {
+        std::wstring result(len, 0);
+        MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], len);
+        result.pop_back(); // 去掉末尾空字符
+        return result;
+    }
+
+    // 如果 UTF-8 解码失败，尝试系统 ANSI（通常为 GBK）
+    len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, nullptr, 0);
+    if (len > 0) {
+        std::wstring result(len, 0);
+        MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, &result[0], len);
+        result.pop_back();
+        return result;
+    }
+
+    // 如果都失败，返回空串（或抛出异常）
+    return L"(Decode Failed)";
+}
 
 }
