@@ -14,7 +14,7 @@
 #include <iostream>
 #include <functional>
 #include <set>
-#include "sys_edit.h"  // mouse_msg 等结构体
+#include "sys_edit.h"
 #include "Element.h"
 #include "Base.h"
 
@@ -28,9 +28,9 @@ public:
     /**
      * @brief 虚析构，保证子类析构正常调用
      */
-    virtual ~Widget() {}
+    virtual ~Widget();
     
-    virtual void handleEvent(const mouse_msg& msg);
+    virtual void handleEvent(const mouse_msg& msg) = 0;
     bool is_global = true;
 
     /**
@@ -45,6 +45,11 @@ public:
     virtual void setPosition(int x,int y) = 0;
     
     virtual void setScale(double s) = 0;
+
+protected:
+    int cx, cy;  ///< 中心坐标
+    double width, height;
+    double scale = 1;
 };
 
 /**
@@ -54,14 +59,14 @@ class Panel : public Widget {
 public:
     /**
      * @brief 构造函数
-     * @param centerX 面板中心 x 坐标
-     * @param centerY 面板中心 y 坐标
+     * @param cx 面板中心 x 坐标
+     * @param cy 面板中心 y 坐标
      * @param w 宽度
      * @param h 高度
      * @param r 圆角半径
      * @param bg 背景颜色
      */
-    Panel(int centerX, int centerY, double w, double h, double r, color_t bg);
+    Panel(int cx, int cy, double w, double h, double r, color_t bg);
     
     ~Panel();
 
@@ -99,13 +104,10 @@ public:
     void setAlpha(double a);
 
 private:
-    int cx, cy;  ///< 中心坐标
-    double width, height;
     double radius;
     double origin_width, origin_height;
     double origin_radius;
     color_t bgColor;
-    double scale = 1;
     double alpha = 255;
     PIMAGE layer = newimage(width, height);
     PIMAGE maskLayer = newimage(width,height);
@@ -155,12 +157,9 @@ struct Ripple{
  */
 class Button : public Widget {
 private:
-    int centerX, centerY;   ///< 中心坐标
-    double width, height;      ///< 宽高
     double radius;             ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
-    double scale = 1;
     double left, top;          ///< 左上角坐标
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
@@ -170,6 +169,8 @@ private:
     std::function<void(void)> on_click_event = nullptr;
     color_t color;
     bool needRedraw = true;
+    PIMAGE icon = nullptr;
+    int iconSize = 100;
 
 public:
     /**
@@ -218,6 +219,10 @@ public:
     void setOnClickEvent(std::function<void(void)> func);
 
     void setColor(color_t col);
+    
+    void setIcon(PIMAGE img);
+
+    void setIconSize(int is);
 };
 
 /**
@@ -225,12 +230,9 @@ public:
  */
 class InputBox : public Widget {
 private:
-    int centerX, centerY;   ///< 中心坐标
-    double width, height;     ///< 宽高
     double radius;            ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
-    double scale = 1;
     double left, top;         ///< 左上角坐标
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
@@ -294,13 +296,17 @@ public:
     void setScale(double s) override;
 };
 
+enum class Orientation {
+    Row,    // 行方向（水平）
+    Column  // 列方向（垂直）
+};
+
 /**
  * @brief 滑动条控件类
  */
 class Slider : public Widget {
 private:
     double left, top;
-	double width, height;    ///< 位置和尺寸
     double radius;              ///< 滑块半径
     double origin_width, origin_height;
     double origin_radius;
@@ -314,8 +320,8 @@ private:
 	float m_scale = 1.0f;            ///< 当前缩放比例
 	double thickness = 4;
 	double origin_thickness = 4;
-	double scale = 1;
     bool needRedraw = true;
+    Orientation m_orientation = Orientation::Row; // 方向
 
 public:
     /**
@@ -344,7 +350,7 @@ public:
      * @param y y坐标
      * @return 是否在输入框内
      */
-    bool isInside(int x, int y) const;
+    bool isInside(int x, int y);
 
     /**
      * @brief 处理鼠标事件
@@ -386,14 +392,13 @@ public:
     void setPosition(int x,int y) override;
     
     void setScale(double s) override;
+
+    void setOrientation(Orientation ori);
 };
 
 class ProgressBar : public Widget {
 private:
-    int centerX, centerY;
-    double width, height;
     double origin_width, origin_height;
-    double scale = 1.0;
     double radius = 6;
     double left, top;
 
@@ -427,6 +432,7 @@ public:
   */
 class PanelBuilder {
 public:
+    PanelBuilder& setIdentifier(const std::string& identifier);
     PanelBuilder& setCenter(int x, int y);
     PanelBuilder& setSize(double w, double h);
     PanelBuilder& setRadius(double r);
@@ -436,6 +442,7 @@ public:
     Panel* build();
 
 private:
+    std::string identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 5;
@@ -450,6 +457,7 @@ private:
  */
 class ButtonBuilder {
 public:
+    ButtonBuilder& setIdentifier(const std::string& identifier);
     ButtonBuilder& setCenter(int x, int y);
     ButtonBuilder& setSize(double w, double h);
     ButtonBuilder& setRadius(double r);
@@ -457,9 +465,12 @@ public:
     ButtonBuilder& setScale(double s);
     ButtonBuilder& setOnClick(std::function<void()> func);
     ButtonBuilder& setColor(color_t col);
+    ButtonBuilder& setIcon(PIMAGE img);
+    ButtonBuilder& setIconSize(int size);
     Button* build();
 
 private:
+    std::string identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 8;
@@ -467,6 +478,8 @@ private:
     double scale = 1.0;
     color_t color = EGERGB(245, 245, 235);
     std::function<void()> onClick = nullptr;
+    PIMAGE icon = nullptr;
+    int iconSize = 100;
 };
 
 /**
@@ -474,6 +487,7 @@ private:
  */
 class InputBoxBuilder {
 public:
+    InputBoxBuilder& setIdentifier(const std::string& identifier);
     InputBoxBuilder& setCenter(int x, int y);
     InputBoxBuilder& setSize(double w, double h);
     InputBoxBuilder& setRadius(double r);
@@ -483,6 +497,7 @@ public:
     InputBox* build();
 
 private:
+    std::string identifier;
     int cx = 0, cy = 0;
     double width = 160, height = 40;
     double radius = 6;
@@ -496,6 +511,7 @@ private:
  */
 class SliderBuilder {
 public:
+    SliderBuilder& setIdentifier(const std::string& identifier);
     /**
      * @brief 设置位置
      * @param cx 中心 x 坐标
@@ -541,12 +557,15 @@ public:
      */
     SliderBuilder& setOnChange(std::function<void(double)> callback);
 
+    SliderBuilder& setOrientation(Orientation ori);
+
     /**
      * @brief 构建并返回 Slider 对象
      */
     Slider* build();
 
 private:
+    std::string identifier;
     int x = 0, y = 0;
     double width = 200, height = 20;
     color_t bgColor = EGERGB(200, 200, 200);
@@ -555,10 +574,12 @@ private:
     double progress = 0.0;
     double scale = 1.0;
     std::function<void(double)> onChange = nullptr;
+    Orientation orientation = Orientation::Row;
 };
 
 class ProgressBarBuilder {
 public:
+    ProgressBarBuilder& setIdentifier(const std::string& identifier);
     ProgressBarBuilder& setCenter(int x, int y);
     ProgressBarBuilder& setSize(double w, double h);
     ProgressBarBuilder& setScale(double s);
@@ -568,6 +589,7 @@ public:
     ProgressBar* build();
 
 private:
+    std::string identifier;
     int cx = 0, cy = 0;
     double width = 200, height = 20;
     double scale = 1.0;
@@ -597,7 +619,7 @@ private:
     Panel* dropdownPanel;
     std::vector<Button*> options;
     bool expanded = false;
-    int centerX, centerY;
+    int cx, cy;
     double width, height, radius;
     double scale = 1.0;
     double fadeAlpha = 0.0;
@@ -612,6 +634,7 @@ private:
 
 class DropdownBuilder {
 public:
+    DropdownBuilder& setIdentifier(const std::string& identifier);
     DropdownBuilder& setCenter(int x, int y);
     DropdownBuilder& setSize(double w, double h);
     DropdownBuilder& setRadius(double r);
@@ -622,6 +645,7 @@ public:
     Dropdown* build();
 
 private:
+    std::string identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 40;
     double radius = 8;
@@ -632,5 +656,292 @@ private:
     std::vector<std::pair<std::string, std::function<void()>>> optionList;
 };
 
+enum class RadioStyle {
+    Filled,  // 实心背景
+    Outline  // 空心圆
+};
+
+class Radio : public Widget {
+public:
+    Radio(int cx, int cy, double r, const std::string& val);
+
+    void setOnSelect(std::function<void()> callback);
+    std::string getValue() const;
+    bool isChecked() const;
+    void setPosition(int x, int y) override;
+    void setGroupValueRef(std::string* ref);
+    void setScale(double s) override;
+    void setStyle(RadioStyle s);
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+
+private:
+    int cx, cy;
+    double radius, scale = 1.0;
+    double origin_radius;
+    std::string value;
+    std::string groupValue;  // 当前组选中的值
+    std::string* groupValuePtr = nullptr;
+    bool animIn = false;
+    bool animOut = false;
+    double animProgress = 0.0;
+    const double animSpeed = 1.0 / 16;  // 控制动画帧率（16帧）
+    double lastScale = 1.0;  // 保存最后一帧 scale，用于动画结束后稳定显示
+    bool wasChecked = false;
+    bool keepColor = false;
+
+    bool hovered = false;
+    bool animPlaying = false;
+    int animFrame = 0; // 0~10
+    std::function<void()> onSelect;
+
+    RadioStyle style = RadioStyle::Filled;
+};
+
+class RadioBuilder {
+public:
+    RadioBuilder& setIdentifier(const std::string& identifier);
+    RadioBuilder& setCenter(int x, int y);
+    RadioBuilder& setRadius(double r);
+    RadioBuilder& setValue(const std::string& val);
+    RadioBuilder& setScale(double s);
+    RadioBuilder& setGroupValueRef(std::string* ref);
+    RadioBuilder& setOnSelect(std::function<void()> cb);
+    RadioBuilder& setStyle(RadioStyle s);
+    Radio* build();
+
+private:
+    std::string identifier;
+    int cx = 0, cy = 0;
+    double radius = 12;
+    double scale = 1.0;
+    std::string value = "";
+    std::string* groupPtr = nullptr;
+    std::function<void()> onSelect = nullptr;
+
+    RadioStyle style = RadioStyle::Filled;
+};
+
+class RadioController {
+public:
+    RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style);
+
+    void addValue(const std::string& val);
+    void setDefault(const std::string& val);
+    void setOnChange(std::function<void(const std::string&)> cb);
+    std::string getValue();
+    void build();
+
+private:
+    std::string identifier;
+    int cx, cy;
+    double radius, scale, gap;
+    RadioStyle style;
+    std::vector<std::string> values;
+    std::string currentValue;
+    std::function<void(const std::string&)> onChange;
+};
+
+class RadioControllerBuilder {
+public:
+    RadioControllerBuilder& setIdentifier(const std::string& identifier);
+    RadioControllerBuilder& setCenter(int x, int y);
+    RadioControllerBuilder& setRadius(double r);
+    RadioControllerBuilder& setGap(double g);
+    RadioControllerBuilder& setScale(double s);
+    RadioControllerBuilder& setStyle(RadioStyle s);
+    RadioControllerBuilder& add(const std::string& val);
+    RadioControllerBuilder& setDefault(const std::string& val);
+    RadioControllerBuilder& setOnChange(std::function<void(const std::string&)> cb);
+    RadioController* build();
+
+private:
+    std::string identifier;
+    int cx = 0, cy = 0;
+    double radius = 12;
+    double gap = 40;
+    double scale = 1.0;
+    RadioStyle style = RadioStyle::Filled;
+    std::vector<std::string> values;
+    std::string defaultValue = "";
+    std::function<void(const std::string&)> onChange = nullptr;
+};
+
+class Toggle : public Widget {
+public:
+    Toggle(int cx, int cy, double w, double h);
+
+    void setChecked(bool c);
+    void toggle();
+    bool isChecked() const;
+    bool isDisabled() const;
+    void setOnToggle(std::function<void(bool)> cb);
+    void setScale(double s);
+    void setPosition(int x, int y) override;
+    void setKeepColor(bool keep);
+    void setBaseColor(color_t col);
+    void setDisabled(bool d);
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+
+private:
+    int cx, cy;
+    double width, height, scale = 1.0;
+
+    bool checked = false;
+    double knobOffset = 0.0;     // 动画当前值
+    bool hovered = false;
+    double knobTarget = 0.0;     // 动画目标值
+    bool pressedIn = false;
+    bool disabled = false;
+
+    const double animationSpeed = 0.1;
+    bool keepColor = false;
+    color_t baseColor = EGERGB(33, 150, 243);
+
+
+    std::function<void(bool)> onToggle;
+};
+
+class ToggleBuilder {
+public:
+    ToggleBuilder& setIdentifier(const std::string& identifier);
+    ToggleBuilder& setCenter(int x, int y);
+    ToggleBuilder& setSize(double w, double h);
+    ToggleBuilder& setScale(double s);
+    ToggleBuilder& setChecked(bool c);
+    ToggleBuilder& setOnToggle(std::function<void(bool)> cb);
+    ToggleBuilder& setKeepColor(bool keep);
+    ToggleBuilder& setBaseColor(color_t col);
+    Toggle* build();
+
+private:
+    std::string identifier;
+    int cx = 0, cy = 0;
+    double w = 60, h = 30, scale = 1.0;
+    bool checked = false;
+    std::function<void(bool)> onToggle = nullptr;
+    bool keepColor = false;
+    color_t baseColor = EGERGB(33, 150, 243);
+};
+
+enum class TextAlign {
+    Left,
+    Center,
+    Right
+};
+
+class Text : public Widget {
+public:
+    Text(int x, int y, int maxWidth = 0);
+
+    void setContent(const std::string& text);      // UTF-8 / GBK 自动转换
+    void setMaxWidth(int width);
+    void setFont(int size, const std::string& name = "Consolas");
+    void setColor(color_t col);
+    void setScale(double s);
+    void setAlign(TextAlign a);
+    void setLineSpacing(int spacing);
+
+    int getTextWidth() const;
+    int getTextHeight() const;
+    int getMaxWidth() const;
+    TextAlign getAlign() const;
+    int getLineSpacing() const;
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void setPosition(int x, int y) override;
+    void handleEvent(const mouse_msg& msg) override;
+
+private:
+    void updateLayout();
+
+    int posX = 0, posY = 0;
+    int maxWidth = 0;
+    double scale = 1.0;
+    int fontSize = 16;
+    std::string fontName = "Consolas";
+    color_t color = BLACK;
+
+    std::wstring contentW;
+    std::vector<std::wstring> lines;
+    int textWidth = 0;
+    int textHeight = 0;
+    TextAlign align = TextAlign::Left;
+    int lineSpacing = 0; // 额外行距
+};
+
+class TextBuilder {
+public:
+    TextBuilder& setIdentifier(const std::string& identifier);
+    TextBuilder& setPosition(int x, int y);
+    TextBuilder& setMaxWidth(int w);
+    TextBuilder& setFont(int size, const std::string& name);
+    TextBuilder& setScale(double s);
+    TextBuilder& setColor(color_t c);
+    TextBuilder& setContent(const std::string& text);
+    TextBuilder& setAlign(TextAlign a);
+    TextBuilder& setLineSpacing(int px);
+    Text* build();
+
+private:
+    std::string identifier;
+    int x = 0, y = 0;
+    int maxWidth = 0;
+    int fontSize = 16;
+    std::string fontName = "Consolas";
+    double scale = 1.0;
+    color_t color = BLACK;
+    std::string content;
+    TextAlign align = TextAlign::Left;
+    int lineSpacing = 0;
+};
+
+class Knob : public Widget {
+public:
+    Knob(int cx, int cy, double r);
+
+    void setRange(double minVal, double maxVal);
+    void setStep(double step);
+    void setValue(double val);
+    void setColor(color_t fg, color_t bg);
+    void setOnChange(std::function<void(double)> cb);
+
+    double getValue() const;
+
+    void setScale(double s) override;
+    void setPosition(int x, int y) override;
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+
+private:
+    int cx, cy;
+    double radius;
+    double scale = 1.0;
+
+    double minValue = 0.0;
+    double maxValue = 100.0;
+    double step = 1.0;
+    double value = 0.0;
+
+    color_t fgColor = EGERGB(33, 150, 243);
+    color_t bgColor = EGERGB(230, 230, 230);
+
+    bool dragging = false;
+    int lastY = 0;
+
+    std::function<void(double)> onChange;
+
+    double clamp(double v);
+    double valueToAngle(double v) const;
+};
 
 extern std::set<Widget*> widgets;
+extern std::map<std::string,Widget*> IdToWidget;
+
+Widget* getWidgetById(const std::string& identifier);

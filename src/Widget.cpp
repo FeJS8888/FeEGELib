@@ -3,8 +3,14 @@
 using namespace FeEGE;
 set<Widget*> widgets;
 
-Panel::Panel(int centerX, int centerY, double w, double h, double r, color_t bg)
-    : cx(centerX), cy(centerY), width(w),height(h), bgColor(bg) {
+Widget::~Widget() {}
+
+Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
+    this->cx = cx;
+    this->cy = cy;
+    this->width = width;
+    this->height = height;
+    this->bgColor = bgColor;
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
@@ -152,13 +158,14 @@ void Ripple::draw(PIMAGE dst,double s) const {
 }
 
 // Button 类实现
-Button::Button(int cx, int cy, double w, double h, double r)
-    : centerX(cx), centerY(cy), width(w), height(h), radius(r) {
+Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
+    this->cx = cx;
+    this->cy = cy;
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
-    left = centerX - width / 2;
-    top = centerY - height / 2;
+    left = cx - width / 2;
+    top = cy - height / 2;
 
     btnLayer = newimage(width, height);
     bgLayer = newimage(width, height);
@@ -183,7 +190,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     int left = x - width / 2;
     int top = y - height / 2;
     if(!ripples.size() && !needRedraw){
-        putimage_withalpha(dst,btnLayer,left,top);
+        putimage_withalpha(dst,bgLayer,left,top);
         return;
     }
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
@@ -196,7 +203,15 @@ void Button::draw(PIMAGE dst,int x,int y){
     setfillcolor(color, bgLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, bgLayer);
-
+                 
+    if(icon != nullptr){
+	    int iconW = getwidth(icon) * scale * iconSize / 100;
+	    int iconH = getheight(icon) * scale * iconSize / 100;
+	    int iconX = width / 2 - iconW / 2;
+	    int iconY = height / 2 - iconH / 2;
+	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getwidth(icon),true);
+	}
+    
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
@@ -221,7 +236,7 @@ void Button::draw(PIMAGE dst,int x,int y){
 }
 
 void Button::draw(){
-    draw(nullptr,centerX,centerY);
+    draw(nullptr,cx,cy);
 }
 
 void Button::handleEvent(const mouse_msg& msg) {
@@ -311,6 +326,14 @@ void Button::setScale(double s){
     needRedraw = true;
 }
 
+void Button::setIcon(PIMAGE img){
+	icon = img;
+}
+
+void Button::setIconSize(int is){
+	iconSize = is;
+}
+
 void Button::setOnClickEvent(std::function<void(void)> func){
 	on_click_event = func;
 }
@@ -320,13 +343,14 @@ void Button::setColor(color_t col){
 }
 
 // InputBox 类实现
-InputBox::InputBox(int cx, int cy, double w, double h, double r)
-    : centerX(cx), centerY(cy) {
+InputBox::InputBox(int cx, int cy, double w, double h, double r) {
+    this->cx = cx;
+    this->cy = cy;
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
-    left = centerX - width / 2;
-    top = centerY - height / 2;
+    left = cx - width / 2;
+    top = cy - height / 2;
 
     btnLayer = newimage(width, height);
     maskLayer = newimage(width, height);
@@ -401,7 +425,7 @@ void InputBox::draw(PIMAGE dst,int x,int y) {
 }
 
 void InputBox::draw(){
-    draw(nullptr,centerX,centerY);
+    draw(nullptr,cx,cy);
 }
 
 void InputBox::handleEvent(const mouse_msg& msg) {
@@ -499,12 +523,17 @@ void InputBox::setScale(double s){
 
 // Slider 类实现
 Slider::Slider()
-    : left(0), top(0), width(200), height(20), m_value(0.0), m_dragging(false), m_dragOffset(0),
-      m_bgColor(EGERGB(200, 200, 200)), m_fgColor(EGERGB(100, 100, 255)) {}
+    : left(0), top(0), m_value(0.0), m_dragging(false), m_dragOffset(0),
+      m_bgColor(EGERGB(200, 200, 200)), m_fgColor(EGERGB(100, 100, 255)) {
+        this->width = 0;
+        this->height = 0;
+      }
 
 void Slider::create(int x, int y, double w, double h) {
-    left = x;
-    top = y;
+    cx = x;
+    cy = y;
+    left = x - w / 2;
+    top = y - h / 2;
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = h / 2;
@@ -514,9 +543,6 @@ void Slider::create(int x, int y, double w, double h) {
 void Slider::draw(PIMAGE dst,int x,int y){
 	int left = x - width / 2;
     int top = y - height / 2;
-    // if(m_pressed){
-        // onPress();
-    // }
     // 动态更新缩放比例
     if (m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
@@ -528,68 +554,71 @@ void Slider::draw(PIMAGE dst,int x,int y){
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
     
-    ege_fillroundrect(left,top + height / 2 - thickness,width,thickness * 2,thickness,thickness,thickness,thickness,dst);
+    if (m_orientation == Orientation::Column) {
+        radius = width / 2;
+        // 竖直轨道
+        ege_fillroundrect(left + width / 2 - thickness, top,
+                            thickness * 2, height,
+                            thickness, thickness, thickness, thickness, dst);
 
-    // 计算滑块位置
-    int knobX = left + static_cast<int>(m_value * width);
-    int knobY = top + height / 2;
-    double r = radius * m_scale;
-    // 前景滑块
-    setfillcolor(m_fgColor,dst);
-    setlinecolor(BLACK,dst);
-    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-    // 鼠标悬停时，在圆圈上加一层半透明灰色蒙版
-	if (m_pressed) {
-	    setfillcolor(EGERGBA(80, 80, 80, 80),dst);  // 灰色遮罩，80 alpha
-	    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-	}
-	else if((m_hover && !Lpressed)){
-		setfillcolor(EGERGBA(80, 80, 80, 40),dst);  // 灰色遮罩，80 alpha
-	    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-	}
+        int knobX = left + width / 2;
+        int knobY = top + static_cast<int>((1.0 - m_value) * height);
+        double r = radius * m_scale;
+
+        setfillcolor(m_fgColor, dst);
+        setlinecolor(BLACK, dst);
+        ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+
+        if (m_pressed) {
+            setfillcolor(EGERGBA(80, 80, 80, 80), dst);
+            ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+        } else if (m_hover && !Lpressed) {
+            setfillcolor(EGERGBA(80, 80, 80, 40), dst);
+            ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+        }
+    } 
+    else {
+        radius = height / 2;
+        // 水平轨道
+        ege_fillroundrect(left, top + height / 2 - thickness,
+                            width, thickness * 2,
+                            thickness, thickness, thickness, thickness, dst);
+
+        int knobX = left + static_cast<int>(m_value * width);
+        int knobY = top + height / 2;
+        double r = radius * m_scale;
+
+        setfillcolor(m_fgColor, dst);
+        setlinecolor(BLACK, dst);
+        ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+
+        if (m_pressed) {
+            setfillcolor(EGERGBA(80, 80, 80, 80), dst);
+            ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+        } else if (m_hover && !Lpressed) {
+            setfillcolor(EGERGBA(80, 80, 80, 40), dst);
+            ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
+        }
+    }
 }
 
 void Slider::draw(){
-	PIMAGE dst = nullptr;
-    // if(m_pressed){
-        // onPress();
-    // }
-    // 动态更新缩放比例
-    if (m_pressed) {
-        m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
-    } else {
-        m_scale += (1.0f - m_scale) * 0.2f; // 回弹
-    }
-
-    // 背景轨道
-    setfillcolor(m_bgColor,dst);
-    setlinecolor(m_bgColor,dst);
-    
-    ege_fillroundrect(left,top + height / 2 - thickness,width,thickness * 2,thickness,thickness,thickness,thickness,dst);
-
-    // 计算滑块位置
-    int knobX = left + static_cast<int>(m_value * width);
-    int knobY = top + height / 2;
-    double r = radius * m_scale;
-    // 前景滑块
-    setfillcolor(m_fgColor,dst);
-    setlinecolor(BLACK,dst);
-    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-    // 鼠标悬停时，在圆圈上加一层半透明灰色蒙版
-	if (m_pressed) {
-	    setfillcolor(EGERGBA(80, 80, 80, 80),dst);  // 灰色遮罩，80 alpha
-	    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-	}
-	else if((m_hover && !Lpressed)){
-		setfillcolor(EGERGBA(80, 80, 80, 40),dst);  // 灰色遮罩，80 alpha
-	    ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2,dst);
-	}
+	draw(nullptr,cx,cy);
 }
 
-bool Slider::isInside(int x, int y) const {
-    int knobX = left + static_cast<int>(m_value * width);
+bool Slider::isInside(int x, int y){
+    int knobX, knobY;
+    if (m_orientation == Orientation::Column) {
+        knobX = left + width / 2;
+        knobY = top + static_cast<int>((1.0 - m_value) * height);
+        radius = width / 2;
+    } else { // Row
+        knobX = left + static_cast<int>(m_value * width);
+        knobY = top + height / 2;
+        radius = height / 2;
+    }
     int dx = x - knobX;
-    int dy = y - (top + height / 2);
+    int dy = y - knobY;
     return dx * dx + dy * dy <= radius * radius;
 }
 
@@ -599,14 +628,29 @@ void Slider::handleEvent(const mouse_msg& msg) {
     if (msg.is_left() && msg.is_down() && m_hover) {
         m_dragging = true;
         m_pressed = true;
-        int knobX = left + static_cast<int>(m_value * width);
-        m_dragOffset = msg.x - knobX;
-    } else if (msg.is_move() && m_dragging) {
-        int mx = clamp(msg.x - m_dragOffset, left, left + width);
-        m_value = (mx - left) / static_cast<double>(width);
+        int knobX, knobY;
+        if (m_orientation == Orientation::Column) {
+            knobX = left + width / 2;
+            knobY = top + static_cast<int>((1.0 - m_value) * height);
+            m_dragOffset = msg.y - knobY;
+        } else { // Row
+            knobX = left + static_cast<int>(m_value * width);
+            knobY = top + height / 2;
+            m_dragOffset = msg.x - knobX;
+        }
+    } 
+    else if (msg.is_move() && m_dragging) {
+        if (m_orientation == Orientation::Column) {
+            int my = clamp(msg.y - m_dragOffset, top, top + height);
+            m_value = 1.0 - (my - top) / static_cast<double>(height);
+        } else { // Row
+            int mx = clamp(msg.x - m_dragOffset, left, left + width);
+            m_value = (mx - left) / static_cast<double>(width);
+        }
         if (m_onChange)
             m_onChange(m_value);
-    } else if (msg.is_left() && msg.is_up()) {
+    } 
+    else if (msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
     }
@@ -647,10 +691,16 @@ void Slider::setScale(double s){
 	scale = s;
 }
 
-ProgressBar::ProgressBar(int cx, int cy, double w, double h)
-    : centerX(cx), centerY(cy),
-      width(w), height(h),
+void Slider::setOrientation(Orientation ori){
+    m_orientation = ori;
+}
+
+ProgressBar::ProgressBar(int cx, int cy, double w, double h):
       origin_width(w), origin_height(h) {
+    this->cx = cx;
+    this->cy = cy;
+    width = w;
+    height = h;
     left = cx - width / 2;
     top = cy - height / 2;
     barLayer = newimage(width, height);
@@ -716,7 +766,7 @@ void ProgressBar::draw(PIMAGE dst, int x, int y) {
 }
 
 void ProgressBar::draw() {
-    draw(nullptr, centerX, centerY);
+    draw(nullptr, cx, cy);
 }
 
 void ProgressBar::handleEvent(const mouse_msg& msg){
@@ -724,11 +774,11 @@ void ProgressBar::handleEvent(const mouse_msg& msg){
 }
 
 void ProgressBar::setPosition(int x, int y) {
-    if (centerX == x && centerY == y) return;
-    centerX = x;
-    centerY = y;
-    left = centerX - width / 2;
-    top = centerY - height / 2;
+    if (cx == x && cy == y) return;
+    cx = x;
+    cy = y;
+    left = cx - width / 2;
+    top = cy - height / 2;
     needRedraw = true;
 }
 
@@ -786,6 +836,11 @@ Panel* PanelBuilder::build() {
 }
 
 // ButtonBuilder 实现
+ButtonBuilder& ButtonBuilder::setIdentifier(const string& id) {
+    identifier = id;
+    return *this;
+}
+
 ButtonBuilder& ButtonBuilder::setCenter(int x, int y) {
     cx = x; cy = y;
     return *this;
@@ -821,13 +876,26 @@ ButtonBuilder& ButtonBuilder::setColor(color_t col){
     return *this;
 }
 
+ButtonBuilder& ButtonBuilder::setIcon(PIMAGE img){
+	icon = img;
+	return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setIconSize(int is){
+	iconSize = is;
+	return *this;
+}
+
 Button* ButtonBuilder::build() {
     auto btn = new Button(cx, cy, width, height, radius);
     btn->setContent(content);
     btn->setScale(scale);
     btn->setColor(color);
-    if (onClick) btn->setOnClickEvent(onClick);
+    if(onClick) btn->setOnClickEvent(onClick);
+    if(icon) btn->setIcon(icon);
+    btn->setIconSize(iconSize);
     widgets.insert(btn);
+    IdToWidget[identifier] = btn;
     return btn;
 }
 
@@ -907,14 +975,20 @@ SliderBuilder& SliderBuilder::setOnChange(std::function<void(double)> callback) 
     return *this;
 }
 
+SliderBuilder& SliderBuilder::setOrientation(Orientation ori){
+    orientation = ori;
+    return *this;
+}
+
 Slider* SliderBuilder::build() {
     auto slider = new Slider();
-    slider->create(x - width / 2, y - height / 2, width, height);
+    slider->create(x,y, width, height);
     slider->setColor(bgColor, fgColor);
     slider->setThickness(thickness);
     slider->setProgress(progress);
     slider->setScale(scale);
     if (onChange) slider->setOnChange(onChange);
+    slider->setOrientation(orientation);
     widgets.insert(slider);
     return slider;
 }
@@ -960,7 +1034,7 @@ ProgressBar* ProgressBarBuilder::build() {
 }
 
 Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
-    : centerX(cx), centerY(cy), width(w), height(h), radius(r) {
+    : cx(cx), cy(cy), width(w), height(h), radius(r) {
     mainButton = new Button(cx, cy, w, h, r);
     mainButton->setOnClickEvent([this] { 
         toggleDropdown(); 
@@ -971,7 +1045,7 @@ Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
 
 void Dropdown::addOption(const std::string& text, std::function<void()> onClick) {
     double optionHeight = height;
-    Button* option = new Button(centerX, centerY, width, optionHeight, radius);
+    Button* option = new Button(cx, cy, width, optionHeight, radius);
     option->setContent(text);
     option->setColor(color);
     option->setOnClickEvent([this, onClick] {
@@ -985,13 +1059,12 @@ void Dropdown::addOption(const std::string& text, std::function<void()> onClick)
 void Dropdown::updateDropdownLayout() {
     double optionHeight = height;
     dropdownPanel->setSize(width, optionHeight * options.size());
-    dropdownPanel->setPosition(centerX, centerY + height / 2 + optionHeight * options.size() / 2 + 4);
+    dropdownPanel->setPosition(cx, cy + height / 2 + optionHeight * options.size() / 2 + 4);
     dropdownPanel->setScale(scale);
     dropdownPanel->clearChildren();
 
     for (size_t i = 0; i < options.size(); ++i) {
         options[i]->setScale(scale);
-        cout<<"PUT "<<(-(double)options.size() / 2.0 + i + 0.5) * optionHeight<<"\n";
         dropdownPanel->addChild(options[i], 0, (-(double)options.size() / 2.0 + i + 0.5) * optionHeight);
     }
 }
@@ -1021,12 +1094,12 @@ void Dropdown::draw(PIMAGE dst, int x, int y) {
         // 设置透明度并绘制下拉面板
         int actualAlpha = static_cast<int>(fadeAlpha * 255);
         dropdownPanel->setAlpha(actualAlpha);
-        dropdownPanel->draw(dst, centerX, centerY + height / 2 + height * options.size() / 2 + 4);
+        dropdownPanel->draw(dst, cx, cy + height / 2 + height * options.size() / 2 + 4);
     }
 }
 
 void Dropdown::draw() {
-    draw(nullptr, centerX, centerY);
+    draw(nullptr, cx, cy);
 }
 
 void Dropdown::handleEvent(const mouse_msg& msg) {
@@ -1061,7 +1134,7 @@ void Dropdown::toggleDropdown() {
 }
 
 void Dropdown::setPosition(int x, int y) {
-    centerX = x; centerY = y;
+    cx = x; cy = y;
     mainButton->setPosition(x, y);
     updateDropdownLayout();
 }
@@ -1146,4 +1219,737 @@ Dropdown* DropdownBuilder::build() {
     }
     widgets.insert(dropdown);
     return dropdown;
+}
+
+Radio::Radio(int cx, int cy, double r, const std::string& val)
+    : cx(cx), cy(cy), radius(r), origin_radius(r), value(val) {}
+
+void Radio::setPosition(int x, int y) {
+    cx = x;
+    cy = y;
+}
+
+void Radio::setScale(double s) {
+    scale = s;
+    radius = origin_radius * scale;
+}
+
+void Radio::setStyle(RadioStyle s) {
+    style = s;
+}
+
+void Radio::setGroupValueRef(std::string* ref) {
+    groupValuePtr = ref;
+}
+
+void Radio::setOnSelect(std::function<void()> callback) {
+    onSelect = callback;
+}
+
+std::string Radio::getValue() const {
+    return value;
+}
+
+bool Radio::isChecked() const {
+    return groupValuePtr && *groupValuePtr == value;
+}
+
+void Radio::draw(PIMAGE dst, int x, int y) {
+    bool nowChecked = isChecked();
+    bool showDot = isChecked() || (animOut && animProgress < 1.0);
+    if (!nowChecked && wasChecked && !animOut) {
+        // 被取消选中了，启动缩小动画
+        animOut = true;
+        animIn = false;
+        animProgress = 0.0;
+    }
+    wasChecked = nowChecked;
+
+    double R = radius;
+
+    // 悬停阴影
+    if (hovered) {
+        double shadowRadius = R + 6;
+        setfillcolor(EGERGBA(50, 50, 50, 32), dst);
+        ege_fillellipse(x - shadowRadius, y - shadowRadius, shadowRadius * 2, shadowRadius * 2, dst);
+    }
+
+    if(keepColor || nowChecked) setlinecolor(EGERGB(50, 150, 250), dst);
+    else setlinecolor(EGERGB(110,110,110), dst);
+    setlinewidth(2, dst);
+
+    if (style == RadioStyle::Filled) {
+        setfillcolor(WHITE, dst);
+        ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
+    } 
+    else if (style == RadioStyle::Outline) {
+        // 只绘制线框，不填充
+        ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
+    }
+
+    // 更新动画进度
+    if (animIn) {
+        animProgress += animSpeed;
+        if (animProgress >= 1.0) {
+            animProgress = 1.0;
+            animIn = false;
+        }
+    } else if (animOut) {
+        animProgress += animSpeed;
+        if (animProgress >= 1.0) {
+            animOut = false;
+        }
+    }
+
+    // 动画缩放
+    double scaleFactor = 1.0;
+    if (animIn) {
+        scaleFactor = 0.7 + 0.4 * animProgress;
+        lastScale = scaleFactor;
+    } else if (animOut) {
+        scaleFactor = 1.0 - 0.4 * animProgress;
+        lastScale = scaleFactor;
+    } else {
+        scaleFactor = lastScale;
+    }
+
+    if (showDot) {
+        double r_in = R * 0.5 * scaleFactor;
+        if(keepColor || nowChecked){
+            setlinecolor(EGERGB(50, 150, 250), dst);
+            setfillcolor(EGERGB(50, 150, 250), dst);
+        } 
+        else{
+            setlinecolor(EGERGB(110,110,110), dst);
+            setfillcolor(EGERGB(110,110,110), dst);
+        } 
+        setlinecolor(EGERGB(245, 245, 235), dst);
+        ege_fillellipse(x - r_in, y - r_in, r_in * 2, r_in * 2, dst);
+    }
+}
+
+void Radio::draw() {
+    draw(nullptr, cx, cy);
+}
+
+void Radio::handleEvent(const mouse_msg& msg) {
+    int dx = msg.x - cx;
+    int dy = msg.y - cy;
+    hovered = dx * dx + dy * dy <= radius * radius;
+
+    if (msg.is_left() && msg.is_down() && hovered) {
+        if (groupValuePtr && *groupValuePtr != value) {
+            *groupValuePtr = value;
+            animIn = true;
+            animOut = false;
+            animProgress = 0.0;
+            if (onSelect) onSelect();
+        } else if (groupValuePtr && *groupValuePtr == value) {
+            // cout<<"awa\n";
+            // animOut = true;
+            // animIn = false;
+            // animProgress = 0.0;
+        }
+    }
+}
+
+RadioBuilder& RadioBuilder::setCenter(int x, int y) {
+    cx = x; cy = y; return *this;
+}
+RadioBuilder& RadioBuilder::setRadius(double r) {
+    radius = r; return *this;
+}
+RadioBuilder& RadioBuilder::setScale(double s) {
+    scale = s; return *this;
+}
+RadioBuilder& RadioBuilder::setValue(const std::string& val) {
+    value = val; return *this;
+}
+RadioBuilder& RadioBuilder::setGroupValueRef(std::string* ref) {
+    groupPtr = ref; return *this;
+}
+RadioBuilder& RadioBuilder::setOnSelect(std::function<void()> cb) {
+    onSelect = cb; return *this;
+}
+RadioBuilder& RadioBuilder::setStyle(RadioStyle s) {
+    style = s;
+    return *this;
+}
+Radio* RadioBuilder::build() {
+    auto radio = new Radio(cx, cy, radius, value);
+    radio->setScale(scale);
+    if (groupPtr) radio->setGroupValueRef(groupPtr);
+    if (onSelect) radio->setOnSelect(onSelect);
+    radio->setStyle(style); // ? 设置样式
+    widgets.insert(radio);
+    return radio;
+}
+
+RadioController::RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style)
+    : cx(cx), cy(cy), radius(r), gap(gap), scale(scale), style(style) {}
+
+void RadioController::addValue(const std::string& val) {
+    values.push_back(val);
+}
+
+void RadioController::setDefault(const std::string& val) {
+    currentValue = val;
+}
+
+void RadioController::setOnChange(std::function<void(const std::string&)> cb) {
+    onChange = cb;
+}
+
+std::string RadioController::getValue(){
+    return currentValue;
+}
+
+void RadioController::build() {
+    for (size_t i = 0; i < values.size(); ++i) {
+        std::string val = values[i];
+        RadioBuilder()
+            .setCenter(cx, cy + i * gap)
+            .setRadius(radius)
+            .setScale(scale)
+            .setStyle(style)
+            .setValue(val)
+            .setGroupValueRef(&currentValue)
+            .setOnSelect([=,this] {
+                currentValue = val;
+                if (onChange) onChange(val);
+            })
+            .build();
+    }
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setGap(double g) {
+    gap = g;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setStyle(RadioStyle s) {
+    style = s;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::add(const std::string& val) {
+    values.push_back(val);
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setDefault(const std::string& val) {
+    defaultValue = val;
+    return *this;
+}
+
+RadioControllerBuilder& RadioControllerBuilder::setOnChange(std::function<void(const std::string&)> cb) {
+    onChange = cb;
+    return *this;
+}
+
+RadioController* RadioControllerBuilder::build() {
+    auto controller = new RadioController(cx, cy, radius, gap, scale, style);
+    controller->setDefault(defaultValue);
+    controller->setOnChange(onChange);
+    for (const auto& val : values) {
+        controller->addValue(val);
+    }
+    controller->build();
+    return controller;
+}
+
+Toggle::Toggle(int cx, int cy, double w, double h)
+    : cx(cx), cy(cy), width(w), height(h) {}
+
+void Toggle::setChecked(bool c) {
+    checked = c;
+    knobTarget = c ? 1.0 : 0.0;
+}
+
+void Toggle::toggle() {
+    setChecked(!checked);
+    if (onToggle) onToggle(checked);
+}
+
+bool Toggle::isChecked() const {
+    return checked;
+}
+
+void Toggle::setOnToggle(std::function<void(bool)> cb) {
+    onToggle = cb;
+}
+
+void Toggle::setScale(double s) {
+    scale = s;
+}
+
+void Toggle::setPosition(int x, int y) {
+    cx = x; cy = y;
+}
+
+void Toggle::setKeepColor(bool keep) {
+    keepColor = keep;
+}
+
+void Toggle::setBaseColor(color_t col) {
+    baseColor = col;
+}
+
+void Toggle::setDisabled(bool d) {
+    disabled = d;
+}
+
+bool Toggle::isDisabled() const {
+    return disabled;
+}
+
+void Toggle::handleEvent(const mouse_msg& msg) {
+    double w = width * scale;
+    double h = height * scale;
+    double r = h / 2;
+
+    int dx = msg.x - cx;
+    int dy = msg.y - cy;
+
+    hovered = (std::abs(dx) <= w / 2 && std::abs(dy) <= h / 2);
+
+    if (disabled) return;
+
+    if (msg.is_left()) {
+        if (msg.is_down()) {
+            // 记录是否在区域内按下
+            pressedIn = hovered;
+        } else if (msg.is_up()) {
+            // 如果松开时还在区域内且是之前按下的
+            if (hovered && pressedIn) {
+                toggle(); // ? 这里才执行切换动画与回调
+            }
+            pressedIn = false;
+        }
+    }
+}
+
+color_t removeAlpha(color_t c) {
+    return EGERGB(GetRValue(c), GetGValue(c), GetBValue(c));
+}
+
+
+color_t mixColor(color_t c1, color_t c2, double ratio) {
+    // 确保去除 alpha 通道
+    c1 = removeAlpha(c1);
+    c2 = removeAlpha(c2);
+    int r = (int)(GetRValue(c1) * (1 - ratio) + GetRValue(c2) * ratio);
+    int g = (int)(GetGValue(c1) * (1 - ratio) + GetGValue(c2) * ratio);
+    int b = (int)(GetBValue(c1) * (1 - ratio) + GetBValue(c2) * ratio);
+    return EGERGB(r, g, b);
+}
+
+void Toggle::draw(PIMAGE dst, int x, int y) {
+    // === 动画推进 ===
+    if (std::abs(knobOffset - knobTarget) > 1e-3)
+        knobOffset += (knobTarget - knobOffset) * animationSpeed;
+    else
+        knobOffset = knobTarget;
+
+    double w = width * scale;
+    double h_track = height * scale * 0.6;
+    double r_track = h_track / 2;
+
+    double h_knob = height * scale;
+    double r_knob = h_knob / 2;
+
+    // === 滑块位置 ===
+    double knobX = x - w / 2 + r_track + knobOffset * (w - h_track);
+
+    // === 轨道颜色 ===
+    color_t trackColor;
+    if (disabled) {
+        trackColor = EGERGB(200, 200, 200); // 禁用轨道
+    } else if (keepColor) {
+        trackColor = checked ? mixColor(baseColor, WHITE, 0.55)
+                            : mixColor(baseColor, WHITE, 0.80);
+    } else {
+        trackColor = checked ? mixColor(baseColor, WHITE, 0.55)
+                            : EGERGB(160, 160, 160);
+    }
+
+    setfillcolor(trackColor, dst);
+    setlinecolor(TRANSPARENT, dst);
+    ege_fillroundrect(x - w / 2, y - h_track / 2, w, h_track, r_track, r_track, r_track, r_track, dst);
+
+    // === 悬浮灰圈背景（hover 时）
+    if (hovered && !disabled) {
+        double hoverR = r_knob + 7;
+        setfillcolor(EGERGBA(100, 100, 100, 32), dst);
+        ege_fillellipse(knobX - hoverR, y - hoverR, hoverR * 2, hoverR * 2, dst);
+    }
+
+    // === 滑块颜色（关闭时为浅灰而非纯白）
+    color_t knobColor;
+    if (disabled) {
+        knobColor = EGERGB(220, 220, 220); // 灰滑块
+    } else if (keepColor) {
+        knobColor = checked ? baseColor : EGERGB(245, 245, 245);
+    } else {
+        knobColor = checked ? baseColor : EGERGB(240, 240, 240);
+    }
+
+    // === 滑块绘制（加边框以增强可见性）
+    setfillcolor(knobColor, dst);
+    setlinecolor(EGERGB(180, 180, 180), dst);  // 灰边框
+    setlinewidth(1, dst);
+    ege_fillellipse(knobX - r_knob, y - r_knob, h_knob, h_knob, dst);
+}
+
+void Toggle::draw() {
+    draw(nullptr, cx, cy);
+}
+
+ToggleBuilder& ToggleBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setSize(double w_, double h_) {
+    w = w_; h = h_;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setChecked(bool c) {
+    checked = c;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setOnToggle(std::function<void(bool)> cb) {
+    onToggle = cb;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setKeepColor(bool keep) {
+    keepColor = keep;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setBaseColor(color_t col) {
+    baseColor = col;
+    return *this;
+}
+
+ToggleBuilder& ToggleBuilder::setIdentifier(const std::string& id){
+    identifier = id;
+    return *this;
+}
+
+Toggle* ToggleBuilder::build() {
+    auto toggle = new Toggle(cx, cy, w, h);
+    toggle->setScale(scale);
+    toggle->setChecked(checked);
+    if (onToggle) toggle->setOnToggle(onToggle);
+    toggle->setKeepColor(keepColor);
+    toggle->setBaseColor(baseColor);
+    widgets.insert(toggle);
+    IdToWidget[identifier] = toggle;
+    return toggle;
+}
+
+// 构造函数
+Text::Text(int x, int y, int maxW)
+    : posX(x), posY(y), maxWidth(maxW) {}
+
+// 设置文本
+void Text::setContent(const std::string& text) {
+    contentW = autoToWString(text);
+    updateLayout();
+}
+
+void Text::setMaxWidth(int width) {
+    maxWidth = width;
+    updateLayout();
+}
+
+void Text::setFont(int size, const std::string& name) {
+    fontSize = size;
+    fontName = name;
+    updateLayout();
+}
+
+void Text::setColor(color_t col) {
+    color = col;
+}
+
+void Text::setScale(double s) {
+    scale = s;
+    updateLayout();
+}
+
+void Text::setPosition(int x, int y) {
+    posX = x;
+    posY = y;
+}
+
+int Text::getTextWidth() const {
+    return textWidth;
+}
+
+int Text::getTextHeight() const {
+    return textHeight;
+}
+
+int Text::getMaxWidth() const {
+    return maxWidth;
+}
+
+// 布局计算
+void Text::updateLayout() {
+    lines.clear();
+    textWidth = 0;
+    textHeight = 0;
+
+    setfont((int)(fontSize * scale), 0, fontName.c_str());
+
+    std::wstring line;
+    for (wchar_t ch : contentW) {
+        if (ch == L'\n') {
+            lines.push_back(line);
+            line.clear();
+            continue;
+        }
+
+        line += ch;
+
+        if (maxWidth > 0 && textwidth(line.c_str()) > maxWidth) {
+            line.pop_back();
+            lines.push_back(line);
+            line = ch;
+        }
+    }
+
+    if (!line.empty())
+        lines.push_back(line);
+
+    for (const auto& l : lines)
+        textWidth = std::max(textWidth, textwidth(l.c_str()));
+
+    textHeight = lines.size() * textheight("A");
+}
+
+// 默认绘制
+void Text::draw() {
+    draw(nullptr, posX, posY);
+}
+
+// 绘制到目标图像
+void Text::draw(PIMAGE dst, int x, int y) {
+    setfont((int)(fontSize * scale), 0, fontName.c_str(),dst);
+    settextcolor(color,dst);
+
+    for (size_t i = 0; i < lines.size(); ++i) {
+        int x_draw = x;
+        int lineW = textwidth(lines[i].c_str(),dst);
+
+        if (align == TextAlign::Center)
+            x_draw = x + (maxWidth - lineW) / 2;
+        else if (align == TextAlign::Right)
+            x_draw = x + (maxWidth - lineW);
+
+        int y_draw = y + (int)(i * (textheight("A",dst) + lineSpacing));
+        ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
+    }
+}
+
+void Text::handleEvent(const mouse_msg& msg) {
+    // Text 是纯展示控件，不处理事件
+}
+
+void Text::setAlign(TextAlign a) {
+    align = a;
+}
+
+void Text::setLineSpacing(int spacing) {
+    lineSpacing = spacing;
+}
+
+TextAlign Text::getAlign() const {
+    return align;
+}
+
+int Text::getLineSpacing() const {
+    return lineSpacing;
+}
+
+TextBuilder& TextBuilder::setIdentifier(const string& id) {
+    identifier = id;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setPosition(int px, int py) {
+    x = px; y = py;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setMaxWidth(int w) {
+    maxWidth = w;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setFont(int size, const std::string& name) {
+    fontSize = size;
+    fontName = name;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setColor(color_t c) {
+    color = c;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setContent(const std::string& text) {
+    content = text;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setAlign(TextAlign a) {
+    align = a;
+    return *this;
+}
+
+TextBuilder& TextBuilder::setLineSpacing(int px) {
+    lineSpacing = px;
+    return *this;
+}
+
+Text* TextBuilder::build() {
+    Text* txt = new Text(x, y, maxWidth);
+    txt->setFont(fontSize, fontName);
+    txt->setScale(scale);
+    txt->setColor(color);
+    txt->setContent(content);
+    txt->setAlign(align);
+    txt->setLineSpacing(lineSpacing);
+    IdToWidget[identifier] = txt;
+    widgets.insert(txt);
+    return txt;
+}
+
+Knob::Knob(int cx, int cy, double r)
+    : cx(cx), cy(cy), radius(r) {}
+
+void Knob::setRange(double minVal, double maxVal) {
+    minValue = minVal;
+    maxValue = maxVal;
+}
+
+void Knob::setStep(double s) {
+    step = s;
+}
+
+void Knob::setValue(double val) {
+    value = clamp(val);
+}
+
+double Knob::getValue() const {
+    return value;
+}
+
+void Knob::setColor(color_t fg, color_t bg) {
+    fgColor = fg;
+    bgColor = bg;
+}
+
+void Knob::setScale(double s) {
+    scale = s;
+}
+
+void Knob::setPosition(int x, int y) {
+    cx = x;
+    cy = y;
+}
+
+void Knob::setOnChange(std::function<void(double)> cb) {
+    onChange = cb;
+}
+
+double Knob::clamp(double v) {
+    if (v < minValue) return minValue;
+    if (v > maxValue) return maxValue;
+    return v;
+}
+
+// 从值计算角度 (起始为 135°, 终止为 405°)
+double Knob::valueToAngle(double v) const {
+    double ratio = (v - minValue) / (maxValue - minValue);
+    return 135.0 + ratio * 270.0;
+}
+
+void Knob::draw(PIMAGE dst, int x, int y) {
+    double r = radius * scale;
+    double cx = x, cy = y;
+
+    // === 背景圆环 ===
+    setlinecolor(bgColor, dst);
+    setlinewidth((int)(r * 0.2), dst);
+    ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, 270.0f, dst);
+
+
+    // === 前景圆环（值）===
+    setlinecolor(fgColor, dst);
+    setlinewidth((int)(r * 0.2), dst);
+    double angle = valueToAngle(value);
+    ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, angle - 135.0f, dst);
+
+    // === 内部圆 ===
+    setfillcolor(WHITE, dst);
+    setlinecolor(TRANSPARENT, dst);
+    fillellipse((int)(cx), (int)(cy), (int)(r * 1.2), (int)(r * 1.2), dst);
+
+    // === 当前值显示 ===
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(0) << value;
+    std::string valStr = oss.str();
+
+    setfont((int)(r * 0.6), 0, "Consolas");
+
+    settextcolor(BLACK);
+    int tw = textwidth(valStr.c_str());
+    int th = textheight(valStr.c_str());
+    outtextxy((int)(cx - tw / 2), (int)(cy - th / 2), valStr.c_str());
+}
+
+void Knob::draw() {
+    draw(nullptr, cx, cy);
+}
+
+void Knob::handleEvent(const mouse_msg& msg) {
+    // 拖动逻辑将在下一步实现
+}
+
+std::map<std::string,Widget*> IdToWidget;
+
+Widget* getWidgetById(const std::string& identifier){
+    return IdToWidget[identifier];
 }
