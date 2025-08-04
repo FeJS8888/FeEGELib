@@ -6,15 +6,6 @@
 
 #pragma once
 
-#include <graphics.h>
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <string>
-#include <iostream>
-#include <functional>
-#include <set>
-#include "sys_edit.h"
 #include "Element.h"
 #include "Base.h"
 

@@ -1,29 +1,8 @@
 #pragma once
 
-// 包含必要的头文件
 #include "Base.h"
 #include "Collision.h"
 #include "Widget.h"
-#include <graphics.h>
-#include <vector>
-#include <thread>
-#include <set>
-#include <map>
-#include <unordered_map>
-#include <string>
-#include <windows.h>
-#include <random>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <queue>
-#include <math.h>
-#include <stdlib.h>
-#include <malloc.h>
-#include <time.h>
-#include <locale>
-#include <mutex>
-#include <assert.h>
 
 #ifndef MAXCLONESCOUNT
 #define MAXCLONESCOUNT 100   ///< 最大克隆数量默认值

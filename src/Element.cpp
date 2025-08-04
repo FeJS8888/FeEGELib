@@ -585,8 +585,8 @@ void Element::turnTo(double angle) {
 }
 bool Element::faceTo(Element* that){
 	if(that == nullptr) {
-		LPCSTR text = TEXT(("Element::faceToï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½nullptrï¿½ï¿½ï¿½ï¿½\nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½getElementByIdï¿½ï¿½Ñ¯ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ÚµÄ¶ï¿½ï¿½ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::faceTo·½·¨±»´íÎóµÄ´«ÈëÁËnullptr²ÎÊý\nÕâ¿ÉÄÜÊÇÓÉÓÚgetElementById²éÑ¯ÁË²»´æÔÚµÄ¶ÔÏó\n\nElementÃû³Æ : " + this->id).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return false; 
 	}
 	Position pos = that->getPosition();
@@ -721,15 +721,15 @@ PIMAGE Element::getImage() {
 }
 bool Element::isTouchedBy(Element* that) {
 	if(that == nullptr) {
-		LPCSTR text = TEXT(("Element::isTouchedByï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½nullptrï¿½ï¿½ï¿½ï¿½\nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½getElementByIdï¿½ï¿½Ñ¯ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ÚµÄ¶ï¿½ï¿½ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::isTouchedBy·½·¨±»´íÎóµÄ´«ÈëÁËnullptr²ÎÊý\nÕâ¿ÉÄÜÊÇÓÉÓÚgetElementById²éÑ¯ÁË²»´æÔÚµÄ¶ÔÏó\n\nElementÃû³Æ : " + this->id).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return false; 
 	}
 	if(!this->isShow || !that->isShow) return false;
 	
 	if(this->hittingBox ^ that->hittingBox){
-		LPCSTR text = TEXT(("Element::isTouchedByï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×²ï¿½ï¿½×´Ì¬ï¿½ï¿½Ò»ï¿½ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::isTouchedBy·½·¨ÖÐÁ½¸ö¶ÔÏóµÄÅö×²Ïä×´Ì¬²»Ò»ÖÂ\n\nElementÃû³Æ : " + this->id).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return false;
 	}
 	if(this->hittingBox){
@@ -820,8 +820,8 @@ void Element::listen(int listenMode,string identifier,function<void(Element*)> f
 	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) this->onMouseHitButMoveAwaySet[identifier] = function;
 	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet[identifier] = function;
 	else{
-		LPCSTR text = TEXT(("Element::listenï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë²ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id + "    ï¿½Â¼ï¿½id ï¿½ï¿½" + to_string(listenMode)).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::listen·½·¨ÖÐ±»´«ÈëÁË²»Ç¡µ±µÄÊÂ¼þ\n\nElementÃû³Æ : " + this->id + "    ÊÂ¼þid £º" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return;
 	}
 }
@@ -835,8 +835,8 @@ void Element::unlisten(int listenMode,string identifier) {
 	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) this->onMouseHitButMoveAwaySet.erase(identifier);
 	else if(listenMode == FeEGE::EventType.clones.on_clone) this->onCloneClonesFunctionSet.erase(identifier);
 	else{
-		LPCSTR text = TEXT(("Element::unlistenï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë²ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id + "    ï¿½Â¼ï¿½id ï¿½ï¿½" + to_string(listenMode)).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::unlisten·½·¨ÖÐ±»´«ÈëÁË²»Ç¡µ±µÄÊÂ¼þ\n\nElementÃû³Æ : " + this->id + "    ÊÂ¼þid £º" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return;
 	}
 }
@@ -852,8 +852,8 @@ void Element::begin(int listenMode,string identifier) {
 	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) res += "FeEGE::EventType.on_mouse_hit_but_move_away";
 	else if(listenMode == FeEGE::EventType.clones.on_clone) res += "FeEGE::EventType.clones.on_clone";
 	else{
-		LPCSTR text = TEXT(("Element::beginï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë²ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id + "    ï¿½Â¼ï¿½id ï¿½ï¿½" + to_string(listenMode)).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::begin·½·¨ÖÐ±»´«ÈëÁË²»Ç¡µ±µÄÊÂ¼þ\n\nElementÃû³Æ : " + this->id + "    ÊÂ¼þid £º" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return;
 	}
 	res += "@";
@@ -872,8 +872,8 @@ void Element::stop(int listenMode,string identifier) {
 	else if(listenMode == FeEGE::EventType.on_mouse_hit_but_move_away) res += "FeEGE::EventType.on_mouse_hit_but_move_away";
 	else if(listenMode == FeEGE::EventType.clones.on_clone) res += "FeEGE::EventType.clones.on_clone";
 	else{
-		LPCSTR text = TEXT(("Element::stopï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë²ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½\n\nElementï¿½ï¿½ï¿½ï¿½ : " + this->id + "    ï¿½Â¼ï¿½id ï¿½ï¿½" + to_string(listenMode)).c_str());
-		MessageBox(getHWnd(),text,"ï¿½ï¿½ï¿½ï¿½",MB_ICONWARNING | MB_OK);
+		LPCSTR text = TEXT(("Element::stop·½·¨ÖÐ±»´«ÈëÁË²»Ç¡µ±µÄÊÂ¼þ\n\nElementÃû³Æ : " + this->id + "    ÊÂ¼þid £º" + to_string(listenMode)).c_str());
+		MessageBox(getHWnd(),text,"¾¯¸æ",MB_ICONWARNING | MB_OK);
 		return;
 	}
 	res += "@";
@@ -1139,26 +1139,26 @@ std::string detectEncoding(const std::string& fileContent) {
 }
 
 std::string UTF8ToANSI(const std::string& utf8Str) {
-    // ï¿½ï¿½é²¢È¥ï¿½ï¿½ BOM
+    // ¼ì²é²¢È¥³ý BOM
     std::string utf8StrClean = utf8Str;
     if (utf8StrClean.size() >= 3 &&
         static_cast<unsigned char>(utf8StrClean[0]) == 0xEF &&
         static_cast<unsigned char>(utf8StrClean[1]) == 0xBB &&
         static_cast<unsigned char>(utf8StrClean[2]) == 0xBF) {
-        utf8StrClean.erase(0, 3); // È¥ï¿½ï¿½ BOM
+        utf8StrClean.erase(0, 3); // È¥³ý BOM
     }
 
-    // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÈµÄ·ï¿½ï¿½ï¿½Öµ
+    // »ñÈ¡»º³åÇø³¤¶ÈµÄ·µ»ØÖµ
     int wideLen = MultiByteToWideChar(CP_UTF8, 0, utf8StrClean.c_str(), -1, nullptr, 0);
     if (wideLen == 0) {
         throw std::runtime_error("MultiByteToWideChar failed");
     }
 
-    // ï¿½ï¿½ UTF-8 ×ªï¿½ï¿½Îªï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½UTF-16ï¿½ï¿½
+    // ½« UTF-8 ×ª»»Îª¿í×Ö·û£¨UTF-16£©
     std::wstring wideStr(wideLen, 0);
     MultiByteToWideChar(CP_UTF8, 0, utf8StrClean.c_str(), -1, &wideStr[0], wideLen);
 
-    // ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½UTF-16ï¿½ï¿½×ªï¿½ï¿½Îª ANSI
+    // ½«¿í×Ö·û£¨UTF-16£©×ª»»Îª ANSI
     int ansiLen = WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, nullptr, 0, nullptr, nullptr);
     if (ansiLen == 0) {
         throw std::runtime_error("WideCharToMultiByte failed");
@@ -1167,7 +1167,7 @@ std::string UTF8ToANSI(const std::string& utf8Str) {
     std::string ansiStr(ansiLen, 0);
     WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, &ansiStr[0], ansiLen, nullptr, nullptr);
 
-    // È¥ï¿½ï¿½Ä©Î²ï¿½Ä¿ï¿½ï¿½Ö·ï¿½
+    // È¥µôÄ©Î²µÄ¿Õ×Ö·û
     ansiStr.pop_back();
     return ansiStr;
 }
@@ -1246,7 +1246,7 @@ ShowTextBuilder& ShowTextBuilder::setMilliseconds(int ms) {
 }
 
 void ShowTextBuilder::show() {
-    // --- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ---
+    // --- ±ØÐë²ÎÊý¼ì²é ---
     if (!stringSolver) {
         throw std::runtime_error("ShowTextBuilder error: stringSolver is not set.");
     }
@@ -1254,12 +1254,12 @@ void ShowTextBuilder::show() {
         throw std::runtime_error("ShowTextBuilder error: positionSolver is not set.");
     }
 
-    // identifier ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½
+    // identifier ²»ÄÜÎª¿Õ
     if (identifier.empty()) {
         throw std::runtime_error("ShowTextBuilder error: identifier is not set.");
     }
 
-    // --- ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½Ï²ï¿½ï¿½ï¿½ ---
+    // --- ÉèÖÃÄ¬ÈÏ²ÎÊý ---
     if (!colorSolver) {
         colorSolver = [](int) { return BLACK; };
     }
@@ -1269,19 +1269,19 @@ void ShowTextBuilder::show() {
     }
 
     if (fontName.empty()) {
-        fontName = "ï¿½ï¿½ï¿½ï¿½";
+        fontName = "ËÎÌå";
     }
 
     if (pType == 0) {
         pType = FeEGE::PenType.middle;
     }
 
-    // --- ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½é£¨ï¿½ï¿½ï¿½ï¿½ï¿½Ú¿É¿ï¿½ï¿½ï¿½ï¿½ï¿½ ---
+    // --- ¿ÉÑ¡¶ÏÑÔ£º·ÀÓùÐÔ¼ì²é£¨¿ª·¢ÆÚ¿É¿ªÆô£© ---
     assert(stringSolver);
     assert(positionSolver);
     assert(!fontName.empty());
 
-    // --- ï¿½ï¿½ï¿½Ãµ×²ï¿½ showText ---
+    // --- µ÷ÓÃµ×²ã showText ---
     showText(identifier, stringSolver, positionSolver, colorSolver, scaleSolver, fontName, pType, milliseconds);
 }
  
@@ -1295,7 +1295,9 @@ void regElement(Element* element) {
 
 Element* newElement(string id,string imagePath,double x,double y) {
 	imagePath = resolvePath(imagePath);
-	PIMAGE image = getImage(imagePath);
+	PIMAGE image = newimage();
+	if(imagePath != "") getimage(image,TEXT(imagePath.c_str()));
+	else delimage(image);
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!elementPoolUsed[i]) {
 			elementPoolUsed[i] = true;
@@ -1305,7 +1307,7 @@ Element* newElement(string id,string imagePath,double x,double y) {
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"ï¿½ï¿½ï¿½ï¿½ElementÊ§ï¿½ï¿½(ï¿½ïµ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)","ï¿½ï¿½Ê¾",MB_OK);
+	MessageBox(getHWnd(),"·ÖÅäElementÊ§°Ü(´ïµ½×î´óÈÝÁ¿)","ÌáÊ¾",MB_OK);
 	return nullptr;
 }
 
@@ -1319,7 +1321,7 @@ Element* newElement(string id,PIMAGE image,double x,double y) {
 			return e;
 		}
 	}
-	MessageBox(getHWnd(),"ï¿½ï¿½ï¿½ï¿½ElementÊ§ï¿½ï¿½(ï¿½ïµ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)","ï¿½ï¿½Ê¾",MB_OK);
+	MessageBox(getHWnd(),"·ÖÅäElementÊ§°Ü(´ïµ½×î´óÈÝÁ¿)","ÌáÊ¾",MB_OK);
 	return nullptr;
 }
 #endif
@@ -1407,8 +1409,8 @@ void reflush() {
 	}
 	
 	POINT pt;
-	::GetCursorPos(&pt);            // ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Î»ï¿½ï¿½
-	::SetCursorPos(pt.x, pt.y);    // ï¿½ï¿½ï¿½Ã»Øµï¿½Ç°ï¿½ï¿½ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
+	::GetCursorPos(&pt);            // »ñÈ¡µ±Ç°Êó±êÎ»ÖÃ
+	::SetCursorPos(pt.x, pt.y);    // ÉèÖÃ»Øµ±Ç°Êó±êÎ»ÖÃ£¬´¥·¢Êó±êÊÂ¼þ
 }
 
 void init(int x,int y,int mode){
@@ -1452,8 +1454,8 @@ try {
 	closegraph();
 }
 catch (...) {
-    // ï¿½ï¿½ï¿½Ô¼ï¿½Â¼ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢
-    std::cout << "Í¼ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½ï¿½ï¿½Ñ¹Ø±Õ¡ï¿½\n";
+    // ¿ÉÒÔ¼ÇÂ¼ÈÕÖ¾»òÊä³öÌáÊ¾ÐÅÏ¢
+    std::cout << "Í¼ÐÎ×ÊÔ´·ÃÎÊÒì³££¬´°¿Ú¿ÉÄÜÒÑ¹Ø±Õ¡£\n";
 }
 }
 
