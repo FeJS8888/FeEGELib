@@ -1,13 +1,5 @@
 #pragma once
 #include "Base.h"
-#include "json.hpp"
-#include <vector>
-#include <string>
-#include <cmath>
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <fstream>
 
 using namespace FeEGE;
 

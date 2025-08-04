@@ -1,8 +1,39 @@
 #pragma once
-#include <vector>
-#include <math.h>
+// C++ ±ê×¼¿â
+#include <algorithm>
+#include <assert.h>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <locale>
+#include <map>
+#include <malloc.h>
+#include <mutex>
+#include <queue>
+#include <random>
+#include <set>
 #include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
+
+// Windows ÏµÍ³ API
+#include <windows.h>
+#include <tlhelp32.h>
+
+// Í¼ÐÎ¿â
 #include <graphics.h>
+
+// µÚÈý·½¿â
+#include "json.hpp"
+
+// ×Ô¶¨ÒåÍ·ÎÄ¼þ
+#include "sys_edit.h"
+
 
 namespace FeEGE {
 	
@@ -10,91 +41,91 @@ extern bool Lpressed;
 
 /**
  * @class Position
- * @brief ï¿½ï¿½Î¬ï¿½ï¿½ï¿½ï¿½ï¿½à£¬ï¿½ï¿½ï¿½Ú±ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Î»ï¿½Ã¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * @brief ¶þÎ¬ÏòÁ¿Àà£¬ÓÃÓÚ±íÊ¾ÎïÀíÒýÇæÖÐµÄÎ»ÖÃ¡¢·½ÏòµÈ
  */
 class Position {
 public:
-    double x, y;  ///< ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½xï¿½ï¿½yï¿½ï¿½ï¿½ï¿½
+    double x, y;  ///< ÏòÁ¿µÄxºÍy·ÖÁ¿
 
     /**
-     * @brief Ä¬ï¿½Ï¹ï¿½ï¿½ìº¯ï¿½ï¿½
-     * @details ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª(0,0)
+     * @brief Ä¬ÈÏ¹¹Ôìº¯Êý
+     * @details ³õÊ¼»¯ÏòÁ¿Îª(0,0)
      */
     Position();
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½ï¿½ìº¯ï¿½ï¿½
-     * @param _x xï¿½ï¿½ï¿½ï¿½Öµ
-     * @param _y yï¿½ï¿½ï¿½ï¿½Öµ
+     * @brief ´ø²ÎÊýµÄ¹¹Ôìº¯Êý
+     * @param _x x·ÖÁ¿Öµ
+     * @param _y y·ÖÁ¿Öµ
      */
     Position(double _x, double _y);
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½Ó·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param rhs ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @return ï¿½ï¿½Óºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @brief ÏòÁ¿¼Ó·¨ÔËËã·ûÖØÔØ
+     * @param rhs ÓÒ²Ù×÷ÊýÏòÁ¿
+     * @return Ïà¼ÓºóµÄÐÂÏòÁ¿
      */
     Position operator+(const Position& rhs) const;
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param rhs ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @brief ÏòÁ¿¼õ·¨ÔËËã·ûÖØÔØ
+     * @param rhs ÓÒ²Ù×÷ÊýÏòÁ¿
+     * @return Ïà¼õºóµÄÐÂÏòÁ¿
      */
     Position operator-(const Position& rhs) const;
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param s ï¿½ï¿½ï¿½ï¿½Öµ
-     * @return ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @brief ÏòÁ¿Êý³ËÔËËã·ûÖØÔØ
+     * @param s ±êÁ¿Öµ
+     * @return Ëõ·ÅºóµÄÐÂÏòÁ¿
      */
     Position operator*(double s) const;
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param rhs ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½ï¿½Öµ
+     * @brief ¼ÆËãÏòÁ¿µã»ý
+     * @param rhs ÁíÒ»¸öÏòÁ¿
+     * @return Á½¸öÏòÁ¿µÄµã»ýÖµ
      */
     double dot(const Position& rhs) const;
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @return ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½
+     * @brief ¼ÆËãÏòÁ¿³¤¶È
+     * @return ÏòÁ¿µÄÄ£³¤
      */
     double length() const;
 
     /**
-     * @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
-     * @return ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Äµï¿½Î»ï¿½ï¿½ï¿½ï¿½
+     * @brief ÏòÁ¿¹éÒ»»¯
+     * @return ¹éÒ»»¯ºóµÄµ¥Î»ÏòÁ¿
      */
     Position normalize() const;
 
     /**
-     * @brief ï¿½ï¿½È¡ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½
-     * @return ï¿½ï¿½Ö±ï¿½Úµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * @brief »ñÈ¡´¹Ö±ÏòÁ¿
+     * @return ´¹Ö±ÓÚµ±Ç°ÏòÁ¿µÄÏòÁ¿
      */
     Position perpendicular() const;
 };
 
 /**
  * @class PenetrationInfo
- * @brief ï¿½ï¿½×²ï¿½ï¿½Í¸ï¿½ï¿½Ï¢ï¿½ï¿½
+ * @brief Åö×²´©Í¸ÐÅÏ¢Àà
  */
 class PenetrationInfo {
 public:
-    Position direction;  ///< ï¿½ï¿½×²ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
-    double depth;       ///< ï¿½ï¿½Í¸ï¿½ï¿½ï¿½
+    Position direction;  ///< Åö×²·½Ïò(·¨ÏòÁ¿)
+    double depth;       ///< ´©Í¸Éî¶È
 };
 
-typedef std::vector<Position> Polygon;  ///< ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¶ï¿½ï¿½å£¬ï¿½É¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+typedef std::vector<Position> Polygon;  ///< ¶à±ßÐÎÀàÐÍ¶¨Òå£¬ÓÉ¶¥µãÏòÁ¿×é³É
 
-// Ä£ï¿½åº¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// Ä£°åº¯Êý£ºÏÞÖÆÊýÖµÔÚÇø¼äÄÚ
 template<typename T1,typename T2,typename T3>
 T1 clamp(T1 val, T2 minVal, T3 maxVal) {
     return (val < minVal) ? minVal : (val > maxVal) ? maxVal : val;
 }
 
-// ï¿½ï¿½ï¿½ï¿½ UTF-8 ï¿½ï¿½ ANSI ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ EGE ï¿½ï¿½ï¿½ï¿½Ä±ï¿½
+// ´«Èë UTF-8 »ò ANSI ±àÂë×Ö·û´®£¬×Ô¶¯×ª»»ºóµ÷ÓÃ EGE Êä³öÎÄ±¾
 void outtextxy_auto(int x, int y, const std::string& str);
 
 void reflushMouseStatu(mouse_msg msg);
@@ -120,6 +151,6 @@ public:
     }
 };
 
-inline const SimpleOptional<std::string> nullopt{};
+#define nullopt SimpleOptional<std::string>()
 
 }
