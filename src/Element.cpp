@@ -1402,6 +1402,12 @@ void reflush() {
         	w->handleEvent(msg);
 		}
     }
+	if(needReflushCursor){
+		for(Widget* w : widgets){
+        	w->handleEvent(msg);
+		}
+		needReflushCursor = false;
+	}
     for(Widget* w : widgets){
 		if(!w->is_global) continue;
 		if(!is_run()) return;
@@ -1420,6 +1426,9 @@ void init(int x,int y,int mode){
 	FeEGE::initPen();
 	FeEGE::initTextPen();
 	ege_enable_aa(true);
+
+	// Hook
+	g_oldWndProc = (WNDPROC)::SetWindowLongPtrW(getHWnd(), GWLP_WNDPROC, (LONG_PTR)FeEGEProc);
 }
 
 void start() {

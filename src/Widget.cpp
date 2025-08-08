@@ -351,23 +351,21 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     origin_radius = radius = r;
     left = cx - width / 2;
     top = cy - height / 2;
-
     btnLayer = newimage(width, height);
     maskLayer = newimage(width, height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
-    
     // 遮罩
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
-    
     inv.create(false, 2);
     inv.visible(false);
     inv.move(-1, -1);
     inv.size(0, 0);
     inv.setmaxlen(2147483640);
+    inv.setparent(this);
     
     on_focus = false;
     inv.killfocus();
@@ -378,20 +376,55 @@ InputBox::~InputBox() {
     delimage(maskLayer);
 }
 
+// A simple constant for the blinking frequency in Hz (cycles per second).
+// Adjust this value to change the blinking speed.
+const double BLINK_FREQUENCY = 0.65; // 1 Hz means one full blink cycle per second.
+
+// The threshold to trigger the pause. A value closer to 1.0 makes the pause
+// window smaller, while a smaller value makes it longer.
+const double PAUSE_THRESHOLD = 0.6;
+double InputBoxSinDouble(double time) {
+    double sine_value = std::sin(time * 2.0 * M_PI * BLINK_FREQUENCY);
+    if (sine_value > PAUSE_THRESHOLD) {
+        return 1.0;
+    }
+    if (sine_value < -PAUSE_THRESHOLD) {
+        return 0.0;
+    }
+    return (sine_value + 1.0) / 2.0;
+}
+
+// 判断是否是“西文字符”（ASCII 可打印字符，不包括中文等全角字符）
+bool isWesternChar(wchar_t ch) {
+    return ch >= 0x20 && ch <= 0x7E;
+}
+
+// 返回西文字符个数
+int countWesternChars(const std::wstring& str) {
+    int count = 0;
+    for (wchar_t ch : str) {
+        if (isWesternChar(ch)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 void InputBox::draw(PIMAGE dst,int x,int y) {
 	int left = x - width / 2;
     int top = y - height / 2;
     if (on_focus) {
         inv.setfocus();
-        char str[512];
+        wchar_t str[512];
         inv.gettext(512, str);
         setContent(str);
     }
-    if(!ripples.size() && !needRedraw){
+    if(!on_focus && !ripples.size() && !needRedraw){
         putimage_withalpha(dst, btnLayer, left, top);
         return;
     }
-    
+
+    std::wstring content = IMECompositionString.size() ? (this->content.substr(0,cursor_pos) + IMECompositionString + this->content.substr(cursor_pos)) : (this->content);
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
@@ -408,16 +441,34 @@ void InputBox::draw(PIMAGE dst,int x,int y) {
         [](const Ripple& r) { return !r.alive(); }),
         ripples.end());
 
-    // 按钮文字
+    // 输入框文字
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    setfont(23 * scale, 0, "宋体", btnLayer);
+    setfont(scale * text_height,0,L"幼圆",btnLayer);
     ege_outtextxy(14, height / 2 - textheight(content.c_str(), btnLayer) / 2 - 1, 
                  content.c_str(), btnLayer);
     
     if (on_focus) {
-        setfillcolor(EGEARGB(50, 30, 30, 30), btnLayer);
+        setfillcolor(EGEARGB(50,30,30,30), btnLayer);
         ege_fillrect(0, 0, width, height, btnLayer);
+
+        std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_time = current_time - start_time;
+        double cursor_opacity = InputBoxSinDouble(elapsed_time.count());
+        setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
+        std::wstring bef_str = (content.substr(0,cursor_pos) + IMECompositionString);
+        float bef_pixels,tmp,wid;
+        measuretext(bef_str.c_str(),&bef_pixels,&tmp,btnLayer);
+        measuretext(content.substr(0,cursor_pos).c_str(),&wid,&tmp,btnLayer);
+        ege_fillrect(14 + bef_pixels - 1,height / 2 - textheight("a", btnLayer) / 2 - 3.5,2,textheight("a", btnLayer) + 7,btnLayer);
+        if(IMECompositionString.size()){
+            setlinestyle(DOTTED_LINE,0U,1,btnLayer);
+            setlinecolor(EGEARGB(255,0,0,0), btnLayer);
+            ege_line(14 + wid,height / 2 + textheight("a", btnLayer) / 2 + 2,14 + bef_pixels - 1,height / 2 + textheight("a", btnLayer) / 2 + 2,btnLayer);
+            setlinestyle(SOLID_LINE,0U,1,btnLayer);
+        }
+        InputPositionX = left + 14 + wid - 1;
+        InputPositionY = top + height - 20;
     }
     // 应用遮罩绘制
     putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
@@ -429,13 +480,28 @@ void InputBox::draw(){
 }
 
 void InputBox::handleEvent(const mouse_msg& msg) {
-    if (msg.is_left() && msg.is_down() && isInside(msg.x, msg.y)) {
+    const bool inside = isInside(msg.x, msg.y);
+    if(inside){
+        setCursor(IDC_IBEAM);
+        lastInside = true;
+    }
+    else{
+        if(lastInside){
+            setCursor(IDC_ARROW);
+            needReflushCursor = true;
+            lastInside = false;
+        }
+    }
+    if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
         ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
         on_focus = true;
         needRedraw = true;
         inv.setfocus();
+        moveCursor(content.length());
+        inv.movecursor(content.length());
+        start_time = std::chrono::high_resolution_clock::now();
     }
     else if (msg.is_left() && msg.is_down()) {
         on_focus = false;
@@ -448,6 +514,7 @@ bool InputBox::isInside(int x, int y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
+    cout<<"Localpos : "<<localX<<" "<<localY<<"\n";
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -490,7 +557,7 @@ bool InputBox::isInside(int x, int y) const {
     return true;
 }
 
-void InputBox::setContent(const std::string& s) {
+void InputBox::setContent(const std::wstring& s) {
     if(content == s) return;
     content = s;
     needRedraw = true;
@@ -518,6 +585,23 @@ void InputBox::setScale(double s){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    needRedraw = true;
+}
+
+void InputBox::setTextHeight(double height){
+    text_height = height;
+}
+
+double InputBox::getTextHeight(){
+    return text_height;
+}
+
+void InputBox::moveCursor(int pos){
+    cursor_pos = pos;
+}
+
+void InputBox::setIMECompositionString(const std::wstring& str){
+    IMECompositionString = str;
     needRedraw = true;
 }
 
@@ -915,13 +999,18 @@ InputBoxBuilder& InputBoxBuilder::setRadius(double r) {
     return *this;
 }
 
-InputBoxBuilder& InputBoxBuilder::setContent(const std::string& text) {
+InputBoxBuilder& InputBoxBuilder::setContent(const std::wstring& text) {
     content = text;
     return *this;
 }
 
 InputBoxBuilder& InputBoxBuilder::setMaxLength(int maxLen) {
     maxLength = maxLen;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setTextHeight(double height){
+    text_height = height;
     return *this;
 }
 
@@ -935,6 +1024,7 @@ InputBox* InputBoxBuilder::build() {
     input->setContent(content);
     input->setMaxlen(maxLength);
     input->setScale(scale);
+    input->setTextHeight(text_height);
     widgets.insert(input);
     return input;
 }
