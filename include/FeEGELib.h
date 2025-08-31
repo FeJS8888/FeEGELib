@@ -1,8 +1,8 @@
 /**
  * @file FeEGELib.h
  * @brief FeEGE图形库主头文件
- * @version 2.6.0.0
- * @date 2025-08-09
+ * @version 2.6.1.0
+ * @date 2025-08-31
  * 
  * 这是一个基于 EGE 的图形开发框架，提供了元素管理、动画、事件处理等功能
  */

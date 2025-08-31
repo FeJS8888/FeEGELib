@@ -295,13 +295,13 @@ bool Button::isInside(int x, int y) const {
     return true;
 }
 
-void Button::setContent(const string& str){
+void Button::setContent(const wstring& str){
     if(content == str) return;
 	content = str;
     needRedraw = true;
 }
 
-std::string Button::getContent(){
+std::wstring Button::getContent(){
     return content;
 }
 
@@ -383,7 +383,7 @@ const double BLINK_FREQUENCY = 0.65; // 1 Hz means one full blink cycle per seco
 // The threshold to trigger the pause. A value closer to 1.0 makes the pause
 // window smaller, while a smaller value makes it longer.
 const double PAUSE_THRESHOLD = 0.6;
-double InputBoxSinDouble(double time) {
+double InputBoxSinDoubleForCursor(double time) {
     double sine_value = std::sin(time * 2.0 * M_PI * BLINK_FREQUENCY);
     if (sine_value > PAUSE_THRESHOLD) {
         return 1.0;
@@ -394,83 +394,128 @@ double InputBoxSinDouble(double time) {
     return (sine_value + 1.0) / 2.0;
 }
 
-// 判断是否是“西文字符”（ASCII 可打印字符，不包括中文等全角字符）
-bool isWesternChar(wchar_t ch) {
-    return ch >= 0x20 && ch <= 0x7E;
-}
+// void InputBox::draw(PIMAGE dst, int x, int y) {
+//     LOGFONTW lf = fontManager.CreateLogFont(40);
+// 	setbkcolor(CYAN);
+// 	settextcolor(BLACK);
+// 	setfont(&lf);
+// 	ege_outtextxy(100, 100, L"aaa中文");
+// 	delay_ms(10000);
+//     // 直接输出到屏幕，不通过 dst
+    
+//     return;
+// }
 
-// 返回西文字符个数
-int countWesternChars(const std::wstring& str) {
-    int count = 0;
-    for (wchar_t ch : str) {
-        if (isWesternChar(ch)) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-void InputBox::draw(PIMAGE dst,int x,int y) {
-	int left = x - width / 2;
-    int top = y - height / 2;
+void InputBox::draw(PIMAGE dst, int x, int y) {
+    double left = x - width / 2;
+    double top = y - height / 2;
+    
     if (on_focus) {
+        adjustScrollForCursor();
         inv.setfocus();
         wchar_t str[512];
         inv.gettext(512, str);
         setContent(str);
     }
+    
     if(!on_focus && !ripples.size() && !needRedraw){
         putimage_withalpha(dst, btnLayer, left, top);
         return;
     }
 
-    std::wstring content = IMECompositionString.size() ? (this->content.substr(0,cursor_pos) + IMECompositionString + this->content.substr(cursor_pos)) : (this->content);
+    std::wstring content = IMECompositionString.size() ? 
+        (this->content.substr(0,cursor_pos) + IMECompositionString + this->content.substr(cursor_pos)) : 
+        (this->content);
+        
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
-    setfillcolor(color, btnLayer);
-    ege_fillroundrect(0, 0, width, height,radius,radius,radius,radius, btnLayer);
+    setfillcolor(EGEACOLOR(255, color), btnLayer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer,scale);
+        r.draw(btnLayer, scale);
     }
     ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
         [](const Ripple& r) { return !r.alive(); }),
         ripples.end());
 
     // 输入框文字
-    setbkmode(TRANSPARENT, btnLayer);
-    settextcolor(BLACK, btnLayer);
-    setfont(scale * text_height,0,L"幼圆",btnLayer);
-    ege_outtextxy(14, height / 2 - textheight(content.c_str(), btnLayer) / 2 - 1, 
-                 content.c_str(), btnLayer);
-    
-    if (on_focus) {
-        setfillcolor(EGEARGB(50,30,30,30), btnLayer);
-        ege_fillrect(0, 0, width, height, btnLayer);
+    // std::wcout << L"FontManager loaded: " << (fontManager.IsLoaded() ? L"YES" : L"NO") << std::endl;
+    // std::wcout << L"Font name: " << fontManager.GetFontName() << std::endl;
 
-        std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed_time = current_time - start_time;
-        double cursor_opacity = InputBoxSinDouble(elapsed_time.count());
-        setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
-        std::wstring bef_str = (content.substr(0,cursor_pos) + IMECompositionString);
-        float bef_pixels,tmp,wid;
-        measuretext(bef_str.c_str(),&bef_pixels,&tmp,btnLayer);
-        measuretext(content.substr(0,cursor_pos).c_str(),&wid,&tmp,btnLayer);
-        ege_fillrect(14 + bef_pixels - 1,height / 2 - textheight("a", btnLayer) / 2 - 3.5,2,textheight("a", btnLayer) + 7,btnLayer);
-        if(IMECompositionString.size()){
-            setlinestyle(DOTTED_LINE,0U,1,btnLayer);
-            setlinecolor(EGEARGB(255,0,0,0), btnLayer);
-            ege_line(14 + wid,height / 2 + textheight("a", btnLayer) / 2 + 2,14 + bef_pixels - 1,height / 2 + textheight("a", btnLayer) / 2 + 2,btnLayer);
-            setlinestyle(SOLID_LINE,0U,1,btnLayer);
+    // LOGFONTW lf = fontManager.CreateLogFont(40);
+    // std::wcout << L"Created font face name: " << lf.lfFaceName << std::endl;
+    setbkmode(TRANSPARENT, btnLayer);
+    settextcolor(BLACK,btnLayer);
+    setfont(scale * text_height,0,L"宋体",btnLayer);
+    // ege_outtextxy(0,0,"Hello,World",btnLayer);
+
+    if(sgn(scale * text_height - 1) >= 0){
+        // 计算文本显示参数 - 修改开始
+        const float padding = 14;
+        
+        // 修正变量覆盖问题，分别计算各个宽度
+        std::wstring cursor_before_cursor = content.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
+        std::wstring cursor_before_text = content.substr(0, cursor_pos) + IMECompositionString;
+        float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width,cursor_with_full_ime_width;
+        measuretext(content.substr(0, cursor_pos).c_str(), &cursor_pos_width, &tmp, btnLayer);
+        measuretext(cursor_before_cursor.c_str(), &cursor_with_ime_width, &tmp, btnLayer);
+        measuretext(cursor_before_text.c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
+        measuretext(content.c_str(), &full_text_width, &tmp, btnLayer);
+        float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
+        
+        // 使用 scroll_offset 替代复杂的滚动逻辑
+        float text_start_x = padding - scroll_offset;
+        // 修改结束
+        
+        // 绘制文本
+        ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
+                    content.c_str(), btnLayer);
+        
+        if (on_focus) {
+            // 聚焦状态遮罩
+            setfillcolor(EGEARGB(50,30,30,30), btnLayer);
+            ege_fillrect(0, 0, width, height, btnLayer);
+
+            // 绘制光标
+            std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed_time = current_time - start_time;
+            double cursor_opacity = InputBoxSinDoubleForCursor(elapsed_time.count());
+            setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
+            
+            // 使用新的光标位置计算
+            float cursor_draw_x = text_start_x + cursor_with_ime_width;
+            
+            // 绘制光标
+            ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5, 
+                    2, textRealHeight + 7, btnLayer);
+            
+            // IME输入下划线
+            if(IMECompositionString.size()){
+                setlinestyle(DOTTED_LINE, 0U, 1, btnLayer);
+                setlinecolor(EGEARGB(255,0,0,0), btnLayer);
+                
+                // 使用新的位置计算
+                float ime_start_x = text_start_x + cursor_pos_width;
+                float ime_end_x = text_start_x + cursor_with_full_ime_width;
+                
+                ege_line(ime_start_x, height / 2 + textRealHeight / 2 + 2,
+                    ime_end_x, height / 2 + textRealHeight / 2 + 2, btnLayer);
+                setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
+            }
+            
+            // 更新IME位置
+            InputPositionX = left + cursor_draw_x;
+            InputPositionY = top + height - 20;
         }
-        InputPositionX = left + 14 + wid - 1;
-        InputPositionY = top + height - 20;
     }
+    
     // 应用遮罩绘制
+    // putimage(0,0,btnLayer);
     putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
     needRedraw = false;
 }
@@ -481,28 +526,61 @@ void InputBox::draw(){
 
 void InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
-    if(inside){
+    // 鼠标移入移出处理
+    if (inside) {
         setCursor(IDC_IBEAM);
         lastInside = true;
-    }
-    else{
-        if(lastInside){
+    } else {
+        if (lastInside) {
             setCursor(IDC_ARROW);
             needReflushCursor = true;
             lastInside = false;
         }
     }
+
+    // 鼠标左键按下且在输入框内部
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
-        on_focus = true;
+
+        if (!on_focus) {
+            ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
+            on_focus = true;
+            needRedraw = true;
+            inv.setfocus();
+            reflushCursorTick();
+        }
+
+        // 计算点击位置对应的字符下标（二分法）
+        const float padding = 14;
+        float click_x = localX - padding + scroll_offset;
+        int l = 0, r = content.length();
+        int best_pos = 0;
+        float min_dist = 1e9, tmp, char_x = 0;
+
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            measuretext(content.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
+            float dist = fabs(char_x - click_x);
+            if (dist < min_dist) {
+                min_dist = dist;
+                best_pos = mid;
+            }
+            if (char_x < click_x) {
+                l = mid + 1;
+            } else if (char_x > click_x) {
+                r = mid - 1;
+            } else {
+                best_pos = mid;
+                break;
+            }
+        }
+
+        moveCursor(best_pos);
+        inv.movecursor(best_pos, best_pos);
         needRedraw = true;
-        inv.setfocus();
-        moveCursor(content.length());
-        inv.movecursor(content.length());
-        start_time = std::chrono::high_resolution_clock::now();
     }
+    // 鼠标左键按下且不在输入框内
     else if (msg.is_left() && msg.is_down()) {
         on_focus = false;
         inv.killfocus();
@@ -514,7 +592,7 @@ bool InputBox::isInside(int x, int y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
-    cout<<"Localpos : "<<localX<<" "<<localY<<"\n";
+    // cout<<"IS localX: "<<localX<<" localY: "<<localY<<"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -589,7 +667,9 @@ void InputBox::setScale(double s){
 }
 
 void InputBox::setTextHeight(double height){
+    if(sgn(height - text_height) == 0) return;
     text_height = height;
+    needRedraw = true;
 }
 
 double InputBox::getTextHeight(){
@@ -597,12 +677,67 @@ double InputBox::getTextHeight(){
 }
 
 void InputBox::moveCursor(int pos){
+    if(cursor_pos == pos) return;
     cursor_pos = pos;
+    needRedraw = true;
 }
 
 void InputBox::setIMECompositionString(const std::wstring& str){
     IMECompositionString = str;
     needRedraw = true;
+}
+
+void InputBox::setIMECursorPos(int pos){
+    IMECursorPos = pos;
+    needRedraw = true;
+}
+
+void InputBox::adjustScrollForCursor() {
+    const float padding = 14;
+    const float visible_width = width - 2 * padding;
+
+    float cursor_pixel_pos, tmp;
+    measuretext(content.substr(0, cursor_pos).c_str(), &cursor_pixel_pos, &tmp, btnLayer);
+    float cursor_with_ime_pos = cursor_pixel_pos;
+    if (IMECompositionString.size()) {
+        measuretext((content.substr(0, cursor_pos) + IMECompositionString).c_str(), &cursor_with_ime_pos, &tmp, btnLayer);
+    }
+    float full_text_width;
+    std::wstring display_content = IMECompositionString.size() ? 
+        (content.substr(0, cursor_pos) + IMECompositionString + content.substr(cursor_pos)) : 
+        content;
+    measuretext(display_content.c_str(), &full_text_width, &tmp, btnLayer);
+
+    float target_pos = IMECompositionString.size() ? cursor_with_ime_pos : cursor_pixel_pos;
+
+    // 修正：右边界判断为 >=，scroll_offset 公式明确
+    if (target_pos - scroll_offset >= visible_width - padding) {
+        scroll_offset = target_pos - (visible_width - padding);
+        needRedraw = true;
+    }
+    else if (cursor_pixel_pos - scroll_offset < padding) {
+        scroll_offset = cursor_pixel_pos - padding;
+        if (scroll_offset < 0) scroll_offset = 0;
+        needRedraw = true;
+    }
+    if (full_text_width <= visible_width) {
+        scroll_offset = 0;
+        needRedraw = true;
+    } else {
+        float max_scroll = full_text_width - visible_width;
+        if (scroll_offset > max_scroll) {
+            scroll_offset = max_scroll;
+            needRedraw = true;
+        }
+    }
+}
+
+void InputBox::reflushCursorTick(){
+    start_time = std::chrono::high_resolution_clock::now();
+}
+
+const std::wstring& InputBox::getContent(){
+    return content;
 }
 
 // Slider 类实现
@@ -920,7 +1055,7 @@ Panel* PanelBuilder::build() {
 }
 
 // ButtonBuilder 实现
-ButtonBuilder& ButtonBuilder::setIdentifier(const string& id) {
+ButtonBuilder& ButtonBuilder::setIdentifier(const wstring& id) {
     identifier = id;
     return *this;
 }
@@ -940,7 +1075,7 @@ ButtonBuilder& ButtonBuilder::setRadius(double r) {
     return *this;
 }
 
-ButtonBuilder& ButtonBuilder::setContent(const std::string& text) {
+ButtonBuilder& ButtonBuilder::setContent(const std::wstring& text) {
     content = text;
     return *this;
 }
@@ -984,6 +1119,11 @@ Button* ButtonBuilder::build() {
 }
 
 // InputBoxBuilder 实现
+InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
 InputBoxBuilder& InputBoxBuilder::setCenter(int x, int y) {
     cx = x; cy = y;
     return *this;
@@ -1026,6 +1166,7 @@ InputBox* InputBoxBuilder::build() {
     input->setScale(scale);
     input->setTextHeight(text_height);
     widgets.insert(input);
+    IdToWidget[identifier] = input;
     return input;
 }
 
@@ -1133,7 +1274,7 @@ Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
     dropdownPanel->setScale(scale);
 }
 
-void Dropdown::addOption(const std::string& text, std::function<void()> onClick) {
+void Dropdown::addOption(const std::wstring& text, std::function<void()> onClick) {
     double optionHeight = height;
     Button* option = new Button(cx, cy, width, optionHeight, radius);
     option->setContent(text);
@@ -1235,7 +1376,7 @@ void Dropdown::setScale(double s) {
     updateDropdownLayout();
 }
 
-void Dropdown::setContent(const std::string& text) {
+void Dropdown::setContent(const std::wstring& text) {
     mainButton->setContent(text);
 }
 
@@ -1279,7 +1420,7 @@ DropdownBuilder& DropdownBuilder::setRadius(double r) {
     return *this;
 }
 
-DropdownBuilder& DropdownBuilder::setContent(const std::string& text) {
+DropdownBuilder& DropdownBuilder::setContent(const std::wstring& text) {
     content = text;
     return *this;
 }
@@ -1294,7 +1435,7 @@ DropdownBuilder& DropdownBuilder::setScale(double s) {
     return *this;
 }
 
-DropdownBuilder& DropdownBuilder::addOption(const std::string& text, std::function<void()> onClick) {
+DropdownBuilder& DropdownBuilder::addOption(const std::wstring& text, std::function<void()> onClick) {
     optionList.emplace_back(text, onClick);
     return *this;
 }
@@ -1311,7 +1452,7 @@ Dropdown* DropdownBuilder::build() {
     return dropdown;
 }
 
-Radio::Radio(int cx, int cy, double r, const std::string& val)
+Radio::Radio(int cx, int cy, double r, const std::wstring& val)
     : cx(cx), cy(cy), radius(r), origin_radius(r), value(val) {}
 
 void Radio::setPosition(int x, int y) {
@@ -1328,7 +1469,7 @@ void Radio::setStyle(RadioStyle s) {
     style = s;
 }
 
-void Radio::setGroupValueRef(std::string* ref) {
+void Radio::setGroupValueRef(std::wstring* ref) {
     groupValuePtr = ref;
 }
 
@@ -1336,7 +1477,7 @@ void Radio::setOnSelect(std::function<void()> callback) {
     onSelect = callback;
 }
 
-std::string Radio::getValue() const {
+std::wstring Radio::getValue() const {
     return value;
 }
 
@@ -1452,10 +1593,10 @@ RadioBuilder& RadioBuilder::setRadius(double r) {
 RadioBuilder& RadioBuilder::setScale(double s) {
     scale = s; return *this;
 }
-RadioBuilder& RadioBuilder::setValue(const std::string& val) {
+RadioBuilder& RadioBuilder::setValue(const std::wstring& val) {
     value = val; return *this;
 }
-RadioBuilder& RadioBuilder::setGroupValueRef(std::string* ref) {
+RadioBuilder& RadioBuilder::setGroupValueRef(std::wstring* ref) {
     groupPtr = ref; return *this;
 }
 RadioBuilder& RadioBuilder::setOnSelect(std::function<void()> cb) {
@@ -1478,25 +1619,25 @@ Radio* RadioBuilder::build() {
 RadioController::RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style)
     : cx(cx), cy(cy), radius(r), gap(gap), scale(scale), style(style) {}
 
-void RadioController::addValue(const std::string& val) {
+void RadioController::addValue(const std::wstring& val) {
     values.push_back(val);
 }
 
-void RadioController::setDefault(const std::string& val) {
+void RadioController::setDefault(const std::wstring& val) {
     currentValue = val;
 }
 
-void RadioController::setOnChange(std::function<void(const std::string&)> cb) {
+void RadioController::setOnChange(std::function<void(const std::wstring&)> cb) {
     onChange = cb;
 }
 
-std::string RadioController::getValue(){
+std::wstring RadioController::getValue(){
     return currentValue;
 }
 
 void RadioController::build() {
     for (size_t i = 0; i < values.size(); ++i) {
-        std::string val = values[i];
+        std::wstring val = values[i];
         RadioBuilder()
             .setCenter(cx, cy + i * gap)
             .setRadius(radius)
@@ -1537,17 +1678,17 @@ RadioControllerBuilder& RadioControllerBuilder::setStyle(RadioStyle s) {
     return *this;
 }
 
-RadioControllerBuilder& RadioControllerBuilder::add(const std::string& val) {
+RadioControllerBuilder& RadioControllerBuilder::add(const std::wstring& val) {
     values.push_back(val);
     return *this;
 }
 
-RadioControllerBuilder& RadioControllerBuilder::setDefault(const std::string& val) {
+RadioControllerBuilder& RadioControllerBuilder::setDefault(const std::wstring& val) {
     defaultValue = val;
     return *this;
 }
 
-RadioControllerBuilder& RadioControllerBuilder::setOnChange(std::function<void(const std::string&)> cb) {
+RadioControllerBuilder& RadioControllerBuilder::setOnChange(std::function<void(const std::wstring&)> cb) {
     onChange = cb;
     return *this;
 }
@@ -1745,7 +1886,7 @@ ToggleBuilder& ToggleBuilder::setBaseColor(color_t col) {
     return *this;
 }
 
-ToggleBuilder& ToggleBuilder::setIdentifier(const std::string& id){
+ToggleBuilder& ToggleBuilder::setIdentifier(const std::wstring& id){
     identifier = id;
     return *this;
 }
@@ -1767,8 +1908,8 @@ Text::Text(int x, int y, int maxW)
     : posX(x), posY(y), maxWidth(maxW) {}
 
 // 设置文本
-void Text::setContent(const std::string& text) {
-    contentW = autoToWString(text);
+void Text::setContent(const std::wstring& text) {
+    contentW = text;
     updateLayout();
 }
 
@@ -1777,7 +1918,7 @@ void Text::setMaxWidth(int width) {
     updateLayout();
 }
 
-void Text::setFont(int size, const std::string& name) {
+void Text::setFont(int size, const std::wstring& name) {
     fontSize = size;
     fontName = name;
     updateLayout();
@@ -1887,7 +2028,7 @@ int Text::getLineSpacing() const {
     return lineSpacing;
 }
 
-TextBuilder& TextBuilder::setIdentifier(const string& id) {
+TextBuilder& TextBuilder::setIdentifier(const wstring& id) {
     identifier = id;
     return *this;
 }
@@ -1902,7 +2043,7 @@ TextBuilder& TextBuilder::setMaxWidth(int w) {
     return *this;
 }
 
-TextBuilder& TextBuilder::setFont(int size, const std::string& name) {
+TextBuilder& TextBuilder::setFont(int size, const std::wstring& name) {
     fontSize = size;
     fontName = name;
     return *this;
@@ -1918,7 +2059,7 @@ TextBuilder& TextBuilder::setColor(color_t c) {
     return *this;
 }
 
-TextBuilder& TextBuilder::setContent(const std::string& text) {
+TextBuilder& TextBuilder::setContent(const std::wstring& text) {
     content = text;
     return *this;
 }
@@ -2018,16 +2159,8 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     fillellipse((int)(cx), (int)(cy), (int)(r * 1.2), (int)(r * 1.2), dst);
 
     // === 当前值显示 ===
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(0) << value;
-    std::string valStr = oss.str();
 
-    setfont((int)(r * 0.6), 0, "Consolas");
-
-    settextcolor(BLACK);
-    int tw = textwidth(valStr.c_str());
-    int th = textheight(valStr.c_str());
-    outtextxy((int)(cx - tw / 2), (int)(cy - th / 2), valStr.c_str());
+    setfont((int)(r * 0.6), 0, L"Consolas");
 }
 
 void Knob::draw() {
@@ -2038,8 +2171,8 @@ void Knob::handleEvent(const mouse_msg& msg) {
     // 拖动逻辑将在下一步实现
 }
 
-std::map<std::string,Widget*> IdToWidget;
+std::map<std::wstring,Widget*> IdToWidget;
 
-Widget* getWidgetById(const std::string& identifier){
+Widget* getWidgetById(const std::wstring& identifier){
     return IdToWidget[identifier];
 }

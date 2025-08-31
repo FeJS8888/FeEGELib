@@ -2,7 +2,7 @@
 #define SYS_EDIT_H
 
 #include <ege/egecontrolbase.h>
-#include <graphics.h>
+#include "Base.h"
 #define ARGBTOZBGR(c) ((color_t)((((c) & 0xFF) << 16) | (((c) & 0xFF0000) >> 16) | ((c) & 0xFF00)))
 #define EGE_CONVERT_TO_WSTR_WITH(mbStr, block)                                               \
     {                                                                                        \
@@ -108,8 +108,8 @@ public:
         m_object = p;
     }
 
-    void movecursor(int pos){
-        SendMessage(m_hwnd, EM_SETSEL, (WPARAM)pos, (LPARAM)pos);
+    void movecursor(int begin,int end){
+        SendMessageW(m_hwnd, EM_SETSEL, begin, end);
     }
 
     void updatecursor();
@@ -118,8 +118,9 @@ public:
     {
         if (m_hwnd)
         {
-            DWORD dwSel = ::SendMessage(m_hwnd, EM_GETSEL, 0, 0);
-            return LOWORD(dwSel);
+            DWORD start = 0, end = 0;
+            SendMessage(m_hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+            return (int)start;
         }
         return -1;
     }

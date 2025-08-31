@@ -43,33 +43,39 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return TRUE;
 		}
 		case WM_IME_COMPOSITION:{
+			InputBox* p = static_cast<InputBox*>(m_object);
 			if (lParam & GCS_COMPSTR) {
-                // 获取当前正在编辑的组合字符串
-				int originalMode =  _setmode(_fileno(stdout), _O_U16TEXT);
                 std::wstring compositionString = GetImeCompositionString(getHWnd(), GCS_COMPSTR);
-                std::wcout<<compositionString<<std::endl;
-				static_cast<InputBox*>(m_object)->setIMECompositionString(compositionString);
-				_setmode(_fileno(stdout), originalMode);
+				p->setIMECompositionString(compositionString);
             }
 
             if (lParam & GCS_RESULTSTR) {
-                // 获取最终确定的结果字符串
-				int originalMode =  _setmode(_fileno(stdout), _O_U16TEXT);
                 std::wstring resultString = GetImeCompositionString(getHWnd(), GCS_RESULTSTR);
-                std::wcout<<resultString<<std::endl;
-				static_cast<InputBox*>(m_object)->setIMECompositionString(L"");
-				_setmode(_fileno(stdout), originalMode);
+				p->setIMECompositionString(L"");
             }
+			HIMC hIMC = ImmGetContext(getHWnd());
+			LONG cursorPos = ImmGetCompositionStringW(hIMC, GCS_CURSORPOS, nullptr, 0);
+			ImmReleaseContext(getHWnd(), hIMC);
+			p->setIMECursorPos(cursorPos);
+			p->reflushCursorTick();
 			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
 		case WM_KEYDOWN:{
 			switch (wParam) {
                 case VK_LEFT: {
-					static_cast<InputBox*>(m_object)->moveCursor(getCursorPos() - 1);
+					InputBox* p = static_cast<InputBox*>(m_object);
+					int pos = getCursorPos();
+					if(pos <= 0) break;
+					p->moveCursor(pos - 1);
+					p->reflushCursorTick();
                     break;
                 }
                 case VK_RIGHT: {
-					static_cast<InputBox*>(m_object)->moveCursor(getCursorPos() + 1);
+					InputBox* p = static_cast<InputBox*>(m_object);
+					int pos = getCursorPos();
+					if(pos >= p->getContent().size()) break;
+					p->moveCursor(pos + 1);
+					p->reflushCursorTick();
                     break;
                 }
             }
@@ -87,8 +93,9 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return TRUE;
 		}
 		case EM_SETSEL:{
+			LRESULT r = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 			::PostMessageW(m_hwnd,WM_USER + 100 + 1,0,0);
-			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			return r;
 		}
         default:
 	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);

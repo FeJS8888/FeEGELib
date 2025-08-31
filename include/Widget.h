@@ -156,7 +156,7 @@ private:
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
     PIMAGE bgLayer = nullptr; ///< 背景图层
-    std::string content;
+    std::wstring content;
     std::function<void(void)> on_click_event = nullptr;
     color_t color;
     bool needRedraw = true;
@@ -192,8 +192,8 @@ public:
      */
     virtual void handleEvent(const mouse_msg& msg);
     
-    void setContent(const std::string& str);
-    std::string getContent();
+    void setContent(const std::wstring& str);
+    std::wstring getContent();
 
     /**
      * @brief 检查点是否在按钮内
@@ -238,7 +238,18 @@ private:
     double text_height = 23;
     std::chrono::_V2::system_clock::time_point start_time;
     bool lastInside = false;
-    std::wstring IMECompositionString;
+    std::wstring IMECompositionString = L"";
+    int IMECursorPos = 0;
+    float scroll_offset = 0;
+
+    bool dragging = false;
+    int dragBegin = 0, dragEnd = 0;
+    int dragSide = 0; // -1=左出界，1=右出界，0=无
+    double lastDragTick = 0.0;
+    const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
+    const float padding = 14;
+
+    LOGFONT m_font; // 输入框字体
 
 public:
     /**
@@ -298,6 +309,12 @@ public:
     void moveCursor(int pos);
 
     void setIMECompositionString(const std::wstring& str);
+    void setIMECursorPos(int pos);
+
+    void adjustScrollForCursor();
+    void reflushCursorTick();
+
+    const std::wstring& getContent();
 };
 
 enum class Orientation {
@@ -326,6 +343,8 @@ private:
 	double origin_thickness = 4;
     bool needRedraw = true;
     Orientation m_orientation = Orientation::Row; // 方向
+    float text_offset_x = 0; // 文本水平偏移量
+    float last_cursor_pos_width = 0; // 上次光标位置，用于平滑滚动
 
 public:
     /**
@@ -436,7 +455,7 @@ public:
   */
 class PanelBuilder {
 public:
-    PanelBuilder& setIdentifier(const std::string& identifier);
+    PanelBuilder& setIdentifier(const std::wstring& identifier);
     PanelBuilder& setCenter(int x, int y);
     PanelBuilder& setSize(double w, double h);
     PanelBuilder& setRadius(double r);
@@ -446,7 +465,7 @@ public:
     Panel* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 5;
@@ -461,11 +480,11 @@ private:
  */
 class ButtonBuilder {
 public:
-    ButtonBuilder& setIdentifier(const std::string& identifier);
+    ButtonBuilder& setIdentifier(const std::wstring& identifier);
     ButtonBuilder& setCenter(int x, int y);
     ButtonBuilder& setSize(double w, double h);
     ButtonBuilder& setRadius(double r);
-    ButtonBuilder& setContent(const std::string& text);
+    ButtonBuilder& setContent(const std::wstring& text);
     ButtonBuilder& setScale(double s);
     ButtonBuilder& setOnClick(std::function<void()> func);
     ButtonBuilder& setColor(color_t col);
@@ -474,11 +493,11 @@ public:
     Button* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 8;
-    std::string content = "Button";
+    std::wstring content = L"Button";
     double scale = 1.0;
     color_t color = EGERGB(245, 245, 235);
     std::function<void()> onClick = nullptr;
@@ -491,7 +510,7 @@ private:
  */
 class InputBoxBuilder {
 public:
-    InputBoxBuilder& setIdentifier(const std::string& identifier);
+    InputBoxBuilder& setIdentifier(const std::wstring& identifier);
     InputBoxBuilder& setCenter(int x, int y);
     InputBoxBuilder& setSize(double w, double h);
     InputBoxBuilder& setRadius(double r);
@@ -502,7 +521,7 @@ public:
     InputBox* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double width = 160, height = 40;
     double radius = 6;
@@ -517,7 +536,7 @@ private:
  */
 class SliderBuilder {
 public:
-    SliderBuilder& setIdentifier(const std::string& identifier);
+    SliderBuilder& setIdentifier(const std::wstring& identifier);
     /**
      * @brief 设置位置
      * @param cx 中心 x 坐标
@@ -571,7 +590,7 @@ public:
     Slider* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int x = 0, y = 0;
     double width = 200, height = 20;
     color_t bgColor = EGERGB(200, 200, 200);
@@ -585,7 +604,7 @@ private:
 
 class ProgressBarBuilder {
 public:
-    ProgressBarBuilder& setIdentifier(const std::string& identifier);
+    ProgressBarBuilder& setIdentifier(const std::wstring& identifier);
     ProgressBarBuilder& setCenter(int x, int y);
     ProgressBarBuilder& setSize(double w, double h);
     ProgressBarBuilder& setScale(double s);
@@ -595,7 +614,7 @@ public:
     ProgressBar* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double width = 200, height = 20;
     double scale = 1.0;
@@ -608,8 +627,8 @@ class Dropdown : public Widget {
 public:
     Dropdown(int cx, int cy, double w, double h, double r);
 
-    void addOption(const std::string& text, std::function<void()> onClick);
-    void setContent(const std::string& text);
+    void addOption(const std::wstring& text, std::function<void()> onClick);
+    void setContent(const std::wstring& text);
     void setColor(color_t col);
     void setScale(double s) override;
     void setPosition(int x, int y) override;
@@ -640,26 +659,26 @@ private:
 
 class DropdownBuilder {
 public:
-    DropdownBuilder& setIdentifier(const std::string& identifier);
+    DropdownBuilder& setIdentifier(const std::wstring& identifier);
     DropdownBuilder& setCenter(int x, int y);
     DropdownBuilder& setSize(double w, double h);
     DropdownBuilder& setRadius(double r);
-    DropdownBuilder& setContent(const std::string& text);
+    DropdownBuilder& setContent(const std::wstring& text);
     DropdownBuilder& setColor(color_t col);
     DropdownBuilder& setScale(double s);
-    DropdownBuilder& addOption(const std::string& text, std::function<void()> onClick);
+    DropdownBuilder& addOption(const std::wstring& text, std::function<void()> onClick);
     Dropdown* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double width = 100, height = 40;
     double radius = 8;
     double scale = 1.0;
-    std::string content = "菜单";
+    std::wstring content = L"菜单";
     color_t color = EGERGB(245, 245, 235);
 
-    std::vector<std::pair<std::string, std::function<void()>>> optionList;
+    std::vector<std::pair<std::wstring, std::function<void()>>> optionList;
 };
 
 enum class RadioStyle {
@@ -669,13 +688,13 @@ enum class RadioStyle {
 
 class Radio : public Widget {
 public:
-    Radio(int cx, int cy, double r, const std::string& val);
+    Radio(int cx, int cy, double r, const std::wstring& val);
 
     void setOnSelect(std::function<void()> callback);
-    std::string getValue() const;
+    std::wstring getValue() const;
     bool isChecked() const;
     void setPosition(int x, int y) override;
-    void setGroupValueRef(std::string* ref);
+    void setGroupValueRef(std::wstring* ref);
     void setScale(double s) override;
     void setStyle(RadioStyle s);
     void draw(PIMAGE dst, int x, int y) override;
@@ -686,9 +705,9 @@ private:
     int cx, cy;
     double radius, scale = 1.0;
     double origin_radius;
-    std::string value;
-    std::string groupValue;  // 当前组选中的值
-    std::string* groupValuePtr = nullptr;
+    std::wstring value;
+    std::wstring groupValue;  // 当前组选中的值
+    std::wstring* groupValuePtr = nullptr;
     bool animIn = false;
     bool animOut = false;
     double animProgress = 0.0;
@@ -707,23 +726,23 @@ private:
 
 class RadioBuilder {
 public:
-    RadioBuilder& setIdentifier(const std::string& identifier);
+    RadioBuilder& setIdentifier(const std::wstring& identifier);
     RadioBuilder& setCenter(int x, int y);
     RadioBuilder& setRadius(double r);
-    RadioBuilder& setValue(const std::string& val);
+    RadioBuilder& setValue(const std::wstring& val);
     RadioBuilder& setScale(double s);
-    RadioBuilder& setGroupValueRef(std::string* ref);
+    RadioBuilder& setGroupValueRef(std::wstring* ref);
     RadioBuilder& setOnSelect(std::function<void()> cb);
     RadioBuilder& setStyle(RadioStyle s);
     Radio* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double radius = 12;
     double scale = 1.0;
-    std::string value = "";
-    std::string* groupPtr = nullptr;
+    std::wstring value = L"";
+    std::wstring* groupPtr = nullptr;
     std::function<void()> onSelect = nullptr;
 
     RadioStyle style = RadioStyle::Filled;
@@ -733,45 +752,45 @@ class RadioController {
 public:
     RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style);
 
-    void addValue(const std::string& val);
-    void setDefault(const std::string& val);
-    void setOnChange(std::function<void(const std::string&)> cb);
-    std::string getValue();
+    void addValue(const std::wstring& val);
+    void setDefault(const std::wstring& val);
+    void setOnChange(std::function<void(const std::wstring&)> cb);
+    std::wstring getValue();
     void build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx, cy;
     double radius, scale, gap;
     RadioStyle style;
-    std::vector<std::string> values;
-    std::string currentValue;
-    std::function<void(const std::string&)> onChange;
+    std::vector<std::wstring> values;
+    std::wstring currentValue;
+    std::function<void(const std::wstring&)> onChange;
 };
 
 class RadioControllerBuilder {
 public:
-    RadioControllerBuilder& setIdentifier(const std::string& identifier);
+    RadioControllerBuilder& setIdentifier(const std::wstring& identifier);
     RadioControllerBuilder& setCenter(int x, int y);
     RadioControllerBuilder& setRadius(double r);
     RadioControllerBuilder& setGap(double g);
     RadioControllerBuilder& setScale(double s);
     RadioControllerBuilder& setStyle(RadioStyle s);
-    RadioControllerBuilder& add(const std::string& val);
-    RadioControllerBuilder& setDefault(const std::string& val);
-    RadioControllerBuilder& setOnChange(std::function<void(const std::string&)> cb);
+    RadioControllerBuilder& add(const std::wstring& val);
+    RadioControllerBuilder& setDefault(const std::wstring& val);
+    RadioControllerBuilder& setOnChange(std::function<void(const std::wstring&)> cb);
     RadioController* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double radius = 12;
     double gap = 40;
     double scale = 1.0;
     RadioStyle style = RadioStyle::Filled;
-    std::vector<std::string> values;
-    std::string defaultValue = "";
-    std::function<void(const std::string&)> onChange = nullptr;
+    std::vector<std::wstring> values;
+    std::wstring defaultValue = L"";
+    std::function<void(const std::wstring&)> onChange = nullptr;
 };
 
 class Toggle : public Widget {
@@ -814,7 +833,7 @@ private:
 
 class ToggleBuilder {
 public:
-    ToggleBuilder& setIdentifier(const std::string& identifier);
+    ToggleBuilder& setIdentifier(const std::wstring& identifier);
     ToggleBuilder& setCenter(int x, int y);
     ToggleBuilder& setSize(double w, double h);
     ToggleBuilder& setScale(double s);
@@ -825,7 +844,7 @@ public:
     Toggle* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int cx = 0, cy = 0;
     double w = 60, h = 30, scale = 1.0;
     bool checked = false;
@@ -844,9 +863,9 @@ class Text : public Widget {
 public:
     Text(int x, int y, int maxWidth = 0);
 
-    void setContent(const std::string& text);      // UTF-8 / GBK 自动转换
+    void setContent(const std::wstring& text);      // UTF-8 / GBK 自动转换
     void setMaxWidth(int width);
-    void setFont(int size, const std::string& name = "Consolas");
+    void setFont(int size, const std::wstring& name = L"Consolas");
     void setColor(color_t col);
     void setScale(double s);
     void setAlign(TextAlign a);
@@ -870,7 +889,7 @@ private:
     int maxWidth = 0;
     double scale = 1.0;
     int fontSize = 16;
-    std::string fontName = "Consolas";
+    std::wstring fontName = L"Consolas";
     color_t color = BLACK;
 
     std::wstring contentW;
@@ -883,26 +902,26 @@ private:
 
 class TextBuilder {
 public:
-    TextBuilder& setIdentifier(const std::string& identifier);
+    TextBuilder& setIdentifier(const std::wstring& identifier);
     TextBuilder& setPosition(int x, int y);
     TextBuilder& setMaxWidth(int w);
-    TextBuilder& setFont(int size, const std::string& name);
+    TextBuilder& setFont(int size, const std::wstring& name);
     TextBuilder& setScale(double s);
     TextBuilder& setColor(color_t c);
-    TextBuilder& setContent(const std::string& text);
+    TextBuilder& setContent(const std::wstring& text);
     TextBuilder& setAlign(TextAlign a);
     TextBuilder& setLineSpacing(int px);
     Text* build();
 
 private:
-    std::string identifier;
+    std::wstring identifier;
     int x = 0, y = 0;
     int maxWidth = 0;
     int fontSize = 16;
-    std::string fontName = "Consolas";
+    std::wstring fontName = L"Consolas";
     double scale = 1.0;
     color_t color = BLACK;
-    std::string content;
+    std::wstring content;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0;
 };
@@ -948,6 +967,6 @@ private:
 };
 
 extern std::set<Widget*> widgets;
-extern std::map<std::string,Widget*> IdToWidget;
+extern std::map<std::wstring,Widget*> IdToWidget;
 
-Widget* getWidgetById(const std::string& identifier);
+Widget* getWidgetById(const std::wstring& identifier);
