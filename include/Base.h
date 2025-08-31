@@ -1,4 +1,5 @@
 #pragma once
+
 // C++ 标准库
 #include <algorithm>
 #include <assert.h>
@@ -35,6 +36,7 @@
 
 // 自定义头文件
 #include "sys_edit.h"
+#include "font_manager.h"
 
 namespace FeEGE {
 	
@@ -43,6 +45,7 @@ extern double InputPositionX,InputPositionY;
 extern bool needReflushCursor;
 extern LPSTR current_cursor;
 extern WNDPROC g_oldWndProc;
+extern FontManager fontManager;
 
 /**
  * @class Position
@@ -160,6 +163,8 @@ public:
 
 void setCursor(LPSTR cursor);
 LPSTR getCursor();
+
+int fixed(double x);
 
 }
 

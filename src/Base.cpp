@@ -6,6 +6,7 @@ namespace FeEGE{
 
 LPSTR current_cursor = IDC_ARROW;
 WNDPROC g_oldWndProc = nullptr;
+FontManager fontManager;
 bool needReflushCursor = true;
 
 double InputPositionX,InputPositionY;
@@ -83,6 +84,10 @@ void setCursor(LPSTR cursor){
 
 LPSTR getCursor(){
     return current_cursor;
+}
+
+int fixed(double x){
+    return static_cast<int>(x + 0.5);
 }
 
 }
