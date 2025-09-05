@@ -1,4 +1,4 @@
-#include "font_Manager.h"
+ï»¿#include "font_Manager.h"
 #include <iostream>
 #include <io.h>
 #include <fcntl.h>
@@ -6,15 +6,15 @@
 #include <fstream>
 #include <filesystem>
 
-// ¹¹Ôìº¯Êı
+// æ„é€ å‡½æ•°
 FontManager::FontManager() : m_hFontResource(nullptr), m_isLoaded(false) {}
 
-// Îö¹¹º¯Êı
+// ææ„å‡½æ•°
 FontManager::~FontManager() {
     UnloadFont();
 }
 
-// ÒÆ¶¯¹¹Ôìº¯Êı
+// ç§»åŠ¨æ„é€ å‡½æ•°
 FontManager::FontManager(FontManager&& other) noexcept 
     : m_hFontResource(other.m_hFontResource)
     , m_fontName(std::move(other.m_fontName))
@@ -26,7 +26,7 @@ FontManager::FontManager(FontManager&& other) noexcept
     other.m_isLoaded = false;
 }
 
-// ÒÆ¶¯¸³Öµ²Ù×÷·û
+// ç§»åŠ¨èµ‹å€¼æ“ä½œç¬¦
 FontManager& FontManager::operator=(FontManager&& other) noexcept {
     if (this != &other) {
         UnloadFont();
@@ -43,7 +43,7 @@ FontManager& FontManager::operator=(FontManager&& other) noexcept {
     return *this;
 }
 
-// ²éÕÒTTFÎÄ¼ş
+// æŸ¥æ‰¾TTFæ–‡ä»¶
 std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
     std::wstring wFileName(fileName.begin(), fileName.end());
     
@@ -56,7 +56,7 @@ std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
         L"assets/fonts/" + wFileName,
     };
     
-    // ¼ì²é»·¾³±äÁ¿FONT_PATH
+    // æ£€æŸ¥ç¯å¢ƒå˜é‡FONT_PATH
     wchar_t* envPath = nullptr;
     size_t envLen = 0;
     if (_wdupenv_s(&envPath, &envLen, L"FONT_PATH") == 0 && envPath) {
@@ -65,7 +65,7 @@ std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
         free(envPath);
     }
     
-    // ¼ì²éÃ¿¸öÂ·¾¶
+    // æ£€æŸ¥æ¯ä¸ªè·¯å¾„
     for (const auto& path : searchPaths) {
         try {
             if (std::filesystem::exists(path)) {
@@ -77,7 +77,7 @@ std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
         }
     }
     
-    // ¼ì²éÏµÍ³×ÖÌåÄ¿Â¼
+    // æ£€æŸ¥ç³»ç»Ÿå­—ä½“ç›®å½•
     wchar_t windir[MAX_PATH];
     if (GetEnvironmentVariableW(L"WINDIR", windir, MAX_PATH) > 0) {
         std::wstring systemFont = windir;
@@ -91,7 +91,7 @@ std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
     return L"";
 }
 
-// ´ÓÎÄ¼ş¼ÓÔØTTF
+// ä»æ–‡ä»¶åŠ è½½TTF
 bool FontManager::LoadTTFFromFile(const std::wstring& filePath) {
     std::ifstream file(std::filesystem::path(filePath), std::ios::binary);
     if (!file) {
@@ -122,7 +122,7 @@ bool FontManager::LoadTTFFromFile(const std::wstring& filePath) {
     return true;
 }
 
-// ÔÚfont_Manager.cppÖĞÊµÏÖTTF×ÖÌå×åÃû³ÆÌáÈ¡
+// åœ¨font_Manager.cppä¸­å®ç°TTFå­—ä½“æ—åç§°æå–
 #pragma pack(push, 1)
 struct TTFHeader {
     uint32_t version;
@@ -155,7 +155,7 @@ struct NameRecord {
 };
 #pragma pack(pop)
 
-// ×Ö½ÚĞò×ª»»¸¨Öúº¯Êı
+// å­—èŠ‚åºè½¬æ¢è¾…åŠ©å‡½æ•°
 uint16_t SwapBytes16(uint16_t value) {
     return (value << 8) | (value >> 8);
 }
@@ -177,7 +177,7 @@ std::wstring FontManager::ExtractFontFamilyName(const std::vector<BYTE>& fontDat
     
     uint16_t numTables = SwapBytes16(header->numTables);
     
-    // ²éÕÒname±í
+    // æŸ¥æ‰¾nameè¡¨
     uint32_t nameTableOffset = 0;
     uint32_t nameTableLength = 0;
     
@@ -195,15 +195,15 @@ std::wstring FontManager::ExtractFontFamilyName(const std::vector<BYTE>& fontDat
         return L"";
     }
     
-    // ½âÎöname±í
+    // è§£ænameè¡¨
     const NameHeader* nameHeader = reinterpret_cast<const NameHeader*>(data + nameTableOffset);
     uint16_t count = SwapBytes16(nameHeader->count);
     uint16_t stringOffset = SwapBytes16(nameHeader->stringOffset);
     
     const NameRecord* records = reinterpret_cast<const NameRecord*>(data + nameTableOffset + sizeof(NameHeader));
     
-    // ²éÕÒ×ÖÌå×åÃû³Æ (nameID = 1)
-    // ÓÅÏÈ²éÕÒWindowsÆ½Ì¨µÄUnicode±àÂë
+    // æŸ¥æ‰¾å­—ä½“æ—åç§° (nameID = 1)
+    // ä¼˜å…ˆæŸ¥æ‰¾Windowså¹³å°çš„Unicodeç¼–ç 
     std::wstring fontName;
     
     for (int i = 0; i < count; i++) {
@@ -214,12 +214,12 @@ std::wstring FontManager::ExtractFontFamilyName(const std::vector<BYTE>& fontDat
         uint16_t length = SwapBytes16(records[i].length);
         uint16_t offset = SwapBytes16(records[i].offset);
         
-        if (nameID == 1) { // ×ÖÌå×åÃû³Æ
+        if (nameID == 1) { // å­—ä½“æ—åç§°
             uint32_t stringPos = nameTableOffset + stringOffset + offset;
             
             if (stringPos + length <= fontData.size()) {
-                if (platformID == 3) { // MicrosoftÆ½Ì¨
-                    // UTF-16 BE ±àÂë
+                if (platformID == 3) { // Microsoftå¹³å°
+                    // UTF-16 BE ç¼–ç 
                     std::wstring name;
                     const uint16_t* utf16Data = reinterpret_cast<const uint16_t*>(data + stringPos);
                     
@@ -231,10 +231,10 @@ std::wstring FontManager::ExtractFontFamilyName(const std::vector<BYTE>& fontDat
                     
                     if (!name.empty()) {
                         fontName = name;
-                        break; // ÓÅÏÈÊ¹ÓÃMicrosoftÆ½Ì¨µÄÃû³Æ
+                        break; // ä¼˜å…ˆä½¿ç”¨Microsoftå¹³å°çš„åç§°
                     }
-                } else if (platformID == 1 && fontName.empty()) { // MacintoshÆ½Ì¨£¨±¸ÓÃ£©
-                    // ASCII±àÂë
+                } else if (platformID == 1 && fontName.empty()) { // Macintoshå¹³å°ï¼ˆå¤‡ç”¨ï¼‰
+                    // ASCIIç¼–ç 
                     std::string asciiName(reinterpret_cast<const char*>(data + stringPos), length);
                     fontName = std::wstring(asciiName.begin(), asciiName.end());
                 }
@@ -245,7 +245,7 @@ std::wstring FontManager::ExtractFontFamilyName(const std::vector<BYTE>& fontDat
     return fontName;
 }
 
-// ĞŞ¸ÄLoadFontFromMemory·½·¨£¬ÔÚ³É¹¦¼ÓÔØºóÌáÈ¡×ÖÌåÃû³Æ
+// ä¿®æ”¹LoadFontFromMemoryæ–¹æ³•ï¼Œåœ¨æˆåŠŸåŠ è½½åæå–å­—ä½“åç§°
 bool FontManager::LoadFontFromMemory() {
     if (m_fontData.empty()) return false;
     
@@ -258,7 +258,7 @@ bool FontManager::LoadFontFromMemory() {
     );
     
     if (m_hFontResource && dwFonts > 0) {
-        // ´ÓTTFÎÄ¼şÖĞÌáÈ¡ÕæÊµµÄ×ÖÌå×åÃû³Æ
+        // ä»TTFæ–‡ä»¶ä¸­æå–çœŸå®çš„å­—ä½“æ—åç§°
         std::wstring realFontName = ExtractFontFamilyName(m_fontData);
         if (!realFontName.empty()) {
             m_fontName = realFontName;
@@ -276,37 +276,37 @@ bool FontManager::LoadFontFromMemory() {
     }
 }
 
-// Ö÷Òª½Ó¿Ú£º¼ÓÔØ×ÖÌå
+// ä¸»è¦æ¥å£ï¼šåŠ è½½å­—ä½“
 bool FontManager::LoadFont(const std::string& ttfFileName) {
     if (m_isLoaded) {
         UnloadFont();
     }
     
-    // ²éÕÒTTFÎÄ¼ş
+    // æŸ¥æ‰¾TTFæ–‡ä»¶
     std::wstring filePath = FindTTFFile(ttfFileName);
     if (filePath.empty()) {
         std::cout << "TTF file not found: " << ttfFileName << std::endl;
         return false;
     }
     
-    // ¼ÓÔØµ½ÄÚ´æ
+    // åŠ è½½åˆ°å†…å­˜
     if (!LoadTTFFromFile(filePath)) {
         return false;
     }
     
-    // ¼ÓÔØµ½ÏµÍ³
+    // åŠ è½½åˆ°ç³»ç»Ÿ
     if (!LoadFontFromMemory()) {
         m_fontData.clear();
         return false;
     }
     
-    // ÉèÖÃ×ÖÌåÃû³Æ£¨È¥µô.ttfÀ©Õ¹Ãû£©
+    // è®¾ç½®å­—ä½“åç§°ï¼ˆå»æ‰.ttfæ‰©å±•åï¼‰
     m_ttfFileName = std::wstring(ttfFileName.begin(), ttfFileName.end());
     m_isLoaded = true;
     return true;
 }
 
-// »ù´¡×ÖÌå´´½¨
+// åŸºç¡€å­—ä½“åˆ›å»º
 LOGFONTW FontManager::CreateLogFont(int height, int weight, bool italic, bool underline) const {
     LOGFONTW logFont = {};
     std::cout<<"IS "<<height<<"\n";
@@ -328,7 +328,7 @@ LOGFONTW FontManager::CreateLogFont(int height, int weight, bool italic, bool un
     return logFont;
 }
 
-// Ô¤Éè³ß´çÑùÊ½ÊµÏÖ
+// é¢„è®¾å°ºå¯¸æ ·å¼å®ç°
 LOGFONTW FontManager::CreateTinyFont() const { return CreateLogFont(8); }
 LOGFONTW FontManager::CreateSmallFont() const { return CreateLogFont(10); }
 LOGFONTW FontManager::CreateNormalFont() const { return CreateLogFont(12); }
@@ -339,7 +339,7 @@ LOGFONTW FontManager::CreateXXLargeFont() const { return CreateLogFont(20); }
 LOGFONTW FontManager::CreateHugeFont() const { return CreateLogFont(24); }
 LOGFONTW FontManager::CreateGiantFont() const { return CreateLogFont(32); }
 
-// ×ÖÖØÑùÊ½ÊµÏÖ
+// å­—é‡æ ·å¼å®ç°
 LOGFONTW FontManager::CreateThinFont() const { return CreateLogFont(16, FW_THIN); }
 LOGFONTW FontManager::CreateLightFont() const { return CreateLogFont(16, FW_LIGHT); }
 LOGFONTW FontManager::CreateSemiBoldFont() const { return CreateLogFont(16, FW_SEMIBOLD); }
@@ -347,12 +347,12 @@ LOGFONTW FontManager::CreateBoldFont() const { return CreateLogFont(16, FW_BOLD)
 LOGFONTW FontManager::CreateExtraBoldFont() const { return CreateLogFont(16, FW_EXTRABOLD); }
 LOGFONTW FontManager::CreateBlackFont() const { return CreateLogFont(16, FW_BLACK); }
 
-// ÑùÊ½±äÌåÊµÏÖ
+// æ ·å¼å˜ä½“å®ç°
 LOGFONTW FontManager::CreateItalicFont() const { return CreateLogFont(16, FW_NORMAL, true); }
 LOGFONTW FontManager::CreateBoldItalicFont() const { return CreateLogFont(16, FW_BOLD, true); }
 LOGFONTW FontManager::CreateUnderlineFont() const { return CreateLogFont(16, FW_NORMAL, false, true); }
 
-// ×ÖÌå¾ä±ú´´½¨
+// å­—ä½“å¥æŸ„åˆ›å»º
 HFONT FontManager::CreateFontFromLogFont(const LOGFONTW& logFont) const {
     return CreateFontIndirectW(&logFont);
 }
@@ -362,7 +362,7 @@ HFONT FontManager::CreateFontHandle(int height, int weight, bool italic, bool un
     return CreateFontIndirectW(&logFont);
 }
 
-// ×´Ì¬²éÑ¯
+// çŠ¶æ€æŸ¥è¯¢
 bool FontManager::IsLoaded() const { 
     return m_isLoaded; 
 }
@@ -375,14 +375,14 @@ const std::string FontManager::GetTTFFileName() const {
     return std::string(m_ttfFileName.begin(), m_ttfFileName.end()); 
 }
 
-// ¹¤¾ß·½·¨
+// å·¥å…·æ–¹æ³•
 void FontManager::PrintFontInfo(const LOGFONTW& logFont) const {
     std::wcout << L"=== LOGFONTW Information ===" << std::endl;
     std::wcout << L"Font Name: " << logFont.lfFaceName << std::endl;
     std::wcout << L"Height: " << logFont.lfHeight << std::endl;
     std::wcout << L"Weight: " << logFont.lfWeight;
     
-    // ×ÖÖØËµÃ÷
+    // å­—é‡è¯´æ˜
     if (logFont.lfWeight <= FW_THIN) std::wcout << L" (Thin)";
     else if (logFont.lfWeight <= FW_LIGHT) std::wcout << L" (Light)";
     else if (logFont.lfWeight <= FW_NORMAL) std::wcout << L" (Normal)";
@@ -444,7 +444,7 @@ void FontManager::PrintFontMetrics(HDC hdc) const {
     }
 }
 
-// Ë½ÓĞ·½·¨£ºĞ¶ÔØ×ÖÌå
+// ç§æœ‰æ–¹æ³•ï¼šå¸è½½å­—ä½“
 void FontManager::UnloadFont() {
     if (m_hFontResource) {
         RemoveFontMemResourceEx(m_hFontResource);

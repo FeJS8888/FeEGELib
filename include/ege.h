@@ -1,4 +1,4 @@
-/*********************************************************
+﻿/*********************************************************
  * EGE (Easy Graphics Engine)  24.04
  * FileName:    ege.h
  * Website:     https://xege.org
@@ -4074,7 +4074,7 @@ void           EGEAPI delimage(PCIMAGE pimg);
 /**
  * @brief Get image pixel buffer pointer
  * @param pimg Image object pointer to get buffer from, default is NULL (represents window)
- * @return First address of image buffer, buffer is one-dimensional array with size = image width × image height
+ * @return First address of image buffer, buffer is one-dimensional array with size = image width 脳 image height
  * @note Pixel at coordinate (x, y) corresponds to buffer index: buffer[y * width + x]
  * @note Returned pointer can directly manipulate pixel data, changes take effect immediately
  */
@@ -4083,7 +4083,7 @@ color_t*       EGEAPI getbuffer(PIMAGE pimg);
 /**
  * @brief Get image pixel buffer pointer (read-only version)
  * @param pimg Image object pointer to get buffer from, default is NULL (represents window)
- * @return First address of image buffer (read-only), buffer is one-dimensional array with size = image width × image height
+ * @return First address of image buffer (read-only), buffer is one-dimensional array with size = image width 脳 image height
  * @note Pixel at coordinate (x, y) corresponds to buffer index: buffer[y * width + x]
  * @note Returned pointer can only read pixel data, cannot modify
  */

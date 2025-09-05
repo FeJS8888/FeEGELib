@@ -1,6 +1,6 @@
-/**
+ï»¿/**
  * @file Widget.h
- * @brief °üº¬¸÷ÖÖUI¿Ø¼şµÄÉùÃ÷£¨°´Å¥¡¢ÊäÈë¿ò¡¢»¬¶¯Ìõ¡¢ÎÄ±¾µÈ£©
+ * @brief åŒ…å«å„ç§UIæ§ä»¶çš„å£°æ˜ï¼ˆæŒ‰é’®ã€è¾“å…¥æ¡†ã€æ»‘åŠ¨æ¡ã€æ–‡æœ¬ç­‰ï¼‰
  * @author FeJS8888
  */
 
@@ -12,12 +12,12 @@
 using namespace FeEGE;
 
 /**
- * @brief ËùÓĞ¿É»æÖÆ¿Ø¼şµÄ»ùÀà
+ * @brief æ‰€æœ‰å¯ç»˜åˆ¶æ§ä»¶çš„åŸºç±»
  */
 class Widget {
 public:
     /**
-     * @brief ĞéÎö¹¹£¬±£Ö¤×ÓÀàÎö¹¹Õı³£µ÷ÓÃ
+     * @brief è™šææ„ï¼Œä¿è¯å­ç±»ææ„æ­£å¸¸è°ƒç”¨
      */
     virtual ~Widget();
     
@@ -25,10 +25,10 @@ public:
     bool is_global = true;
 
     /**
-     * @brief »æÖÆ¿Ø¼şµ½Ö¸¶¨Í¼Ïñ
-     * @param dst »æÖÆÄ¿±êÍ¼Ïñ
-     * @param offsetX ¿Ø¼şÖĞĞÄ x ×ø±ê£¨Ïà¶ÔÓÚ dst£©
-     * @param offsetY ¿Ø¼şÖĞĞÄ y ×ø±ê£¨Ïà¶ÔÓÚ dst£©
+     * @brief ç»˜åˆ¶æ§ä»¶åˆ°æŒ‡å®šå›¾åƒ
+     * @param dst ç»˜åˆ¶ç›®æ ‡å›¾åƒ
+     * @param offsetX æ§ä»¶ä¸­å¿ƒ x åæ ‡ï¼ˆç›¸å¯¹äº dstï¼‰
+     * @param offsetY æ§ä»¶ä¸­å¿ƒ y åæ ‡ï¼ˆç›¸å¯¹äº dstï¼‰
      */
     virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
     virtual void draw() = 0;
@@ -38,42 +38,42 @@ public:
     virtual void setScale(double s) = 0;
 
 protected:
-    int cx, cy;  ///< ÖĞĞÄ×ø±ê
+    int cx, cy;  ///< ä¸­å¿ƒåæ ‡
     double width, height;
     double scale = 1;
 };
 
 /**
- * @brief Ô²½ÇÃæ°å¿Ø¼şÀà£¬Ö§³ÖÇ¶Ì××Ó¿Ø¼ş
+ * @brief åœ†è§’é¢æ¿æ§ä»¶ç±»ï¼Œæ”¯æŒåµŒå¥—å­æ§ä»¶
  */
 class Panel : public Widget {
 public:
     /**
-     * @brief ¹¹Ôìº¯Êı
-     * @param cx Ãæ°åÖĞĞÄ x ×ø±ê
-     * @param cy Ãæ°åÖĞĞÄ y ×ø±ê
-     * @param w ¿í¶È
-     * @param h ¸ß¶È
-     * @param r Ô²½Ç°ë¾¶
-     * @param bg ±³¾°ÑÕÉ«
+     * @brief æ„é€ å‡½æ•°
+     * @param cx é¢æ¿ä¸­å¿ƒ x åæ ‡
+     * @param cy é¢æ¿ä¸­å¿ƒ y åæ ‡
+     * @param w å®½åº¦
+     * @param h é«˜åº¦
+     * @param r åœ†è§’åŠå¾„
+     * @param bg èƒŒæ™¯é¢œè‰²
      */
     Panel(int cx, int cy, double w, double h, double r, color_t bg);
     
     ~Panel();
 
     /**
-     * @brief Ìí¼Ó×Ó¿Ø¼ş
-     * @param child ¿Ø¼şÖ¸Õë
-     * @param offsetX Ïà¶ÔÓÚÃæ°åÖĞĞÄµÄ x Æ«ÒÆ
-     * @param offsetY Ïà¶ÔÓÚÃæ°åÖĞĞÄµÄ y Æ«ÒÆ
+     * @brief æ·»åŠ å­æ§ä»¶
+     * @param child æ§ä»¶æŒ‡é’ˆ
+     * @param offsetX ç›¸å¯¹äºé¢æ¿ä¸­å¿ƒçš„ x åç§»
+     * @param offsetY ç›¸å¯¹äºé¢æ¿ä¸­å¿ƒçš„ y åç§»
      */
     void addChild(Widget* child, double offsetX, double offsetY);
 
     /**
-     * @brief »æÖÆ Panel µ½Ö¸¶¨Í¼²ã
-     * @param dst Ä¿±êÍ¼Ïñ
-     * @param x Õ³Ìùµ½ dst ÖĞµÄÖĞĞÄ x ×ø±ê
-     * @param y Õ³Ìùµ½ dst ÖĞµÄÖĞĞÄ y ×ø±ê
+     * @brief ç»˜åˆ¶ Panel åˆ°æŒ‡å®šå›¾å±‚
+     * @param dst ç›®æ ‡å›¾åƒ
+     * @param x ç²˜è´´åˆ° dst ä¸­çš„ä¸­å¿ƒ x åæ ‡
+     * @param y ç²˜è´´åˆ° dst ä¸­çš„ä¸­å¿ƒ y åæ ‡
      */
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
@@ -104,58 +104,58 @@ private:
     PIMAGE maskLayer = newimage(width,height);
 
     std::vector<Widget*> children;
-    std::vector<Position> childOffsets;  ///< Ã¿¸ö×Ó¿Ø¼şµÄÏà¶ÔÆ«ÒÆ£¨ÒÔÃæ°åÖĞĞÄÎª²Î¿¼£©
+    std::vector<Position> childOffsets;  ///< æ¯ä¸ªå­æ§ä»¶çš„ç›¸å¯¹åç§»ï¼ˆä»¥é¢æ¿ä¸­å¿ƒä¸ºå‚è€ƒï¼‰
 };
 
 /**
- * @brief ²¨ÎÆ¶¯»­Ğ§¹û½á¹¹Ìå
+ * @brief æ³¢çº¹åŠ¨ç”»æ•ˆæœç»“æ„ä½“
  */
 struct Ripple{
-    int x, y;           ///< ²¨ÎÆÖĞĞÄ×ø±ê
-    int maxRadius;      ///< ×î´ó°ë¾¶
-    int life;           ///< ÉúÃüÖÜÆÚ
-    int age = 0;        ///< µ±Ç°ÄêÁä
+    int x, y;           ///< æ³¢çº¹ä¸­å¿ƒåæ ‡
+    int maxRadius;      ///< æœ€å¤§åŠå¾„
+    int life;           ///< ç”Ÿå‘½å‘¨æœŸ
+    int age = 0;        ///< å½“å‰å¹´é¾„
 
     /**
-     * @brief ¹¹Ôìº¯Êı
-     * @param _x ÖĞĞÄx×ø±ê
-     * @param _y ÖĞĞÄy×ø±ê
-     * @param _r ×î´ó°ë¾¶
-     * @param _life ÉúÃüÖÜÆÚ
+     * @brief æ„é€ å‡½æ•°
+     * @param _x ä¸­å¿ƒxåæ ‡
+     * @param _y ä¸­å¿ƒyåæ ‡
+     * @param _r æœ€å¤§åŠå¾„
+     * @param _life ç”Ÿå‘½å‘¨æœŸ
      */
     Ripple(int _x, int _y, int _r, int _life);
 
     /**
-     * @brief ¼ì²é²¨ÎÆÊÇ·ñ´æ»î
-     * @return ÊÇ·ñ´æ»î
+     * @brief æ£€æŸ¥æ³¢çº¹æ˜¯å¦å­˜æ´»
+     * @return æ˜¯å¦å­˜æ´»
      */
     bool alive() const;
 
     /**
-     * @brief ¸üĞÂ²¨ÎÆ×´Ì¬
+     * @brief æ›´æ–°æ³¢çº¹çŠ¶æ€
      */
     void update();
 
     /**
-     * @brief »æÖÆ²¨ÎÆ
-     * @param dst Ä¿±êÍ¼Ïñ
+     * @brief ç»˜åˆ¶æ³¢çº¹
+     * @param dst ç›®æ ‡å›¾åƒ
      */
     void draw(PIMAGE dst,double scale) const;
 };
 
 /**
- * @brief °´Å¥¿Ø¼şÀà
+ * @brief æŒ‰é’®æ§ä»¶ç±»
  */
 class Button : public Widget {
 private:
-    double radius;             ///< Ô²½Ç°ë¾¶
+    double radius;             ///< åœ†è§’åŠå¾„
     double origin_width, origin_height;
     double origin_radius;
-    double left, top;          ///< ×óÉÏ½Ç×ø±ê
-    std::vector<Ripple> ripples; ///< ²¨ÎÆĞ§¹û¼¯ºÏ
-    PIMAGE btnLayer = nullptr;  ///< °´Å¥Í¼²ã
-    PIMAGE maskLayer = nullptr; ///< ÕÚÕÖÍ¼²ã
-    PIMAGE bgLayer = nullptr; ///< ±³¾°Í¼²ã
+    double left, top;          ///< å·¦ä¸Šè§’åæ ‡
+    std::vector<Ripple> ripples; ///< æ³¢çº¹æ•ˆæœé›†åˆ
+    PIMAGE btnLayer = nullptr;  ///< æŒ‰é’®å›¾å±‚
+    PIMAGE maskLayer = nullptr; ///< é®ç½©å›¾å±‚
+    PIMAGE bgLayer = nullptr; ///< èƒŒæ™¯å›¾å±‚
     std::wstring content;
     std::function<void(void)> on_click_event = nullptr;
     color_t color;
@@ -165,30 +165,30 @@ private:
 
 public:
     /**
-     * @brief ¹¹Ôìº¯Êı
-     * @param cx ÖĞĞÄx×ø±ê
-     * @param cy ÖĞĞÄy×ø±ê
-     * @param w ¿í¶È
-     * @param h ¸ß¶È
-     * @param r Ô²½Ç°ë¾¶
+     * @brief æ„é€ å‡½æ•°
+     * @param cx ä¸­å¿ƒxåæ ‡
+     * @param cy ä¸­å¿ƒyåæ ‡
+     * @param w å®½åº¦
+     * @param h é«˜åº¦
+     * @param r åœ†è§’åŠå¾„
      */
     Button(int cx, int cy, double w, double h, double r);
 
     /**
-     * @brief Îö¹¹º¯Êı
+     * @brief ææ„å‡½æ•°
      */
     virtual ~Button();
 
     /**
-     * @brief »æÖÆ°´Å¥
-     * @param content °´Å¥ÎÄ±¾
+     * @brief ç»˜åˆ¶æŒ‰é’®
+     * @param content æŒ‰é’®æ–‡æœ¬
      */
     virtual void draw(PIMAGE dst,int x,int y) override;
     virtual void draw() override;
 
     /**
-     * @brief ´¦ÀíÊó±êÊÂ¼ş
-     * @param msg Êó±êÏûÏ¢
+     * @brief å¤„ç†é¼ æ ‡äº‹ä»¶
+     * @param msg é¼ æ ‡æ¶ˆæ¯
      */
     virtual void handleEvent(const mouse_msg& msg);
     
@@ -196,10 +196,10 @@ public:
     std::wstring getContent();
 
     /**
-     * @brief ¼ì²éµãÊÇ·ñÔÚ°´Å¥ÄÚ
-     * @param x x×ø±ê
-     * @param y y×ø±ê
-     * @return ÊÇ·ñÔÚ°´Å¥ÄÚ
+     * @brief æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨æŒ‰é’®å†…
+     * @param x xåæ ‡
+     * @param y yåæ ‡
+     * @return æ˜¯å¦åœ¨æŒ‰é’®å†…
      */
     bool isInside(int x, int y) const;
     
@@ -217,20 +217,20 @@ public:
 };
 
 /**
- * @brief ÊäÈë¿ò¿Ø¼şÀà
+ * @brief è¾“å…¥æ¡†æ§ä»¶ç±»
  */
 class InputBox : public Widget {
 private:
-    double radius;            ///< Ô²½Ç°ë¾¶
+    double radius;            ///< åœ†è§’åŠå¾„
     double origin_width, origin_height;
     double origin_radius;
-    double left, top;         ///< ×óÉÏ½Ç×ø±ê
-    std::vector<Ripple> ripples; ///< ²¨ÎÆĞ§¹û¼¯ºÏ
-    PIMAGE btnLayer = nullptr;  ///< °´Å¥Í¼²ã
-    PIMAGE maskLayer = nullptr; ///< ÕÚÕÖÍ¼²ã
-    std::wstring content;   ///< ÊäÈëÄÚÈİ
-    FeEGE::sys_edit inv;   ///< ÊäÈë¿Ø¼ş
-    bool on_focus;         ///< ÊÇ·ñ»ñµÃ½¹µã
+    double left, top;         ///< å·¦ä¸Šè§’åæ ‡
+    std::vector<Ripple> ripples; ///< æ³¢çº¹æ•ˆæœé›†åˆ
+    PIMAGE btnLayer = nullptr;  ///< æŒ‰é’®å›¾å±‚
+    PIMAGE maskLayer = nullptr; ///< é®ç½©å›¾å±‚
+    std::wstring content;   ///< è¾“å…¥å†…å®¹
+    FeEGE::sys_edit inv;   ///< è¾“å…¥æ§ä»¶
+    bool on_focus;         ///< æ˜¯å¦è·å¾—ç„¦ç‚¹
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
 
@@ -244,58 +244,58 @@ private:
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
-    int dragSide = 0; // -1=×ó³ö½ç£¬1=ÓÒ³ö½ç£¬0=ÎŞ
+    int dragSide = 0; // -1=å·¦å‡ºç•Œï¼Œ1=å³å‡ºç•Œï¼Œ0=æ— 
     double lastDragTick = 0.0;
-    const double DRAG_ADVANCE_INTERVAL = 0.05; // ×Ô¶¯ÍÆ½ø¼ä¸ô£¬µ¥Î»Ãë
+    const double DRAG_ADVANCE_INTERVAL = 0.05; // è‡ªåŠ¨æ¨è¿›é—´éš”ï¼Œå•ä½ç§’
     const float padding = 14;
 
-    LOGFONT m_font; // ÊäÈë¿ò×ÖÌå
+    LOGFONT m_font; // è¾“å…¥æ¡†å­—ä½“
 
 public:
     /**
-     * @brief ¹¹Ôìº¯Êı
-     * @param cx ÖĞĞÄx×ø±ê
-     * @param cy ÖĞĞÄy×ø±ê
-     * @param w ¿í¶È
-     * @param h ¸ß¶È
-     * @param r Ô²½Ç°ë¾¶
+     * @brief æ„é€ å‡½æ•°
+     * @param cx ä¸­å¿ƒxåæ ‡
+     * @param cy ä¸­å¿ƒyåæ ‡
+     * @param w å®½åº¦
+     * @param h é«˜åº¦
+     * @param r åœ†è§’åŠå¾„
      */
     InputBox(int cx, int cy, double w, double h, double r);
 
     /**
-     * @brief Îö¹¹º¯Êı
+     * @brief ææ„å‡½æ•°
      */
     virtual ~InputBox();
 
     /**
-     * @brief »æÖÆÊäÈë¿ò
+     * @brief ç»˜åˆ¶è¾“å…¥æ¡†
      */
     virtual void draw(PIMAGE dst,int x,int y) override;
     virtual void draw() override;
 
     /**
-     * @brief ´¦ÀíÊó±êÊÂ¼ş
-     * @param msg Êó±êÏûÏ¢
+     * @brief å¤„ç†é¼ æ ‡äº‹ä»¶
+     * @param msg é¼ æ ‡æ¶ˆæ¯
      */
     virtual void handleEvent(const mouse_msg& msg);
 
     /**
-     * @brief ¼ì²éµãÊÇ·ñÔÚÊäÈë¿òÄÚ
-     * @param x x×ø±ê
-     * @param y y×ø±ê
-     * @return ÊÇ·ñÔÚÊäÈë¿òÄÚ
+     * @brief æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨è¾“å…¥æ¡†å†…
+     * @param x xåæ ‡
+     * @param y yåæ ‡
+     * @return æ˜¯å¦åœ¨è¾“å…¥æ¡†å†…
      */
     bool isInside(int x, int y) const;
 
     /**
-     * @brief ÉèÖÃÊäÈëÄÚÈİ
-     * @param s ÄÚÈİ×Ö·û´®
+     * @brief è®¾ç½®è¾“å…¥å†…å®¹
+     * @param s å†…å®¹å­—ç¬¦ä¸²
      */
     void setContent(const std::wstring& s);
 
     /**
-     * @brief ÉèÖÃ×î´óÊäÈë³¤¶È
-     * @param maxlen ×î´ó³¤¶È
+     * @brief è®¾ç½®æœ€å¤§è¾“å…¥é•¿åº¦
+     * @param maxlen æœ€å¤§é•¿åº¦
      */
     void setMaxlen(int maxlen);
     
@@ -318,97 +318,97 @@ public:
 };
 
 enum class Orientation {
-    Row,    // ĞĞ·½Ïò£¨Ë®Æ½£©
-    Column  // ÁĞ·½Ïò£¨´¹Ö±£©
+    Row,    // è¡Œæ–¹å‘ï¼ˆæ°´å¹³ï¼‰
+    Column  // åˆ—æ–¹å‘ï¼ˆå‚ç›´ï¼‰
 };
 
 /**
- * @brief »¬¶¯Ìõ¿Ø¼şÀà
+ * @brief æ»‘åŠ¨æ¡æ§ä»¶ç±»
  */
 class Slider : public Widget {
 private:
     double left, top;
-    double radius;              ///< »¬¿é°ë¾¶
+    double radius;              ///< æ»‘å—åŠå¾„
     double origin_width, origin_height;
     double origin_radius;
-    int m_dragOffset;          ///< ÍÏ¶¯Æ«ÒÆÁ¿
-    double m_value;            ///< µ±Ç°Öµ(0.0-1.0)
-    bool m_dragging;           ///< ÊÇ·ñÕıÔÚÍÏ¶¯
-    color_t m_bgColor, m_fgColor; ///< ±³¾°ºÍÇ°¾°É«
-    std::function<void(double)> m_onChange; ///< Öµ¸Ä±ä»Øµ÷
-	bool m_hover = false;            ///< Êó±êÊÇ·ñĞüÍ£
-	bool m_pressed = false;          ///< ÊÇ·ñÕıÔÚ°´×¡
-	float m_scale = 1.0f;            ///< µ±Ç°Ëõ·Å±ÈÀı
+    int m_dragOffset;          ///< æ‹–åŠ¨åç§»é‡
+    double m_value;            ///< å½“å‰å€¼(0.0-1.0)
+    bool m_dragging;           ///< æ˜¯å¦æ­£åœ¨æ‹–åŠ¨
+    color_t m_bgColor, m_fgColor; ///< èƒŒæ™¯å’Œå‰æ™¯è‰²
+    std::function<void(double)> m_onChange; ///< å€¼æ”¹å˜å›è°ƒ
+	bool m_hover = false;            ///< é¼ æ ‡æ˜¯å¦æ‚¬åœ
+	bool m_pressed = false;          ///< æ˜¯å¦æ­£åœ¨æŒ‰ä½
+	float m_scale = 1.0f;            ///< å½“å‰ç¼©æ”¾æ¯”ä¾‹
 	double thickness = 4;
 	double origin_thickness = 4;
     bool needRedraw = true;
-    Orientation m_orientation = Orientation::Row; // ·½Ïò
-    float text_offset_x = 0; // ÎÄ±¾Ë®Æ½Æ«ÒÆÁ¿
-    float last_cursor_pos_width = 0; // ÉÏ´Î¹â±êÎ»ÖÃ£¬ÓÃÓÚÆ½»¬¹ö¶¯
+    Orientation m_orientation = Orientation::Row; // æ–¹å‘
+    float text_offset_x = 0; // æ–‡æœ¬æ°´å¹³åç§»é‡
+    float last_cursor_pos_width = 0; // ä¸Šæ¬¡å…‰æ ‡ä½ç½®ï¼Œç”¨äºå¹³æ»‘æ»šåŠ¨
 
 public:
     /**
-     * @brief Ä¬ÈÏ¹¹Ôìº¯Êı
+     * @brief é»˜è®¤æ„é€ å‡½æ•°
      */
     Slider();
 
     /**
-     * @brief ´´½¨»¬¶¯Ìõ
-     * @param x x×ø±ê
-     * @param y y×ø±ê
-     * @param w ¿í¶È
-     * @param h ¸ß¶È
+     * @brief åˆ›å»ºæ»‘åŠ¨æ¡
+     * @param x xåæ ‡
+     * @param y yåæ ‡
+     * @param w å®½åº¦
+     * @param h é«˜åº¦
      */
     void create(int x, int y, double w, double h);
 
     /**
-     * @brief »æÖÆ»¬¶¯Ìõ
+     * @brief ç»˜åˆ¶æ»‘åŠ¨æ¡
      */
     virtual void draw(PIMAGE dst,int x,int y) override ;
     virtual void draw();
     
     /**
-     * @brief ¼ì²éµãÊÇ·ñÔÚ»¬¿éÄÚ
-     * @param x x×ø±ê
-     * @param y y×ø±ê
-     * @return ÊÇ·ñÔÚÊäÈë¿òÄÚ
+     * @brief æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨æ»‘å—å†…
+     * @param x xåæ ‡
+     * @param y yåæ ‡
+     * @return æ˜¯å¦åœ¨è¾“å…¥æ¡†å†…
      */
     bool isInside(int x, int y);
 
     /**
-     * @brief ´¦ÀíÊó±êÊÂ¼ş
-     * @param msg Êó±êÏûÏ¢
+     * @brief å¤„ç†é¼ æ ‡äº‹ä»¶
+     * @param msg é¼ æ ‡æ¶ˆæ¯
      */
     virtual void handleEvent(const mouse_msg& msg);
 
     /**
-     * @brief ÉèÖÃ½ø¶ÈÖµ
-     * @param v ½ø¶ÈÖµ(0.0-1.0)
+     * @brief è®¾ç½®è¿›åº¦å€¼
+     * @param v è¿›åº¦å€¼(0.0-1.0)
      */
     void setProgress(double v);
 
     /**
-     * @brief »ñÈ¡µ±Ç°½ø¶ÈÖµ
-     * @return µ±Ç°½ø¶ÈÖµ
+     * @brief è·å–å½“å‰è¿›åº¦å€¼
+     * @return å½“å‰è¿›åº¦å€¼
      */
     double getProgress() const;
 
     /**
-     * @brief ÉèÖÃÑÕÉ«
-     * @param bg ±³¾°É«
-     * @param fg Ç°¾°É«
+     * @brief è®¾ç½®é¢œè‰²
+     * @param bg èƒŒæ™¯è‰²
+     * @param fg å‰æ™¯è‰²
      */
     void setColor(color_t bg, color_t fg);
     
     /**
-     * @brief ÉèÖÃ´ÖÏ¸
-     * @param t ´ÖÏ¸
+     * @brief è®¾ç½®ç²—ç»†
+     * @param t ç²—ç»†
      */
     void setThickness(double t);
 
     /**
-     * @brief ÉèÖÃÖµ¸Ä±ä»Øµ÷
-     * @param callback »Øµ÷º¯Êı
+     * @brief è®¾ç½®å€¼æ”¹å˜å›è°ƒ
+     * @param callback å›è°ƒå‡½æ•°
      */
     void setOnChange(std::function<void(double)> callback);
     
@@ -428,8 +428,8 @@ private:
     color_t bgColor = EGERGB(230, 230, 230);
     color_t fgColor = EGERGB(100, 180, 255);
 
-    double currentProgress = 0.0;  // µ±Ç°»æÖÆ½ø¶È
-    double targetProgress = 0.0;   // Êµ¼ÊÉèÖÃÄ¿±ê
+    double currentProgress = 0.0;  // å½“å‰ç»˜åˆ¶è¿›åº¦
+    double targetProgress = 0.0;   // å®é™…è®¾ç½®ç›®æ ‡
     bool needRedraw = true;
 
     PIMAGE barLayer = nullptr;
@@ -438,10 +438,10 @@ public:
     ProgressBar(int cx, int cy, double w, double h);
     ~ProgressBar();
 
-    void setProgress(double p);      // Ä¿±ê½ø¶È£¨0~1£©
-    double getProgress() const;      // ·µ»Ø target Öµ
-    void setColor(color_t fg);       // ÉèÖÃÇ°¾°ÑÕÉ«
-    void setBackground(color_t bg);  // ÉèÖÃ±³¾°ÑÕÉ«
+    void setProgress(double p);      // ç›®æ ‡è¿›åº¦ï¼ˆ0~1ï¼‰
+    double getProgress() const;      // è¿”å› target å€¼
+    void setColor(color_t fg);       // è®¾ç½®å‰æ™¯é¢œè‰²
+    void setBackground(color_t bg);  // è®¾ç½®èƒŒæ™¯é¢œè‰²
 
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
@@ -451,7 +451,7 @@ public:
 };
 
  /**
-  * @brief ÓÃÓÚ¹¹½¨ Panel ¶ÔÏóµÄ¹¹½¨Æ÷Àà
+  * @brief ç”¨äºæ„å»º Panel å¯¹è±¡çš„æ„å»ºå™¨ç±»
   */
 class PanelBuilder {
 public:
@@ -472,11 +472,11 @@ private:
     color_t bg = EGERGB(240, 240, 240);
     double scale = 1.0;
     std::vector<Widget*> children;
-    std::vector<Position> childOffsets;  ///< Ã¿¸ö×Ó¿Ø¼şµÄÏà¶ÔÆ«ÒÆ£¨ÒÔÃæ°åÖĞĞÄÎª²Î¿¼£©
+    std::vector<Position> childOffsets;  ///< æ¯ä¸ªå­æ§ä»¶çš„ç›¸å¯¹åç§»ï¼ˆä»¥é¢æ¿ä¸­å¿ƒä¸ºå‚è€ƒï¼‰
 };
 
 /**
- * @brief ÓÃÓÚ¹¹½¨ Button ¶ÔÏóµÄ¹¹½¨Æ÷Àà
+ * @brief ç”¨äºæ„å»º Button å¯¹è±¡çš„æ„å»ºå™¨ç±»
  */
 class ButtonBuilder {
 public:
@@ -506,7 +506,7 @@ private:
 };
 
 /**
- * @brief ÓÃÓÚ¹¹½¨ InputBox ¶ÔÏóµÄ¹¹½¨Æ÷Àà
+ * @brief ç”¨äºæ„å»º InputBox å¯¹è±¡çš„æ„å»ºå™¨ç±»
  */
 class InputBoxBuilder {
 public:
@@ -532,60 +532,60 @@ private:
 };
 
 /**
- * @brief ÓÃÓÚ¹¹½¨ Slider ¶ÔÏóµÄ¹¹½¨Æ÷Àà
+ * @brief ç”¨äºæ„å»º Slider å¯¹è±¡çš„æ„å»ºå™¨ç±»
  */
 class SliderBuilder {
 public:
     SliderBuilder& setIdentifier(const std::wstring& identifier);
     /**
-     * @brief ÉèÖÃÎ»ÖÃ
-     * @param cx ÖĞĞÄ x ×ø±ê
-     * @param cy ÖĞĞÄ y ×ø±ê
+     * @brief è®¾ç½®ä½ç½®
+     * @param cx ä¸­å¿ƒ x åæ ‡
+     * @param cy ä¸­å¿ƒ y åæ ‡
      */
     SliderBuilder& setCenter(int cx, int cy);
 
     /**
-     * @brief ÉèÖÃ³ß´ç
-     * @param w ¿í¶È
-     * @param h ¸ß¶È
+     * @brief è®¾ç½®å°ºå¯¸
+     * @param w å®½åº¦
+     * @param h é«˜åº¦
      */
     SliderBuilder& setSize(double w, double h);
 
     /**
-     * @brief ÉèÖÃÑÕÉ«
-     * @param bg ±³¾°É«
-     * @param fg Ç°¾°É«
+     * @brief è®¾ç½®é¢œè‰²
+     * @param bg èƒŒæ™¯è‰²
+     * @param fg å‰æ™¯è‰²
      */
     SliderBuilder& setColor(color_t bg, color_t fg);
 
     /**
-     * @brief ÉèÖÃ´ÖÏ¸
-     * @param t ´ÖÏ¸Öµ
+     * @brief è®¾ç½®ç²—ç»†
+     * @param t ç²—ç»†å€¼
      */
     SliderBuilder& setThickness(double t);
 
     /**
-     * @brief ÉèÖÃ³õÊ¼½ø¶È
-     * @param v ³õÊ¼Öµ (0.0~1.0)
+     * @brief è®¾ç½®åˆå§‹è¿›åº¦
+     * @param v åˆå§‹å€¼ (0.0~1.0)
      */
     SliderBuilder& setProgress(double v);
 
     /**
-     * @brief ÉèÖÃËõ·Å±ÈÀı
-     * @param s Ëõ·Å±ÈÀı
+     * @brief è®¾ç½®ç¼©æ”¾æ¯”ä¾‹
+     * @param s ç¼©æ”¾æ¯”ä¾‹
      */
     SliderBuilder& setScale(double s);
 
     /**
-     * @brief ÉèÖÃÖµ¸Ä±äÊ±µÄ»Øµ÷º¯Êı
-     * @param callback »Øµ÷º¯Êı
+     * @brief è®¾ç½®å€¼æ”¹å˜æ—¶çš„å›è°ƒå‡½æ•°
+     * @param callback å›è°ƒå‡½æ•°
      */
     SliderBuilder& setOnChange(std::function<void(double)> callback);
 
     SliderBuilder& setOrientation(Orientation ori);
 
     /**
-     * @brief ¹¹½¨²¢·µ»Ø Slider ¶ÔÏó
+     * @brief æ„å»ºå¹¶è¿”å› Slider å¯¹è±¡
      */
     Slider* build();
 
@@ -675,15 +675,15 @@ private:
     double width = 100, height = 40;
     double radius = 8;
     double scale = 1.0;
-    std::wstring content = L"²Ëµ¥";
+    std::wstring content = L"èœå•";
     color_t color = EGERGB(245, 245, 235);
 
     std::vector<std::pair<std::wstring, std::function<void()>>> optionList;
 };
 
 enum class RadioStyle {
-    Filled,  // ÊµĞÄ±³¾°
-    Outline  // ¿ÕĞÄÔ²
+    Filled,  // å®å¿ƒèƒŒæ™¯
+    Outline  // ç©ºå¿ƒåœ†
 };
 
 class Radio : public Widget {
@@ -706,13 +706,13 @@ private:
     double radius, scale = 1.0;
     double origin_radius;
     std::wstring value;
-    std::wstring groupValue;  // µ±Ç°×éÑ¡ÖĞµÄÖµ
+    std::wstring groupValue;  // å½“å‰ç»„é€‰ä¸­çš„å€¼
     std::wstring* groupValuePtr = nullptr;
     bool animIn = false;
     bool animOut = false;
     double animProgress = 0.0;
-    const double animSpeed = 1.0 / 16;  // ¿ØÖÆ¶¯»­Ö¡ÂÊ£¨16Ö¡£©
-    double lastScale = 1.0;  // ±£´æ×îºóÒ»Ö¡ scale£¬ÓÃÓÚ¶¯»­½áÊøºóÎÈ¶¨ÏÔÊ¾
+    const double animSpeed = 1.0 / 16;  // æ§åˆ¶åŠ¨ç”»å¸§ç‡ï¼ˆ16å¸§ï¼‰
+    double lastScale = 1.0;  // ä¿å­˜æœ€åä¸€å¸§ scaleï¼Œç”¨äºåŠ¨ç”»ç»“æŸåç¨³å®šæ˜¾ç¤º
     bool wasChecked = false;
     bool keepColor = false;
 
@@ -817,9 +817,9 @@ private:
     double width, height, scale = 1.0;
 
     bool checked = false;
-    double knobOffset = 0.0;     // ¶¯»­µ±Ç°Öµ
+    double knobOffset = 0.0;     // åŠ¨ç”»å½“å‰å€¼
     bool hovered = false;
-    double knobTarget = 0.0;     // ¶¯»­Ä¿±êÖµ
+    double knobTarget = 0.0;     // åŠ¨ç”»ç›®æ ‡å€¼
     bool pressedIn = false;
     bool disabled = false;
 
@@ -863,7 +863,7 @@ class Text : public Widget {
 public:
     Text(int x, int y, int maxWidth = 0);
 
-    void setContent(const std::wstring& text);      // UTF-8 / GBK ×Ô¶¯×ª»»
+    void setContent(const std::wstring& text);      // UTF-8 / GBK è‡ªåŠ¨è½¬æ¢
     void setMaxWidth(int width);
     void setFont(int size, const std::wstring& name = L"Consolas");
     void setColor(color_t col);
@@ -897,7 +897,7 @@ private:
     int textWidth = 0;
     int textHeight = 0;
     TextAlign align = TextAlign::Left;
-    int lineSpacing = 0; // ¶îÍâĞĞ¾à
+    int lineSpacing = 0; // é¢å¤–è¡Œè·
 };
 
 class TextBuilder {

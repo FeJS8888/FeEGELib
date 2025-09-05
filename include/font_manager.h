@@ -1,4 +1,4 @@
-#ifndef FONT_MANAGER_H
+ï»¿#ifndef FONT_MANAGER_H
 #define FONT_MANAGER_H
 
 #include <windows.h>
@@ -13,7 +13,7 @@ private:
     std::vector<BYTE> m_fontData;
     bool m_isLoaded;
     
-    // Ë½ÓĞ¸¨Öú·½·¨
+    // ç§æœ‰è¾…åŠ©æ–¹æ³•
     std::wstring FindTTFFile(const std::string& fileName) const;
     bool LoadTTFFromFile(const std::wstring& filePath);
     std::wstring ExtractFontFamilyName(const std::vector<BYTE>& fontData) const;
@@ -24,19 +24,19 @@ public:
     FontManager();
     ~FontManager();
     
-    // ½ûÓÃ¿½±´£¬ÔÊĞíÒÆ¶¯
+    // ç¦ç”¨æ‹·è´ï¼Œå…è®¸ç§»åŠ¨
     FontManager(const FontManager&) = delete;
     FontManager& operator=(const FontManager&) = delete;
     FontManager(FontManager&& other) noexcept;
     FontManager& operator=(FontManager&& other) noexcept;
     
-    // Ö÷Òª½Ó¿Ú£º¼ÓÔØÖ¸¶¨µÄTTFÎÄ¼ş
+    // ä¸»è¦æ¥å£ï¼šåŠ è½½æŒ‡å®šçš„TTFæ–‡ä»¶
     bool LoadFont(const std::string& ttfFileName);
     
-    // »ù´¡×ÖÌå´´½¨·½·¨
+    // åŸºç¡€å­—ä½“åˆ›å»ºæ–¹æ³•
     LOGFONTW CreateLogFont(int height = 16, int weight = FW_NORMAL, bool italic = false, bool underline = false) const;
     
-    // Ô¤Éè³ß´ç
+    // é¢„è®¾å°ºå¯¸
     LOGFONTW CreateTinyFont() const;      // 8px
     LOGFONTW CreateSmallFont() const;     // 10px
     LOGFONTW CreateNormalFont() const;    // 12px
@@ -47,7 +47,7 @@ public:
     LOGFONTW CreateHugeFont() const;      // 24px
     LOGFONTW CreateGiantFont() const;     // 32px
     
-    // ×ÖÖØ±äÌå£¨Ê¹ÓÃÄ¬ÈÏ³ß´ç16px£©
+    // å­—é‡å˜ä½“ï¼ˆä½¿ç”¨é»˜è®¤å°ºå¯¸16pxï¼‰
     LOGFONTW CreateThinFont() const;
     LOGFONTW CreateLightFont() const;
     LOGFONTW CreateSemiBoldFont() const;
@@ -55,22 +55,22 @@ public:
     LOGFONTW CreateExtraBoldFont() const;
     LOGFONTW CreateBlackFont() const;
     
-    // ÑùÊ½±äÌå
+    // æ ·å¼å˜ä½“
     LOGFONTW CreateItalicFont() const;
     LOGFONTW CreateBoldItalicFont() const;
     LOGFONTW CreateUnderlineFont() const;
     
-    // ×ÖÌå¾ä±ú´´½¨
+    // å­—ä½“å¥æŸ„åˆ›å»º
     HFONT CreateFontFromLogFont(const LOGFONTW& logFont) const;
     HFONT CreateFontHandle(int height = 16, int weight = FW_NORMAL, bool italic = false, bool underline = false) const;
     
-    // ¹¤¾ß·½·¨
+    // å·¥å…·æ–¹æ³•
     void PrintFontInfo(const LOGFONTW& logFont) const;
     bool TestFont() const;
     bool GetFontMetrics(HDC hdc, TEXTMETRICW& tm) const;
     void PrintFontMetrics(HDC hdc) const;
     
-    // ×´Ì¬²éÑ¯
+    // çŠ¶æ€æŸ¥è¯¢
     bool IsLoaded() const;
     const std::wstring& GetFontName() const;
     const std::string GetTTFFileName() const;

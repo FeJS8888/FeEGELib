@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file button.h
  * @brief the EGE control:button
  * @author StudyC.cn@gmail.com

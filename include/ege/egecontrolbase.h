@@ -1,4 +1,4 @@
-#ifndef EGECONTROLBASE_H
+﻿#ifndef EGECONTROLBASE_H
 #define EGECONTROLBASE_H
 
 #include "../ege.h"

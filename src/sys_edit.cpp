@@ -1,4 +1,4 @@
-#include "sys_edit.h"
+﻿#include "sys_edit.h"
 #include "FeEGELib.h"
 
 namespace FeEGE{

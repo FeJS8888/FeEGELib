@@ -1,4 +1,4 @@
-#ifndef EGE_LABEL_H
+﻿#ifndef EGE_LABEL_H
 #define EGE_LABEL_H
 
 #include "egecontrolbase.h"

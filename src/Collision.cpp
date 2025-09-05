@@ -1,4 +1,4 @@
-#include "Collision.h"
+ï»¿#include "Collision.h"
 #include "Base.h"
 #include "json.hpp"
 #include "Element.h"
@@ -15,12 +15,12 @@ namespace FeEGE {
 
 static PenetrationInfo last_info;
 
-// °²È«±È½Ï¸¡µãÊıÊÇ·ñ½Ó½üÁã
+// å®‰å…¨æ¯”è¾ƒæµ®ç‚¹æ•°æ˜¯å¦æ¥è¿‘é›¶
 static bool isZero(double val) {
     return std::abs(val) < std::numeric_limits<double>::epsilon();
 }
 
-// °²È«»ñÈ¡·ûºÅº¯Êı
+// å®‰å…¨è·å–ç¬¦å·å‡½æ•°
 static int sgnSafe(double val) {
     if (isZero(val)) {
         return 0;
@@ -30,13 +30,13 @@ static int sgnSafe(double val) {
 
 Position transformPoint(const Position& p, const Position& origin, double angle, double scale) {
 	angle = -angle;
-    // 1. Æ½ÒÆµ½Ô­µã
+    // 1. å¹³ç§»åˆ°åŸç‚¹
     Position translated = p - origin;
 
-    // 2. Ëõ·Å
+    // 2. ç¼©æ”¾
     translated = translated * scale;
 
-    // 3. Ğı×ª
+    // 3. æ—‹è½¬
     double cosA = std::cos(angle);
     double sinA = std::sin(angle);
     Position rotated(
@@ -44,7 +44,7 @@ Position transformPoint(const Position& p, const Position& origin, double angle,
         translated.x * sinA + translated.y * cosA
     );
 
-    // 4. Æ½ÒÆ»ØÈ¥
+    // 4. å¹³ç§»å›å»
     return (rotated + origin);
 }
 
@@ -64,7 +64,7 @@ std::vector<Position> transformPosition(const std::vector<Position>& shape, cons
     return result;
 }
 
-// Support º¯Êı
+// Support å‡½æ•°
 static Position support(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& dir) {
     auto getFarthestPoint = [](const std::vector<Position>& shape, const Position& dir) {
         double maxDot = -std::numeric_limits<double>::infinity();
@@ -84,7 +84,7 @@ static Position support(const std::vector<Position>& shapeA, const std::vector<P
     return p1 - p2;
 }
 
-// GJK simplex ¸üĞÂÂß¼­
+// GJK simplex æ›´æ–°é€»è¾‘
 static bool doSimplex(std::vector<Position>& simplex, Position& dir) {
     if (simplex.size() == 2) {
         Position B = simplex[0];
@@ -124,7 +124,7 @@ static bool doSimplex(std::vector<Position>& simplex, Position& dir) {
     return false;
 }
 
-// GJK Ö÷Ìå
+// GJK ä¸»ä½“
 static bool gjk(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, std::vector<Position>& simplex) {
     Position dir(1, 0);
     simplex.push_back(support(shapeA, shapeB, dir));
@@ -141,7 +141,7 @@ static bool gjk(const std::vector<Position>& shapeA, const std::vector<Position>
     }
 }
 
-// EPA ¸¨Öú½á¹¹
+// EPA è¾…åŠ©ç»“æ„
 class Edge {
 public:
     Position normal;
@@ -168,7 +168,7 @@ static Edge findClosestEdge(const std::vector<Position>& polytope) {
     return closest;
 }
 
-// EPA Ö÷Ìå
+// EPA ä¸»ä½“
 static PenetrationInfo epa(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, std::vector<Position>& simplex) {
     const double tolerance = 0.0001f;
     while (true) {
@@ -188,7 +188,7 @@ static PenetrationInfo epa(const std::vector<Position>& shapeA, const std::vecto
     }
 }
 
-// Íâ²¿½Ó¿Ú£ºÊÇ·ñÏà½»
+// å¤–éƒ¨æ¥å£ï¼šæ˜¯å¦ç›¸äº¤
 bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB) {
     std::vector<Position> simplex;
     if (gjk(shapeA, shapeB, simplex)) {
@@ -199,12 +199,12 @@ bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>&
     return false;
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»Ø×î½üÒ»´ÎÅö×²ĞÅÏ¢
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›æœ€è¿‘ä¸€æ¬¡ç¢°æ’ä¿¡æ¯
 const PenetrationInfo& getLastInfo() {
     return last_info;
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»ØÑØ·½ÏòdirÉÏµÄ´©Í¸Éî¶È£¨¼ÙÉèshapeAºÍshapeBÒÑ¾­Ïà½»£©
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›æ²¿æ–¹å‘dirä¸Šçš„ç©¿é€æ·±åº¦ï¼ˆå‡è®¾shapeAå’ŒshapeBå·²ç»ç›¸äº¤ï¼‰
 double getSeparateDistance(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB, const Position& direction) {
     if(isTouched(shapeA, shapeB)){
     	PenetrationInfo info = getLastInfo();
@@ -213,13 +213,13 @@ double getSeparateDistance(const std::vector<Position>& shapeA, const std::vecto
 	return 0.00;
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»ØÑØ·½ÏòdirÉÏµÄ¿ÉÒÆ¶¯¾àÀë
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›æ²¿æ–¹å‘dirä¸Šçš„å¯ç§»åŠ¨è·ç¦»
 double getSafeDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction){
     Position supportPt = support(shapeA, shapeB, direction);
     return supportPt.dot(direction);
 }
 
-// Íâ²¿½Ó¿Ú£º·µ»ØµãÊÇ·ñÔÚ¶à±ßĞÎÄÚ
+// å¤–éƒ¨æ¥å£ï¼šè¿”å›ç‚¹æ˜¯å¦åœ¨å¤šè¾¹å½¢å†…
 bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position& point) {
     int n = polygon.size();
     bool hasPositive = false;
@@ -233,12 +233,12 @@ bool isPointInConvexPolygon(const std::vector<Position>& polygon, const Position
         double cross = AB.x * AP.y - AB.y * AP.x;
         if (sgnSafe(cross) > 0) hasPositive = true;
         if (sgnSafe(cross) < 0) hasNegative = true;
-        if (hasPositive && hasNegative) return false; // ²»ÔÚÍ¬²à
+        if (hasPositive && hasNegative) return false; // ä¸åœ¨åŒä¾§
     }
     return true;
 }
 
-// Íâ²¿½Ó¿Ú£º´Ó JSON ¶ÁÈ¡¶à±ßĞÎ
+// å¤–éƒ¨æ¥å£ï¼šä» JSON è¯»å–å¤šè¾¹å½¢
 std::vector<Position> readPolygonFromJSON(const std::string& file, const std::string& id) {
     std::ifstream in(resolvePath(file));
     json dat = json::parse(in);

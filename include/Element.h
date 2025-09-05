@@ -1,777 +1,777 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Base.h"
 #include "Collision.h"
 #include "Widget.h"
 
 #ifndef MAXCLONESCOUNT
-#define MAXCLONESCOUNT 100   ///< ×î´ó¿ËÂ¡ÊıÁ¿Ä¬ÈÏÖµ
+#define MAXCLONESCOUNT 100   ///< æœ€å¤§å…‹éš†æ•°é‡é»˜è®¤å€¼
 #endif
 
 #ifndef MAXELEMENTCOUNT
-#define MAXELEMENTCOUNT 100  ///< ×î´óÔªËØÊıÁ¿Ä¬ÈÏÖµ
+#define MAXELEMENTCOUNT 100  ///< æœ€å¤§å…ƒç´ æ•°é‡é»˜è®¤å€¼
 #endif
 
-#define leftButton VK_LBUTTON  ///< Êó±ê×ó¼üºê¶¨Òå
-#define debugger printf             ///< ÈÕÖ¾Êä³öºê
-#define pie 3.141592653589793238462643383279502f  ///< Ô²ÖÜÂÊ¶¨Òå
+#define leftButton VK_LBUTTON  ///< é¼ æ ‡å·¦é”®å®å®šä¹‰
+#define debugger printf             ///< æ—¥å¿—è¾“å‡ºå®
+#define pie 3.141592653589793238462643383279502f  ///< åœ†å‘¨ç‡å®šä¹‰
 
-#define initXY() {WIDTH = getwidth();HEIGHT = getheight();}  ///< ³õÊ¼»¯ÆÁÄ»³ß´çºê
-#define X WIDTH  ///< ÆÁÄ»¿í¶Èºê
-#define Y HEIGHT ///< ÆÁÄ»¸ß¶Èºê
+#define initXY() {WIDTH = getwidth();HEIGHT = getheight();}  ///< åˆå§‹åŒ–å±å¹•å°ºå¯¸å®
+#define X WIDTH  ///< å±å¹•å®½åº¦å®
+#define Y HEIGHT ///< å±å¹•é«˜åº¦å®
 
 #ifdef bigScreen
-#define getkey GetAsyncKeyState  ///< ´óÆÁÄ»Ä£Ê½ÏÂµÄ°´¼ü¼ì²âºê
+#define getkey GetAsyncKeyState  ///< å¤§å±å¹•æ¨¡å¼ä¸‹çš„æŒ‰é”®æ£€æµ‹å®
 #endif
 
 using namespace std;
 using namespace FeEGE;
 
-const double eps = 1e-7;       ///< ¸¡µãÊı±È½Ï¾«¶È
-extern double globalRating;    ///< È«¾ÖÆÀ·Ö±äÁ¿
+const double eps = 1e-7;       ///< æµ®ç‚¹æ•°æ¯”è¾ƒç²¾åº¦
+extern double globalRating;    ///< å…¨å±€è¯„åˆ†å˜é‡
 
-// Ç°ÏòÉùÃ÷
+// å‰å‘å£°æ˜
 class Element;
 class InputBox;
 class InputBoxSet;
 
 /**
- * @brief ×¢²áÔªËØµ½¹ÜÀíÏµÍ³
- * @param element Òª×¢²áµÄÔªËØÖ¸Õë
+ * @brief æ³¨å†Œå…ƒç´ åˆ°ç®¡ç†ç³»ç»Ÿ
+ * @param element è¦æ³¨å†Œçš„å…ƒç´ æŒ‡é’ˆ
  */
 void regElement(Element* element);
 
 /**
- * @brief ´´½¨ĞÂÔªËØ(PIMAGE°æ±¾)
- * @param id ÔªËØID
- * @param image ÔªËØÍ¼Ïñ
- * @param x x×ø±ê
- * @param y y×ø±ê
- * @return ´´½¨µÄÔªËØÖ¸Õë
+ * @brief åˆ›å»ºæ–°å…ƒç´ (PIMAGEç‰ˆæœ¬)
+ * @param id å…ƒç´ ID
+ * @param image å…ƒç´ å›¾åƒ
+ * @param x xåæ ‡
+ * @param y yåæ ‡
+ * @return åˆ›å»ºçš„å…ƒç´ æŒ‡é’ˆ
  */
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0);
 
 /**
- * @brief ´´½¨ĞÂÔªËØ(ÎÄ¼şÂ·¾¶°æ±¾)
- * @param id ÔªËØID
- * @param imagePath Í¼ÏñÎÄ¼şÂ·¾¶
- * @param x x×ø±ê
- * @param y y×ø±ê
- * @return ´´½¨µÄÔªËØÖ¸Õë
+ * @brief åˆ›å»ºæ–°å…ƒç´ (æ–‡ä»¶è·¯å¾„ç‰ˆæœ¬)
+ * @param id å…ƒç´ ID
+ * @param imagePath å›¾åƒæ–‡ä»¶è·¯å¾„
+ * @param x xåæ ‡
+ * @param y yåæ ‡
+ * @return åˆ›å»ºçš„å…ƒç´ æŒ‡é’ˆ
  */
 Element* newElement(string id,string imagePath,double x = 0,double y = 0);
 
 PIMAGE getImage(const string& imagePath);
 
-// È«¾Ö±äÁ¿ÉùÃ÷
-extern bool isKey;                                   ///< °´¼ü×´Ì¬±êÖ¾
-extern key_msg keyMsg;                               ///< °´¼üÏûÏ¢
-extern bool mouseHit;                                ///< Êó±êµã»÷±êÖ¾
-extern bool needSort;                                ///< ĞèÒªÅÅĞò±êÖ¾
-extern bool regPause;                                ///< ×¢²áÔİÍ£±êÖ¾
-extern mouse_msg mouseInfo;                          ///< Êó±êĞÅÏ¢
-extern bool keyStatus[360];                          ///< °´¼ü×´Ì¬Êı×é
-extern map<string,function<void(void)>> globalListenFrameFunctionSet;      ///< È«¾ÖÖ¡¼àÌıº¯Êı¼¯ºÏ
-extern map<string,function<void(void)>> globalListenOnClickFunctionSet;    ///< È«¾Öµã»÷¼àÌıº¯Êı¼¯ºÏ
-extern map<int,bool> vkState;                        ///< ĞéÄâ¼ü×´Ì¬Ó³Éä
-extern set<string> ElementListenStoppedSet;			 ///< ¼àÌıÊÂ¼şÔİÍ£ÁĞ±í 
+// å…¨å±€å˜é‡å£°æ˜
+extern bool isKey;                                   ///< æŒ‰é”®çŠ¶æ€æ ‡å¿—
+extern key_msg keyMsg;                               ///< æŒ‰é”®æ¶ˆæ¯
+extern bool mouseHit;                                ///< é¼ æ ‡ç‚¹å‡»æ ‡å¿—
+extern bool needSort;                                ///< éœ€è¦æ’åºæ ‡å¿—
+extern bool regPause;                                ///< æ³¨å†Œæš‚åœæ ‡å¿—
+extern mouse_msg mouseInfo;                          ///< é¼ æ ‡ä¿¡æ¯
+extern bool keyStatus[360];                          ///< æŒ‰é”®çŠ¶æ€æ•°ç»„
+extern map<string,function<void(void)>> globalListenFrameFunctionSet;      ///< å…¨å±€å¸§ç›‘å¬å‡½æ•°é›†åˆ
+extern map<string,function<void(void)>> globalListenOnClickFunctionSet;    ///< å…¨å±€ç‚¹å‡»ç›‘å¬å‡½æ•°é›†åˆ
+extern map<int,bool> vkState;                        ///< è™šæ‹Ÿé”®çŠ¶æ€æ˜ å°„
+extern set<string> ElementListenStoppedSet;			 ///< ç›‘å¬äº‹ä»¶æš‚åœåˆ—è¡¨ 
 
-extern int WIDTH;    ///< ÆÁÄ»¿í¶È
-extern int HEIGHT;   ///< ÆÁÄ»¸ß¶È
+extern int WIDTH;    ///< å±å¹•å®½åº¦
+extern int HEIGHT;   ///< å±å¹•é«˜åº¦
 
-extern vector<function<void(void)> > schedule;                          ///< µ÷¶Èº¯ÊıÁĞ±í
-extern map<double,vector<function<void(void)> > > scheduleTimeOut;      ///< ¶¨Ê±µ÷¶Èº¯ÊıÓ³Éä
-extern int __SIZE__;                     ///< µ±Ç°´óĞ¡
-extern int removeSize;                   ///< ÒÆ³ı´óĞ¡
-extern bool closeGraph;                  ///< ¹Ø±ÕÍ¼ĞÎ±êÖ¾
+extern vector<function<void(void)> > schedule;                          ///< è°ƒåº¦å‡½æ•°åˆ—è¡¨
+extern map<double,vector<function<void(void)> > > scheduleTimeOut;      ///< å®šæ—¶è°ƒåº¦å‡½æ•°æ˜ å°„
+extern int __SIZE__;                     ///< å½“å‰å¤§å°
+extern int removeSize;                   ///< ç§»é™¤å¤§å°
+extern bool closeGraph;                  ///< å…³é—­å›¾å½¢æ ‡å¿—
 
-extern PIMAGE pen_image;                 ///< »­±ÊÍ¼Ïñ
-extern PIMAGE textpen_image;                 ///< ÎÄ×Ö»­±ÊÍ¼Ïñ
+extern PIMAGE pen_image;                 ///< ç”»ç¬”å›¾åƒ
+extern PIMAGE textpen_image;                 ///< æ–‡å­—ç”»ç¬”å›¾åƒ
 
-extern unordered_map<string,Element*>idToElement;    ///< IDµ½ÔªËØµÄÓ³Éä
-extern unordered_map<Element*,bool>elementIsIn;      ///< ÔªËØ´æÔÚ±êÖ¾
+extern unordered_map<string,Element*>idToElement;    ///< IDåˆ°å…ƒç´ çš„æ˜ å°„
+extern unordered_map<Element*,bool>elementIsIn;      ///< å…ƒç´ å­˜åœ¨æ ‡å¿—
 
 /**
- * @brief ·ûºÅº¯Êı
- * @param x ÊäÈëÖµ
+ * @brief ç¬¦å·å‡½æ•°
+ * @param x è¾“å…¥å€¼
  * @return 1(x>0), -1(x<0), 0(x=0)
  */
 int sgn(double x);
 
 /**
  * @namespace FeEGE
- * @brief FeEGE¿âµÄºËĞÄ¹¦ÄÜÃüÃû¿Õ¼ä
+ * @brief FeEGEåº“çš„æ ¸å¿ƒåŠŸèƒ½å‘½åç©ºé—´
  */
 namespace FeEGE {
-	extern Position lastPixel, mousePos;  ///< È«¾Ö±äÁ¿£ºÉÏÒ»¸öÏñËØÎ»ÖÃºÍÊó±êÎ»ÖÃ
+	extern Position lastPixel, mousePos;  ///< å…¨å±€å˜é‡ï¼šä¸Šä¸€ä¸ªåƒç´ ä½ç½®å’Œé¼ æ ‡ä½ç½®
     #ifndef bigScreen
     /**
-     * @brief ÄÚÖÃ°´¼ü¼ì²âº¯Êı
-     * @return ÊÇ·ñÓĞ°´¼ü°´ÏÂ
+     * @brief å†…ç½®æŒ‰é”®æ£€æµ‹å‡½æ•°
+     * @return æ˜¯å¦æœ‰æŒ‰é”®æŒ‰ä¸‹
      */
     void builtinGetKey();
     
     /**
-     * @brief ¼ì²âÖ¸¶¨°´¼ü×´Ì¬
-     * @param VK ĞéÄâ¼üÂë
-     * @return °´¼üÊÇ·ñ°´ÏÂ
+     * @brief æ£€æµ‹æŒ‡å®šæŒ‰é”®çŠ¶æ€
+     * @param VK è™šæ‹Ÿé”®ç 
+     * @return æŒ‰é”®æ˜¯å¦æŒ‰ä¸‹
      */
     bool getkey(int VK);
     #endif
     
     /**
-     * @brief ÆôÓÃÔİÍ£¹¦ÄÜ
+     * @brief å¯ç”¨æš‚åœåŠŸèƒ½
      */
     void enablePause();
     
     /**
-     * @brief ½ûÓÃÔİÍ£¹¦ÄÜ
+     * @brief ç¦ç”¨æš‚åœåŠŸèƒ½
      */
     void disablePause();
     
     /**
-     * @brief Í¨¹ıID»ñÈ¡ÔªËØ
-     * @param id ÔªËØID
-     * @return ÔªËØÖ¸Õë
+     * @brief é€šè¿‡IDè·å–å…ƒç´ 
+     * @param id å…ƒç´ ID
+     * @return å…ƒç´ æŒ‡é’ˆ
      */
     Element* getElementById(string);
     
     /**
-     * @brief Í¨¹ıÖ¸Õë»ñÈ¡ÔªËØ
-     * @param ptr ÔªËØÖ¸Õë
-     * @return ÔªËØÖ¸Õë
+     * @brief é€šè¿‡æŒ‡é’ˆè·å–å…ƒç´ 
+     * @param ptr å…ƒç´ æŒ‡é’ˆ
+     * @return å…ƒç´ æŒ‡é’ˆ
      */
     Element* getElementByPtr(Element*);
     
     /**
-     * @brief ³õÊ¼»¯»­±Ê
+     * @brief åˆå§‹åŒ–ç”»ç¬”
      */
     void initPen();
     
     /**
-     * @brief ³õÊ¼»¯ÎÄ×Ö»­±Ê
+     * @brief åˆå§‹åŒ–æ–‡å­—ç”»ç¬”
      */
     void initTextPen();
     
     /**
-     * @brief »ñÈ¡µ±Ç°ºÁÃëÊı
-     * @return µ±Ç°ºÁÃëÊı
+     * @brief è·å–å½“å‰æ¯«ç§’æ•°
+     * @return å½“å‰æ¯«ç§’æ•°
      */
     double getMs();
     
     /**
-     * @brief Ìí¼Óµ÷¶Èº¯Êı
-     * @param func ÒªÌí¼ÓµÄº¯Êı
+     * @brief æ·»åŠ è°ƒåº¦å‡½æ•°
+     * @param func è¦æ·»åŠ çš„å‡½æ•°
      */
     void pushSchedule(function<void(void)> func);
     
     /**
-     * @brief ÉèÖÃ¶¨Ê±Æ÷
-     * @param func ÒªÖ´ĞĞµÄº¯Êı
-     * @param timeMs ÑÓ³ÙÊ±¼ä(ºÁÃë)
+     * @brief è®¾ç½®å®šæ—¶å™¨
+     * @param func è¦æ‰§è¡Œçš„å‡½æ•°
+     * @param timeMs å»¶è¿Ÿæ—¶é—´(æ¯«ç§’)
      */
     void setTimeOut(function<void(void)> func,double timeMs);
 
     /**
      * @class ClonesEvent
-     * @brief ¿ËÂ¡ÊÂ¼şÏà¹Ø¶¨Òå
+     * @brief å…‹éš†äº‹ä»¶ç›¸å…³å®šä¹‰
      */
     class ClonesEvent {
         public:
-            int on_clone = 0x07;  ///< ¿ËÂ¡ÊÂ¼şÀàĞÍ
+            int on_clone = 0x07;  ///< å…‹éš†äº‹ä»¶ç±»å‹
     };
     
     /**
      * @class InputBoxEvent
-     * @brief ÊäÈë¿òÊÂ¼şÏà¹Ø¶¨Òå
+     * @brief è¾“å…¥æ¡†äº‹ä»¶ç›¸å…³å®šä¹‰
      */
     class InputBoxEvent {
         public:
-            int onSelect = 0x08;  ///< Ñ¡ÔñÊÂ¼şÀàĞÍ
+            int onSelect = 0x08;  ///< é€‰æ‹©äº‹ä»¶ç±»å‹
     };
 
     /**
      * @class Events
-     * @brief ÊÂ¼şÀàĞÍ¶¨Òå
+     * @brief äº‹ä»¶ç±»å‹å®šä¹‰
      */
     class Events {
         public:
-            int frame = 0x00;                 ///< Ö¡ÊÂ¼ş
-            int on_mouse_put_on = 0x01;       ///< Êó±êĞüÍ£ÊÂ¼ş
-            int on_mouse_hitting = 0x02;      ///< Êó±êµã»÷ÊÂ¼ş
-            int on_mouse_move_away = 0x03;    ///< Êó±êÒÆ¿ªÊÂ¼ş
-            int on_click = 0x04;             ///< µã»÷ÊÂ¼ş
-            int on_clone = 0x05;             ///< ¿ËÂ¡ÊÂ¼ş
-            int on_mouse_hit_but_move_away = 0x06;      ///< Êó±êµã»÷ÊÂ¼ş
-            ClonesEvent clones;              ///< ¿ËÂ¡ÊÂ¼şÊµÀı
-            InputBoxEvent inputBox;          ///< ÊäÈë¿òÊÂ¼şÊµÀı
+            int frame = 0x00;                 ///< å¸§äº‹ä»¶
+            int on_mouse_put_on = 0x01;       ///< é¼ æ ‡æ‚¬åœäº‹ä»¶
+            int on_mouse_hitting = 0x02;      ///< é¼ æ ‡ç‚¹å‡»äº‹ä»¶
+            int on_mouse_move_away = 0x03;    ///< é¼ æ ‡ç§»å¼€äº‹ä»¶
+            int on_click = 0x04;             ///< ç‚¹å‡»äº‹ä»¶
+            int on_clone = 0x05;             ///< å…‹éš†äº‹ä»¶
+            int on_mouse_hit_but_move_away = 0x06;      ///< é¼ æ ‡ç‚¹å‡»äº‹ä»¶
+            ClonesEvent clones;              ///< å…‹éš†äº‹ä»¶å®ä¾‹
+            InputBoxEvent inputBox;          ///< è¾“å…¥æ¡†äº‹ä»¶å®ä¾‹
     };
 
-    extern Events EventType;  ///< È«¾ÖÊÂ¼şÀàĞÍÊµÀı
+    extern Events EventType;  ///< å…¨å±€äº‹ä»¶ç±»å‹å®ä¾‹
 
     /**
      * @class PenTypes
-     * @brief »­±ÊÀàĞÍ¶¨Òå
+     * @brief ç”»ç¬”ç±»å‹å®šä¹‰
      */
     class PenTypes {
         public:
-            int left = 0x01;    ///< ¾Ó×ó 
-            int middle = 0x02;  ///< ¾ÓÖĞ
+            int left = 0x01;    ///< å±…å·¦ 
+            int middle = 0x02;  ///< å±…ä¸­
     };
 
-    extern PenTypes PenType;  ///< È«¾Ö»­±ÊÀàĞÍÊµÀı
+    extern PenTypes PenType;  ///< å…¨å±€ç”»ç¬”ç±»å‹å®ä¾‹
 
     /**
-     * @brief »ñÈ¡ÉÏÒ»¸öÏñËØÎ»ÖÃ
-     * @return Î»ÖÃÒıÓÃ
+     * @brief è·å–ä¸Šä¸€ä¸ªåƒç´ ä½ç½®
+     * @return ä½ç½®å¼•ç”¨
      */
     Position& getLastPixel();
     
     /**
-     * @brief »ñÈ¡Êó±êÎ»ÖÃ
-     * @return Î»ÖÃÒıÓÃ
+     * @brief è·å–é¼ æ ‡ä½ç½®
+     * @return ä½ç½®å¼•ç”¨
      */
     Position& getMousePos();
 }
 using namespace FeEGE;
 /**
  * @class Animate
- * @brief ¶¯»­Àà£¬¶¨Òå¶¯»­ĞĞÎª
+ * @brief åŠ¨ç”»ç±»ï¼Œå®šä¹‰åŠ¨ç”»è¡Œä¸º
  */
 class Animate{
     public:
-        function<Position(double)> function;  ///< ¶¯»­º¯Êı
-        double speed;    ///< ¶¯»­ËÙ¶È
-        double end;      ///< ½áÊøÌõ¼ş
+        function<Position(double)> function;  ///< åŠ¨ç”»å‡½æ•°
+        double speed;    ///< åŠ¨ç”»é€Ÿåº¦
+        double end;      ///< ç»“æŸæ¡ä»¶
         
         /**
-         * @brief ¹¹Ôìº¯Êı
-         * @param function ¶¯»­º¯Êı
-         * @param speed ¶¯»­ËÙ¶È
-         * @param end ½áÊøÌõ¼ş
+         * @brief æ„é€ å‡½æ•°
+         * @param function åŠ¨ç”»å‡½æ•°
+         * @param speed åŠ¨ç”»é€Ÿåº¦
+         * @param end ç»“æŸæ¡ä»¶
          */
         Animate(std::function<Position(double)> function,double speed,double end);
 };
 
 /**
  * @namespace Ease
- * @brief »º¶¯¶¯»­º¯ÊıÃüÃû¿Õ¼ä
+ * @brief ç¼“åŠ¨åŠ¨ç”»å‡½æ•°å‘½åç©ºé—´
  */
 namespace Ease{
 	
-extern Animate easeInOutCubicX;  ///< XÖáÈı´Î»ºÈë»º³ö¶¯»­
-extern Animate easeInOutCubicY;  ///< YÖáÈı´Î»ºÈë»º³ö¶¯»­
-extern Animate easeOutQuadX;     ///< XÖá¶ş´Î»º³ö¶¯»­
-extern Animate easeOutQuadY;     ///< YÖá¶ş´Î»º³ö¶¯»­
+extern Animate easeInOutCubicX;  ///< Xè½´ä¸‰æ¬¡ç¼“å…¥ç¼“å‡ºåŠ¨ç”»
+extern Animate easeInOutCubicY;  ///< Yè½´ä¸‰æ¬¡ç¼“å…¥ç¼“å‡ºåŠ¨ç”»
+extern Animate easeOutQuadX;     ///< Xè½´äºŒæ¬¡ç¼“å‡ºåŠ¨ç”»
+extern Animate easeOutQuadY;     ///< Yè½´äºŒæ¬¡ç¼“å‡ºåŠ¨ç”»
 
 }
 using namespace FeEGE;
 /**
  * @class Element
- * @brief ÔªËØ»ùÀà£¬±íÊ¾Í¼ĞÎ½çÃæÖĞµÄ¿ÉÏÔÊ¾ÔªËØ
+ * @brief å…ƒç´ åŸºç±»ï¼Œè¡¨ç¤ºå›¾å½¢ç•Œé¢ä¸­çš„å¯æ˜¾ç¤ºå…ƒç´ 
  */
 class Element {
 protected:
-    // ³ÉÔ±±äÁ¿
-    string id;                  ///< ÔªËØID
-    string elementType;         ///< ÔªËØÀàĞÍ
-    short scale;                ///< Ëõ·Å±ÈÀı
-    double angle;                  ///< Ğı×ª½Ç¶È
-    int order;                  ///< ÏÔÊ¾Ë³Ğò
-    short alpha;                ///< Í¸Ã÷¶È
-    int regOrder;               ///< ×¢²áË³Ğò
-    Position pos;               ///< µ±Ç°Î»ÖÃ
-    Position backupPos;         ///< ±¸·İÎ»ÖÃ
-    bool isCancelX;             ///< XÖáÒÆ¶¯È¡Ïû±êÖ¾
-    bool isCancelY;             ///< YÖáÒÆ¶¯È¡Ïû±êÖ¾
-    bool isShow;                ///< ÏÔÊ¾×´Ì¬
-    PIMAGE __visibleImage;      ///< ¿É¼ûÍ¼Ïñ
-    vector<PIMAGE> imageVector; ///< Í¼ÏñÏòÁ¿
-    vector<Element*> clones;    ///< ¿ËÂ¡ÌåÁĞ±í
-    vector<Element*> removeList; ///< ´ıÒÆ³ıÁĞ±í
-    map<string,function<void(Element*)> > frameFunctionSet;               ///< Ö¡º¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onMousePutOnFunctionSet;        ///< Êó±êĞüÍ£º¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onMouseHittingFunctionSet;      ///< Êó±ê°´ÏÂº¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onMouseMoveAwayFunctionSet;    ///< Êó±êÒÆ¿ªº¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onMouseHitButMoveAwaySet;		 ///< Êó±ê°´ÏÂµ«Àë¿ªº¯Êı¼¯ºÏ 
-    map<string,function<void(Element*)> > onClickFunctionSet;            ///< Êó±êµã»÷º¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onCloneFunctionSet;            ///< ¿ËÂ¡º¯Êı¼¯ºÏ
-    map<string,function<void(Element*)> > onCloneClonesFunctionSet;      ///< ¿ËÂ¡Ìåº¯Êı¼¯ºÏ
-    vector<pair<pair<double,pair<double,double> >,Animate> > animations; ///< ¶¯»­ÁĞ±í
-    unordered_map<int,double> animateStates;          ///< ¶¯»­×´Ì¬
-    unordered_map<int,function<void(Element*)> > animateCallbacks; ///< ¶¯»­»Øµ÷
-    unsigned int currentImage = 0;        ///< µ±Ç°Í¼ÏñË÷Òı
-    unordered_map<int,long long> privateVariables; ///< Ë½ÓĞ±äÁ¿
-    bool deletedList[MAXCLONESCOUNT] = {}; ///< É¾³ı±ê¼ÇÁĞ±í
-    int cloneCount = 0;                   ///< ¿ËÂ¡¼ÆÊı
-    int nextCloneCount = 0;               ///< ÏÂÒ»¸ö¿ËÂ¡¼ÆÊı
-    bool deleted = false;                 ///< É¾³ı±êÖ¾
-    bool imageLock = false;               ///< Í¼ÏñËø¶¨±êÖ¾
-    bool disabledDrawToPrivateImage = false; ///< Ë½ÓĞÍ¼Ïñ»æÖÆ½ûÓÃ±êÖ¾
-    Element** cloneQueue = nullptr;       ///< ¿ËÂ¡¶ÓÁĞ
-    bool drawed = false;                  ///< ÒÑ»æÖÆ±êÖ¾
-    int poolIndex;                        ///< ³ØË÷Òı
-    bool hittingBox = false;              ///< Åö×²¼ì²â¿ò±êÖ¾
-    vector<FeEGE::Polygon> polygonSet;			  ///< Í¹¶à±ßĞÎ¼¯ºÏ 
-    int HBheight, HBwidth;               ///< Åö×²¼ì²â¿ò³ß´ç
+    // æˆå‘˜å˜é‡
+    string id;                  ///< å…ƒç´ ID
+    string elementType;         ///< å…ƒç´ ç±»å‹
+    short scale;                ///< ç¼©æ”¾æ¯”ä¾‹
+    double angle;                  ///< æ—‹è½¬è§’åº¦
+    int order;                  ///< æ˜¾ç¤ºé¡ºåº
+    short alpha;                ///< é€æ˜åº¦
+    int regOrder;               ///< æ³¨å†Œé¡ºåº
+    Position pos;               ///< å½“å‰ä½ç½®
+    Position backupPos;         ///< å¤‡ä»½ä½ç½®
+    bool isCancelX;             ///< Xè½´ç§»åŠ¨å–æ¶ˆæ ‡å¿—
+    bool isCancelY;             ///< Yè½´ç§»åŠ¨å–æ¶ˆæ ‡å¿—
+    bool isShow;                ///< æ˜¾ç¤ºçŠ¶æ€
+    PIMAGE __visibleImage;      ///< å¯è§å›¾åƒ
+    vector<PIMAGE> imageVector; ///< å›¾åƒå‘é‡
+    vector<Element*> clones;    ///< å…‹éš†ä½“åˆ—è¡¨
+    vector<Element*> removeList; ///< å¾…ç§»é™¤åˆ—è¡¨
+    map<string,function<void(Element*)> > frameFunctionSet;               ///< å¸§å‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onMousePutOnFunctionSet;        ///< é¼ æ ‡æ‚¬åœå‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onMouseHittingFunctionSet;      ///< é¼ æ ‡æŒ‰ä¸‹å‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onMouseMoveAwayFunctionSet;    ///< é¼ æ ‡ç§»å¼€å‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onMouseHitButMoveAwaySet;		 ///< é¼ æ ‡æŒ‰ä¸‹ä½†ç¦»å¼€å‡½æ•°é›†åˆ 
+    map<string,function<void(Element*)> > onClickFunctionSet;            ///< é¼ æ ‡ç‚¹å‡»å‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onCloneFunctionSet;            ///< å…‹éš†å‡½æ•°é›†åˆ
+    map<string,function<void(Element*)> > onCloneClonesFunctionSet;      ///< å…‹éš†ä½“å‡½æ•°é›†åˆ
+    vector<pair<pair<double,pair<double,double> >,Animate> > animations; ///< åŠ¨ç”»åˆ—è¡¨
+    unordered_map<int,double> animateStates;          ///< åŠ¨ç”»çŠ¶æ€
+    unordered_map<int,function<void(Element*)> > animateCallbacks; ///< åŠ¨ç”»å›è°ƒ
+    unsigned int currentImage = 0;        ///< å½“å‰å›¾åƒç´¢å¼•
+    unordered_map<int,long long> privateVariables; ///< ç§æœ‰å˜é‡
+    bool deletedList[MAXCLONESCOUNT] = {}; ///< åˆ é™¤æ ‡è®°åˆ—è¡¨
+    int cloneCount = 0;                   ///< å…‹éš†è®¡æ•°
+    int nextCloneCount = 0;               ///< ä¸‹ä¸€ä¸ªå…‹éš†è®¡æ•°
+    bool deleted = false;                 ///< åˆ é™¤æ ‡å¿—
+    bool imageLock = false;               ///< å›¾åƒé”å®šæ ‡å¿—
+    bool disabledDrawToPrivateImage = false; ///< ç§æœ‰å›¾åƒç»˜åˆ¶ç¦ç”¨æ ‡å¿—
+    Element** cloneQueue = nullptr;       ///< å…‹éš†é˜Ÿåˆ—
+    bool drawed = false;                  ///< å·²ç»˜åˆ¶æ ‡å¿—
+    int poolIndex;                        ///< æ± ç´¢å¼•
+    bool hittingBox = false;              ///< ç¢°æ’æ£€æµ‹æ¡†æ ‡å¿—
+    vector<FeEGE::Polygon> polygonSet;			  ///< å‡¸å¤šè¾¹å½¢é›†åˆ 
+    int HBheight, HBwidth;               ///< ç¢°æ’æ£€æµ‹æ¡†å°ºå¯¸
 
-    bool physicEngineStatu;   ///< ÎïÀíÒıÇæ×´Ì¬
-    double forceX;            ///< XÖáÊÜÁ¦
-    double forceY;            ///< YÖáÊÜÁ¦
-    double speedX;            ///< XÖáËÙ¶È
-    double speedY;            ///< YÖáËÙ¶È
-    double resistanceX;       ///< XÖá×èÁ¦
-    double resistanceY;       ///< YÖá×èÁ¦
+    bool physicEngineStatu;   ///< ç‰©ç†å¼•æ“çŠ¶æ€
+    double forceX;            ///< Xè½´å—åŠ›
+    double forceY;            ///< Yè½´å—åŠ›
+    double speedX;            ///< Xè½´é€Ÿåº¦
+    double speedY;            ///< Yè½´é€Ÿåº¦
+    double resistanceX;       ///< Xè½´é˜»åŠ›
+    double resistanceY;       ///< Yè½´é˜»åŠ›
 
-    vector<color_t> removeColors;  ///< ÒªÒÆ³ıµÄÑÕÉ«ÁĞ±í
+    vector<color_t> removeColors;  ///< è¦ç§»é™¤çš„é¢œè‰²åˆ—è¡¨
 
     /**
-     * @brief Ë¢ĞÂÊó±ê×´Ì¬
+     * @brief åˆ·æ–°é¼ æ ‡çŠ¶æ€
      */
     virtual void reflushMouseStatu();
     
     /**
-     * @brief »æÖÆµ½Ë½ÓĞÍ¼Ïñ
-     * @return ÊÇ·ñ³É¹¦
+     * @brief ç»˜åˆ¶åˆ°ç§æœ‰å›¾åƒ
+     * @return æ˜¯å¦æˆåŠŸ
      */
     bool drawToPrivateImage();
     
 public:
-    // ¹¹Ôìº¯ÊıºÍÎö¹¹º¯Êı
+    // æ„é€ å‡½æ•°å’Œææ„å‡½æ•°
     Element(string id,PIMAGE image,Position pos);
     Element(string id,PIMAGE image,double x = 0,double y = 0);
     Element();
     
     /**
-     * @brief ¸´ÖÆÔªËØ
-     * @param id ĞÂÔªËØID
-     * @param image Í¼Ïñ
-     * @param index Ë÷Òı
-     * @param x x×ø±ê
-     * @param y y×ø±ê
-     * @return ĞÂÔªËØÖ¸Õë
+     * @brief å¤åˆ¶å…ƒç´ 
+     * @param id æ–°å…ƒç´ ID
+     * @param image å›¾åƒ
+     * @param index ç´¢å¼•
+     * @param x xåæ ‡
+     * @param y yåæ ‡
+     * @return æ–°å…ƒç´ æŒ‡é’ˆ
      */
     Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0);
     
-    // ¶¯»­Ïà¹Ø·½·¨
+    // åŠ¨ç”»ç›¸å…³æ–¹æ³•
     /**
-	 * @brief È¡ÏûÖ¸¶¨¶¯»­
-	 * @param animate ÒªÈ¡ÏûµÄ¶¯»­¶ÔÏó
-	 * @param tick µ±Ç°Ê±¼äµã
-	 * @param x Ä¿±êx×ø±ê
-	 * @param y Ä¿±êy×ø±ê
+	 * @brief å–æ¶ˆæŒ‡å®šåŠ¨ç”»
+	 * @param animate è¦å–æ¶ˆçš„åŠ¨ç”»å¯¹è±¡
+	 * @param tick å½“å‰æ—¶é—´ç‚¹
+	 * @param x ç›®æ ‡xåæ ‡
+	 * @param y ç›®æ ‡yåæ ‡
 	 */
 	void cancelAnimate(const Animate& animate,double tick,double x,double y);
 	
 	/**
-	 * @brief ÔËĞĞ¶¯»­
-	 * @param animate ÒªÔËĞĞµÄ¶¯»­¶ÔÏó
-	 * @param tick µ±Ç°Ê±¼äµã
-	 * @param x Ä¿±êx×ø±ê
-	 * @param y Ä¿±êy×ø±ê
+	 * @brief è¿è¡ŒåŠ¨ç”»
+	 * @param animate è¦è¿è¡Œçš„åŠ¨ç”»å¯¹è±¡
+	 * @param tick å½“å‰æ—¶é—´ç‚¹
+	 * @param x ç›®æ ‡xåæ ‡
+	 * @param y ç›®æ ‡yåæ ‡
 	 */
 	void runAnimate(const Animate& animate,double tick,double x,double y);
 	
 	/**
-	 * @brief µ÷ÓÃËùÓĞ¶¯»­
+	 * @brief è°ƒç”¨æ‰€æœ‰åŠ¨ç”»
 	 */
 	void callAnimations();
 	
 	/**
-	 * @brief ÔªËØÖ÷Ñ­»·µ÷ÓÃº¯Êı
+	 * @brief å…ƒç´ ä¸»å¾ªç¯è°ƒç”¨å‡½æ•°
 	 */
 	virtual void call();
 	
 	/**
-	 * @brief ÉèÖÃÔªËØÀàĞÍ
-	 * @param type ÀàĞÍ×Ö·û´®
+	 * @brief è®¾ç½®å…ƒç´ ç±»å‹
+	 * @param type ç±»å‹å­—ç¬¦ä¸²
 	 */
 	void setType(const string& type);
 	
 	/**
-	 * @brief »ñÈ¡ÔªËØÀàĞÍ
-	 * @param type ÀàĞÍ×Ö·û´®
-	 * @return ÔªËØÀàĞÍ
+	 * @brief è·å–å…ƒç´ ç±»å‹
+	 * @param type ç±»å‹å­—ç¬¦ä¸²
+	 * @return å…ƒç´ ç±»å‹
 	 */
 	string getType(const string& type);
 	
 	/**
-	 * @brief Ïò×óÒÆ¶¯ÔªËØ
-	 * @param pixels ÒÆ¶¯ÏñËØÊı£¬Ä¬ÈÏÎª0
+	 * @brief å‘å·¦ç§»åŠ¨å…ƒç´ 
+	 * @param pixels ç§»åŠ¨åƒç´ æ•°ï¼Œé»˜è®¤ä¸º0
 	 */
 	void moveLeft(double pixels = 0);
 	
 	/**
-	 * @brief ÏòÓÒÒÆ¶¯ÔªËØ
-	 * @param pixels ÒÆ¶¯ÏñËØÊı£¬Ä¬ÈÏÎª0
+	 * @brief å‘å³ç§»åŠ¨å…ƒç´ 
+	 * @param pixels ç§»åŠ¨åƒç´ æ•°ï¼Œé»˜è®¤ä¸º0
 	 */
 	void moveRight(double pixels = 0);
 	
 	/**
-	 * @brief ÏòÉÏÒÆ¶¯ÔªËØ
-	 * @param pixels ÒÆ¶¯ÏñËØÊı£¬Ä¬ÈÏÎª0
+	 * @brief å‘ä¸Šç§»åŠ¨å…ƒç´ 
+	 * @param pixels ç§»åŠ¨åƒç´ æ•°ï¼Œé»˜è®¤ä¸º0
 	 */
 	void moveUp(double pixels = 0);
 	
 	/**
-	 * @brief ÏòÏÂÒÆ¶¯ÔªËØ
-	 * @param pixels ÒÆ¶¯ÏñËØÊı£¬Ä¬ÈÏÎª0
+	 * @brief å‘ä¸‹ç§»åŠ¨å…ƒç´ 
+	 * @param pixels ç§»åŠ¨åƒç´ æ•°ï¼Œé»˜è®¤ä¸º0
 	 */
 	void moveDown(double pixels = 0);
 	
 	/**
-	 * @brief ÏòÇ°ÒÆ¶¯ÔªËØ(Éî¶È·½Ïò)
-	 * @param pixels ÒÆ¶¯ÏñËØÊı£¬Ä¬ÈÏÎª0
+	 * @brief å‘å‰ç§»åŠ¨å…ƒç´ (æ·±åº¦æ–¹å‘)
+	 * @param pixels ç§»åŠ¨åƒç´ æ•°ï¼Œé»˜è®¤ä¸º0
 	 */
 	void moveForward(double pixels = 0);
 	
 	/**
-	 * @brief ÒÆ¶¯µ½Ö¸¶¨×ø±ê
-	 * @param x x×ø±ê
-	 * @param y y×ø±ê
+	 * @brief ç§»åŠ¨åˆ°æŒ‡å®šåæ ‡
+	 * @param x xåæ ‡
+	 * @param y yåæ ‡
 	 */
 	void moveTo(double x,double y);
 	
 	/**
-	 * @brief ÒÆ¶¯µ½Ö¸¶¨Î»ÖÃ
-	 * @param position Î»ÖÃ¶ÔÏó
+	 * @brief ç§»åŠ¨åˆ°æŒ‡å®šä½ç½®
+	 * @param position ä½ç½®å¯¹è±¡
 	 */
 	void moveTo(Position position);
 	
 	/**
-	 * @brief »ñÈ¡Ö¸¶¨Î»ÖÃÏñËØÑÕÉ«
-	 * @param x x×ø±ê
-	 * @param y y×ø±ê
-	 * @return ÏñËØÑÕÉ«Öµ
+	 * @brief è·å–æŒ‡å®šä½ç½®åƒç´ é¢œè‰²
+	 * @param x xåæ ‡
+	 * @param y yåæ ‡
+	 * @return åƒç´ é¢œè‰²å€¼
 	 */
 	color_t getPixel(int x,int y);
 	
 	/**
-	 * @brief »ñÈ¡ÔªËØËõ·Å±ÈÀı
-	 * @return Ëõ·Å±ÈÀıÖµ
+	 * @brief è·å–å…ƒç´ ç¼©æ”¾æ¯”ä¾‹
+	 * @return ç¼©æ”¾æ¯”ä¾‹å€¼
 	 */
 	double getScale();
 	
 	/**
-	 * @brief Ôö¼ÓËõ·Å±ÈÀı
-	 * @param scale ÒªÔö¼ÓµÄ±ÈÀıÖµ
+	 * @brief å¢åŠ ç¼©æ”¾æ¯”ä¾‹
+	 * @param scale è¦å¢åŠ çš„æ¯”ä¾‹å€¼
 	 */
 	void increaseScale(double scale);
 	
 	/**
-	 * @brief ¼õĞ¡Ëõ·Å±ÈÀı
-	 * @param scale Òª¼õĞ¡µÄ±ÈÀıÖµ
+	 * @brief å‡å°ç¼©æ”¾æ¯”ä¾‹
+	 * @param scale è¦å‡å°çš„æ¯”ä¾‹å€¼
 	 */
 	void decreaseScale(double scale);
 	
 	/**
-	 * @brief ÉèÖÃËõ·Å±ÈÀı
-	 * @param scale ĞÂµÄËõ·Å±ÈÀıÖµ
+	 * @brief è®¾ç½®ç¼©æ”¾æ¯”ä¾‹
+	 * @param scale æ–°çš„ç¼©æ”¾æ¯”ä¾‹å€¼
 	 */
 	void setScale(double scale);
 	
 	/**
-	 * @brief ÏÔÊ¾ÔªËØ
+	 * @brief æ˜¾ç¤ºå…ƒç´ 
 	 */
 	void show();
 	
 	/**
-	 * @brief Òş²ØÔªËØ
+	 * @brief éšè—å…ƒç´ 
 	 */
 	void hide();
 	
 	/**
-	 * @brief ÏòÓÒĞı×ªÔªËØ
-	 * @param angle Ğı×ª½Ç¶È
+	 * @brief å‘å³æ—‹è½¬å…ƒç´ 
+	 * @param angle æ—‹è½¬è§’åº¦
 	 */
 	void turnRight(double angle);
 	
 	/**
-	 * @brief Ïò×óĞı×ªÔªËØ
-	 * @param angle Ğı×ª½Ç¶È
+	 * @brief å‘å·¦æ—‹è½¬å…ƒç´ 
+	 * @param angle æ—‹è½¬è§’åº¦
 	 */
 	void turnLeft(double angle);
 	
 	/**
-	 * @brief Ğı×ªµ½Ö¸¶¨½Ç¶È
-	 * @param angle Ä¿±ê½Ç¶È
+	 * @brief æ—‹è½¬åˆ°æŒ‡å®šè§’åº¦
+	 * @param angle ç›®æ ‡è§’åº¦
 	 */
 	void turnTo(double angle);
 	
 	/**
-	 * @brief Ê¹ÔªËØ³¯ÏòÁíÒ»¸öÔªËØ
-	 * @param that Ä¿±êÔªËØÖ¸Õë
-	 * @return ÊÇ·ñ³É¹¦
+	 * @brief ä½¿å…ƒç´ æœå‘å¦ä¸€ä¸ªå…ƒç´ 
+	 * @param that ç›®æ ‡å…ƒç´ æŒ‡é’ˆ
+	 * @return æ˜¯å¦æˆåŠŸ
 	 */
 	bool faceTo(Element* that);
 	
 	/**
-	 * @brief Ê¹ÔªËØ³¯ÏòÄ³¸ö×ø±ê 
-	 * @param pos ³¯Ïò×ø±ê
-	 * @return ÊÇ·ñ³É¹¦
-	 * @note ¸Ãº¯Êı×ÜÊÇ·µ»Ø³É¹¦ 
+	 * @brief ä½¿å…ƒç´ æœå‘æŸä¸ªåæ ‡ 
+	 * @param pos æœå‘åæ ‡
+	 * @return æ˜¯å¦æˆåŠŸ
+	 * @note è¯¥å‡½æ•°æ€»æ˜¯è¿”å›æˆåŠŸ 
 	 */
 	bool faceTo(const Position& pos);
 	
 	/**
-	 * @brief »ñÈ¡µ±Ç°½Ç¶È
-	 * @return µ±Ç°½Ç¶ÈÖµ
+	 * @brief è·å–å½“å‰è§’åº¦
+	 * @return å½“å‰è§’åº¦å€¼
 	 */
 	double getAngle();
 	
 	/**
-	 * @brief »ñÈ¡µ±Ç°Î»ÖÃ
-	 * @return Î»ÖÃ¶ÔÏó
+	 * @brief è·å–å½“å‰ä½ç½®
+	 * @return ä½ç½®å¯¹è±¡
 	 */
 	Position getPosition();
 	
 	/**
-	 * @brief »ñÈ¡ÏÔÊ¾×´Ì¬
-	 * @return ÊÇ·ñÏÔÊ¾
+	 * @brief è·å–æ˜¾ç¤ºçŠ¶æ€
+	 * @return æ˜¯å¦æ˜¾ç¤º
 	 */
 	bool getIsShow();
 	
 	/**
-	 * @brief Ôö¼Ó»æÖÆË³Ğò
-	 * @param count Ôö¼ÓÁ¿
+	 * @brief å¢åŠ ç»˜åˆ¶é¡ºåº
+	 * @param count å¢åŠ é‡
 	 */
 	void increaseOrder(int count);
 	
 	/**
-	 * @brief ¼õĞ¡»æÖÆË³Ğò
-	 * @param count ¼õĞ¡Á¿
+	 * @brief å‡å°ç»˜åˆ¶é¡ºåº
+	 * @param count å‡å°é‡
 	 */
 	void decreaseOrder(int count);
 	
 	/**
-	 * @brief ÉèÖÃ»æÖÆË³Ğò
-	 * @param count ĞÂµÄË³ĞòÖµ
+	 * @brief è®¾ç½®ç»˜åˆ¶é¡ºåº
+	 * @param count æ–°çš„é¡ºåºå€¼
 	 */
 	void setOrder(int count);
 	
 	/**
-	 * @brief ÉèÖÃ×¢²áË³Ğò
-	 * @param count ĞÂµÄË³ĞòÖµ
+	 * @brief è®¾ç½®æ³¨å†Œé¡ºåº
+	 * @param count æ–°çš„é¡ºåºå€¼
 	 */
 	void setRegOrder(int count);
 	
 	/**
-	 * @brief »ñÈ¡×¢²áË³Ğò
-	 * @return ×¢²áË³ĞòÖµ
+	 * @brief è·å–æ³¨å†Œé¡ºåº
+	 * @return æ³¨å†Œé¡ºåºå€¼
 	 */
 	int getRegOrder();
 	
 	/**
-	 * @brief »ñÈ¡»æÖÆË³Ğò
-	 * @return Ë³ĞòÖµ
+	 * @brief è·å–ç»˜åˆ¶é¡ºåº
+	 * @return é¡ºåºå€¼
 	 */
 	int getOrder();
 	
 	/**
-	 * @brief Ğ¡ÓÚÔËËã·ûÖØÔØ
-	 * @param _B ±È½ÏµÄÔªËØ
-	 * @return ±È½Ï½á¹û
+	 * @brief å°äºè¿ç®—ç¬¦é‡è½½
+	 * @param _B æ¯”è¾ƒçš„å…ƒç´ 
+	 * @return æ¯”è¾ƒç»“æœ
 	 */
 	bool operator<(Element _B);
 	
 	/**
-	 * @brief ´óÓÚÔËËã·ûÖØÔØ
-	 * @param _B ±È½ÏµÄÔªËØ
-	 * @return ±È½Ï½á¹û
+	 * @brief å¤§äºè¿ç®—ç¬¦é‡è½½
+	 * @param _B æ¯”è¾ƒçš„å…ƒç´ 
+	 * @return æ¯”è¾ƒç»“æœ
 	 */
 	bool operator>(Element _B);
 	
 	/**
-	 * @brief ÉèÖÃx×ø±ê
-	 * @param x ĞÂµÄx×ø±êÖµ
+	 * @brief è®¾ç½®xåæ ‡
+	 * @param x æ–°çš„xåæ ‡å€¼
 	 */
 	void setPosX(int x);
 	
 	/**
-	 * @brief ÉèÖÃy×ø±ê
-	 * @param y ĞÂµÄy×ø±êÖµ
+	 * @brief è®¾ç½®yåæ ‡
+	 * @param y æ–°çš„yåæ ‡å€¼
 	 */
 	void setPosY(int y);
 	
 	/**
-	 * @brief ÒÆ³ıÖ¸¶¨ÑÕÉ«
-	 * @param color ÒªÒÆ³ıµÄÑÕÉ«Öµ
+	 * @brief ç§»é™¤æŒ‡å®šé¢œè‰²
+	 * @param color è¦ç§»é™¤çš„é¢œè‰²å€¼
 	 */
 	void removeColor(color_t color);
 	
 	/**
-	 * @brief ¼ì²éÊó±êÊÇ·ñÔÚÔªËØÄÚ
-	 * @return ÊÇ·ñÔÚÔªËØÄÚ
+	 * @brief æ£€æŸ¥é¼ æ ‡æ˜¯å¦åœ¨å…ƒç´ å†…
+	 * @return æ˜¯å¦åœ¨å…ƒç´ å†…
 	 */
 	bool isMouseIn();
 	
 	/**
-	 * @brief ¼ì²éÔªËØÊÇ·ñ±»µã»÷
-	 * @return ÊÇ·ñ±»µã»÷
+	 * @brief æ£€æŸ¥å…ƒç´ æ˜¯å¦è¢«ç‚¹å‡»
+	 * @return æ˜¯å¦è¢«ç‚¹å‡»
 	 */
 	bool isHit();
 	
 	/**
-	 * @brief ÉèÖÃË½ÓĞ±äÁ¿Öµ
-	 * @param which ±äÁ¿Ë÷Òı
-	 * @param value ÒªÉèÖÃµÄÖµ
+	 * @brief è®¾ç½®ç§æœ‰å˜é‡å€¼
+	 * @param which å˜é‡ç´¢å¼•
+	 * @param value è¦è®¾ç½®çš„å€¼
 	 */
 	void setVariable(unsigned int which,long long value);
 	
 	/**
-	 * @brief »ñÈ¡Ë½ÓĞ±äÁ¿ÒıÓÃ
-	 * @param which ±äÁ¿Ë÷Òı
-	 * @return ±äÁ¿ÒıÓÃ
+	 * @brief è·å–ç§æœ‰å˜é‡å¼•ç”¨
+	 * @param which å˜é‡ç´¢å¼•
+	 * @return å˜é‡å¼•ç”¨
 	 */
 	long long& getVariable(unsigned int which);
 	
 	/**
-	 * @brief Ôö¼ÓË½ÓĞ±äÁ¿Öµ
-	 * @param which ±äÁ¿Ë÷Òı
-	 * @param value Ôö¼ÓÖµ
+	 * @brief å¢åŠ ç§æœ‰å˜é‡å€¼
+	 * @param which å˜é‡ç´¢å¼•
+	 * @param value å¢åŠ å€¼
 	 */
 	void increaseVariable(unsigned int which,long long value);
 	
 	/**
-	 * @brief ¼õÉÙË½ÓĞ±äÁ¿Öµ
-	 * @param which ±äÁ¿Ë÷Òı
-	 * @param value ¼õÉÙÖµ
+	 * @brief å‡å°‘ç§æœ‰å˜é‡å€¼
+	 * @param which å˜é‡ç´¢å¼•
+	 * @param value å‡å°‘å€¼
 	 */
 	void decreaseVariable(unsigned int which,long long value);
 	
 	/**
-	 * @brief Ìí¼ÓÍ¼Ïñ
-	 * @param image Í¼ÏñÖ¸Õë
+	 * @brief æ·»åŠ å›¾åƒ
+	 * @param image å›¾åƒæŒ‡é’ˆ
 	 */
 	void addImage(PIMAGE image);
 	
 	/**
-	 * @brief ÉèÖÃµ±Ç°Í¼Ïñ
-	 * @param order Í¼ÏñË÷Òı
-	 * @return ÊÇ·ñ³É¹¦
+	 * @brief è®¾ç½®å½“å‰å›¾åƒ
+	 * @param order å›¾åƒç´¢å¼•
+	 * @return æ˜¯å¦æˆåŠŸ
 	 */
 	bool setImage(int order);
 	
 	/**
-	 * @brief »ñÈ¡µ±Ç°Í¼ÏñË÷Òı
-	 * @return Í¼ÏñË÷Òı
+	 * @brief è·å–å½“å‰å›¾åƒç´¢å¼•
+	 * @return å›¾åƒç´¢å¼•
 	 */
 	int getImageOrder();
 	
 	/**
-	 * @brief »ñÈ¡µ±Ç°Í¼Ïñ
-	 * @return Í¼ÏñÖ¸Õë
+	 * @brief è·å–å½“å‰å›¾åƒ
+	 * @return å›¾åƒæŒ‡é’ˆ
 	 */
 	PIMAGE getImage();
 	
 	/**
-	 * @brief ¼ì²éÊÇ·ñÓëÁíÒ»ÔªËØ½Ó´¥
-	 * @param that ÁíÒ»ÔªËØÖ¸Õë
-	 * @return ÊÇ·ñ½Ó´¥
+	 * @brief æ£€æŸ¥æ˜¯å¦ä¸å¦ä¸€å…ƒç´ æ¥è§¦
+	 * @param that å¦ä¸€å…ƒç´ æŒ‡é’ˆ
+	 * @return æ˜¯å¦æ¥è§¦
 	 */
 	bool isTouchedBy(Element* that);
 	
 	/**
-	 * @brief ¿ËÂ¡ÔªËØ
-	 * @return ĞÂÔªËØÖ¸Õë
+	 * @brief å…‹éš†å…ƒç´ 
+	 * @return æ–°å…ƒç´ æŒ‡é’ˆ
 	 */
 	Element* clone();
 	
 	/**
-	 * @brief »ñÈ¡¿ËÂ¡ÌåÁĞ±í 
-	 * @return ¿ËÂ¡ÌåÁĞ±í 
+	 * @brief è·å–å…‹éš†ä½“åˆ—è¡¨ 
+	 * @return å…‹éš†ä½“åˆ—è¡¨ 
 	 */
 	vector<Element*> getClones();
 	
 	/**
-	 * @brief ¿ËÂ¡µ±Ç°Í¼Ïñ
+	 * @brief å…‹éš†å½“å‰å›¾åƒ
 	 */
 	void cloneImage();
 	
 	/**
-	 * @brief »ñÈ¡ÔªËØID
-	 * @return ID×Ö·û´®
+	 * @brief è·å–å…ƒç´ ID
+	 * @return IDå­—ç¬¦ä¸²
 	 */
 	string getId();
 	
 	/**
-	 * @brief Ìí¼ÓÊÂ¼ş¼àÌı
-	 * @param listenMode ¼àÌıÄ£Ê½
-	 * @param identifier ±êÊ¶·û
-	 * @param function »Øµ÷º¯Êı
+	 * @brief æ·»åŠ äº‹ä»¶ç›‘å¬
+	 * @param listenMode ç›‘å¬æ¨¡å¼
+	 * @param identifier æ ‡è¯†ç¬¦
+	 * @param function å›è°ƒå‡½æ•°
 	 */
 	virtual void listen(int listenMode,string identifier,function<void(Element*)> function);
 	
 	/**
-	 * @brief ÒÆ³ıÊÂ¼ş¼àÌı
-	 * @param listenMode ¼àÌıÄ£Ê½
-	 * @param identifier ±êÊ¶·û
+	 * @brief ç§»é™¤äº‹ä»¶ç›‘å¬
+	 * @param listenMode ç›‘å¬æ¨¡å¼
+	 * @param identifier æ ‡è¯†ç¬¦
 	 */
 	virtual void unlisten(int listenMode,string identifier);
 	
 	/**
-	 * @brief ÔİÍ£ÊÂ¼ş¼àÌı
-	 * @param listenMode ¼àÌıÄ£Ê½
-	 * @param identifier ±êÊ¶·û
+	 * @brief æš‚åœäº‹ä»¶ç›‘å¬
+	 * @param listenMode ç›‘å¬æ¨¡å¼
+	 * @param identifier æ ‡è¯†ç¬¦
 	 */
 	virtual void stop(int listenMode,string identifier);
 	
 	/**
-	 * @brief ÖØĞÂ¿ªÊ¼ÊÂ¼ş¼àÌı
-	 * @param listenMode ¼àÌıÄ£Ê½
-	 * @param identifier ±êÊ¶·û
+	 * @brief é‡æ–°å¼€å§‹äº‹ä»¶ç›‘å¬
+	 * @param listenMode ç›‘å¬æ¨¡å¼
+	 * @param identifier æ ‡è¯†ç¬¦
 	 */
 	virtual void begin(int listenMode,string identifier);
 	
 	
 	
 	/**
-	 * @brief É¾³ıµ±Ç°ÔªËØ
-	 * @return ÔªËØÖ¸Õë(Í¨³£Îªnullptr)
+	 * @brief åˆ é™¤å½“å‰å…ƒç´ 
+	 * @return å…ƒç´ æŒ‡é’ˆ(é€šå¸¸ä¸ºnullptr)
 	 */
 	Element* deleteThis();
 	
 	/**
-	 * @brief È¡ÏûXÖáÒÆ¶¯
+	 * @brief å–æ¶ˆXè½´ç§»åŠ¨
 	 */
 	void cancelX();
 	
 	/**
-	 * @brief È¡ÏûYÖáÒÆ¶¯
+	 * @brief å–æ¶ˆYè½´ç§»åŠ¨
 	 */
 	void cancelY();
 	
 	/**
-	 * @brief È¡ÏûËùÓĞÒÆ¶¯
+	 * @brief å–æ¶ˆæ‰€æœ‰ç§»åŠ¨
 	 */
 	void cancelMove();
 	
 	/**
-	 * @brief »ñÈ¡Í¸Ã÷¶È
-	 * @return Í¸Ã÷¶ÈÖµ
+	 * @brief è·å–é€æ˜åº¦
+	 * @return é€æ˜åº¦å€¼
 	 */
 	short getAlpha();
 	
 	/**
-	 * @brief ÉèÖÃÍ¸Ã÷¶È
-	 * @param alpha ĞÂµÄÍ¸Ã÷¶ÈÖµ
+	 * @brief è®¾ç½®é€æ˜åº¦
+	 * @param alpha æ–°çš„é€æ˜åº¦å€¼
 	 */
 	void setAlpha(short alpha);
 	
 	/**
-	 * @brief ¼õĞ¡Í¸Ã÷¶È
-	 * @param alpha ¼õĞ¡Á¿
+	 * @brief å‡å°é€æ˜åº¦
+	 * @param alpha å‡å°é‡
 	 */
 	void decreaseAlpha(short alpha);
 	
 	/**
-	 * @brief Ôö¼ÓÍ¸Ã÷¶È
-	 * @param alpha Ôö¼ÓÁ¿
+	 * @brief å¢åŠ é€æ˜åº¦
+	 * @param alpha å¢åŠ é‡
 	 */
 	void increaseAlpha(short alpha);
 	
 	/**
-	 * @brief ÇĞ»»µ½ÏÂÒ»ÕÅÍ¼Ïñ
+	 * @brief åˆ‡æ¢åˆ°ä¸‹ä¸€å¼ å›¾åƒ
 	 */
 	void nextImage();
 	
@@ -779,305 +779,305 @@ public:
 	
 	#ifndef NO_THREAD
 	/**
-	 * @brief ¼ÓÔØÍ¼Ïñ
-	 * @param imagePath Í¼ÏñÂ·¾¶
-	 * @param id Í¼ÏñID
+	 * @brief åŠ è½½å›¾åƒ
+	 * @param imagePath å›¾åƒè·¯å¾„
+	 * @param id å›¾åƒID
 	 */
 	void loadImage(string imagePath,int id);
 	
 	/**
-	 * @brief É¾³ıÍ¼Ïñ
-	 * @param id Í¼ÏñID
+	 * @brief åˆ é™¤å›¾åƒ
+	 * @param id å›¾åƒID
 	 */
 	void deleteImage(int id);
 	#endif
 	
 	/**
-	 * @brief ½ûÓÃ»æÖÆµ½Ë½ÓĞÍ¼Ïñ
+	 * @brief ç¦ç”¨ç»˜åˆ¶åˆ°ç§æœ‰å›¾åƒ
 	 */
 	void disableDrawToPrivateImage();
 	
 	/**
-	 * @brief ÆôÓÃ»æÖÆµ½Ë½ÓĞÍ¼Ïñ
+	 * @brief å¯ç”¨ç»˜åˆ¶åˆ°ç§æœ‰å›¾åƒ
 	 */
 	void enableDrawToPrivateImage();
 	
 	/**
-	 * @brief ºöÂÔºÚÉ«ÏñËØ(ÓÃÓÚÍ¸Ã÷´¦Àí)
+	 * @brief å¿½ç•¥é»‘è‰²åƒç´ (ç”¨äºé€æ˜å¤„ç†)
 	 */
 	void ignoreBlack();
 	
 	/**
-	 * @brief ÆôÓÃÅö×²¼ì²â¿ò
+	 * @brief å¯ç”¨ç¢°æ’æ£€æµ‹æ¡†
 	 */
 	void useGJK();
 	
 	/**
-	 * @brief ½ûÓÃÅö×²¼ì²â¿ò
+	 * @brief ç¦ç”¨ç¢°æ’æ£€æµ‹æ¡†
 	 */
 	void unlistenGJK();
 	
 	/**
-	 * @brief »ñÈ¡¶à±ßĞÎÊı×é 
+	 * @brief è·å–å¤šè¾¹å½¢æ•°ç»„ 
 	 */
 	vector<FeEGE::Polygon> getPolygonSet(); 
 	
 	/**
-	 * @brief ×ª»»¶à±ßĞÎÊı¾İ 
+	 * @brief è½¬æ¢å¤šè¾¹å½¢æ•°æ® 
 	 */
 	FeEGE::Polygon transformPolygon(const FeEGE::Polygon& x);
 	
 	#ifdef TEST_FUNCTION 
-	// ÎïÀíÒıÇæÏà¹Ø·½·¨
+	// ç‰©ç†å¼•æ“ç›¸å…³æ–¹æ³•
 	
 	/**
-	 * @brief ÆôÓÃÎïÀíÒıÇæ
+	 * @brief å¯ç”¨ç‰©ç†å¼•æ“
 	 */
 	void enablePhysicEngine();
 	
 	/**
-	 * @brief ½ûÓÃÎïÀíÒıÇæ
+	 * @brief ç¦ç”¨ç‰©ç†å¼•æ“
 	 */
 	void disablePhysicEngine();
 	
 	/**
-	 * @brief Ê©¼ÓÎïÀíÁ¦
-	 * @param angle Á¦µÄ½Ç¶È
-	 * @param force Á¦µÄ´óĞ¡
+	 * @brief æ–½åŠ ç‰©ç†åŠ›
+	 * @param angle åŠ›çš„è§’åº¦
+	 * @param force åŠ›çš„å¤§å°
 	 */
 	void physicForce(double angle,double force);
 	
 	/**
-	 * @brief ÉèÖÃÎïÀíËÙ¶È
-	 * @param angle ËÙ¶È½Ç¶È
-	 * @param speed ËÙ¶È´óĞ¡
+	 * @brief è®¾ç½®ç‰©ç†é€Ÿåº¦
+	 * @param angle é€Ÿåº¦è§’åº¦
+	 * @param speed é€Ÿåº¦å¤§å°
 	 */
 	void physicSpeed(double angle,double speed);
 	
 	/**
-	 * @brief ÉèÖÃÎïÀí×èÁ¦
-	 * @param angle ×èÁ¦½Ç¶È
-	 * @param resistance ×èÁ¦´óĞ¡
+	 * @brief è®¾ç½®ç‰©ç†é˜»åŠ›
+	 * @param angle é˜»åŠ›è§’åº¦
+	 * @param resistance é˜»åŠ›å¤§å°
 	 */
 	void physicResistance(double angle,double resistance);
 	
 	/**
-	 * @brief ¸üĞÂÎïÀíËÙ¶È
+	 * @brief æ›´æ–°ç‰©ç†é€Ÿåº¦
 	 */
 	void updatePhysicSpeed();
 	
 	/**
-	 * @brief ¸üĞÂÎïÀíÎ»ÖÃ
+	 * @brief æ›´æ–°ç‰©ç†ä½ç½®
 	 */
 	void updatePhysicPosition();
 	
 	/**
-	 * @brief »ñÈ¡XÖáËÙ¶È
-	 * @return XÖáËÙ¶ÈÖµ
+	 * @brief è·å–Xè½´é€Ÿåº¦
+	 * @return Xè½´é€Ÿåº¦å€¼
 	 */
 	double getSpeedX();
 	
 	/**
-	 * @brief »ñÈ¡YÖáËÙ¶È
-	 * @return YÖáËÙ¶ÈÖµ
+	 * @brief è·å–Yè½´é€Ÿåº¦
+	 * @return Yè½´é€Ÿåº¦å€¼
 	 */
 	double getSpeedY();
 	
 	/**
-	 * @brief »¡ĞÎXÖáËÙ¶È(Ä£ÄâÅ×ÎïÏßÔË¶¯)
+	 * @brief å¼§å½¢Xè½´é€Ÿåº¦(æ¨¡æ‹ŸæŠ›ç‰©çº¿è¿åŠ¨)
 	 */
 	void physicArcSpeedX();
 	
 	/**
-	 * @brief »¡ĞÎYÖáËÙ¶È(Ä£ÄâÅ×ÎïÏßÔË¶¯)
+	 * @brief å¼§å½¢Yè½´é€Ÿåº¦(æ¨¡æ‹ŸæŠ›ç‰©çº¿è¿åŠ¨)
 	 */
 	void physicArcSpeedY();
 	
 	/**
-	 * @brief ÒÆ³ıXÖáËÙ¶È
+	 * @brief ç§»é™¤Xè½´é€Ÿåº¦
 	 */
 	void physicRemoveSpeedX();
 	
 	/**
-	 * @brief ÒÆ³ıYÖáËÙ¶È
+	 * @brief ç§»é™¤Yè½´é€Ÿåº¦
 	 */
 	void physicRemoveSpeedY();
 	
 	/**
-	 * @brief ÒÆ³ıXÖáÁ¦
+	 * @brief ç§»é™¤Xè½´åŠ›
 	 */
 	void physicRemoveForceX();
 	
 	/**
-	 * @brief ÒÆ³ıYÖáÁ¦
+	 * @brief ç§»é™¤Yè½´åŠ›
 	 */
 	void physicRemoveForceY();
 #endif
 	
 	/**
-	 * @brief Ê¹ÓÃ¶¯»­ÒÆ¶¯ÔªËØ
-	 * @param xPixel XÖáÒÆ¶¯¾àÀë
-	 * @param yPixel YÖáÒÆ¶¯¾àÀë
-	 * @param animate ¶¯»­¶ÔÏó
-	 * @param callback Íê³É»Øµ÷º¯Êı
+	 * @brief ä½¿ç”¨åŠ¨ç”»ç§»åŠ¨å…ƒç´ 
+	 * @param xPixel Xè½´ç§»åŠ¨è·ç¦»
+	 * @param yPixel Yè½´ç§»åŠ¨è·ç¦»
+	 * @param animate åŠ¨ç”»å¯¹è±¡
+	 * @param callback å®Œæˆå›è°ƒå‡½æ•°
 	 */
 	void moveWithAnimation(double xPixel,double yPixel,const Animate& animate,function<void(Element*)> callback = nullptr);
 	
 	/**
-	 * @brief °²È«µÄÒÆ¶¯
-	 * @param pixelsDir XYÒÆ¶¯¾àÀë
-	 * @param limit ÏŞÖÆ¶ÔÏóÖ¸ÕëÊı×é 
+	 * @brief å®‰å…¨çš„ç§»åŠ¨
+	 * @param pixelsDir XYç§»åŠ¨è·ç¦»
+	 * @param limit é™åˆ¶å¯¹è±¡æŒ‡é’ˆæ•°ç»„ 
 	 */
 	double moveSafely(Position pixelsDir,const vector<Element*>& limit);
 	/**
-	 * @brief É¾³ıÔªËØ
-	 * @return ÔªËØÖ¸Õë(Í¨³£Îªnullptr)
+	 * @brief åˆ é™¤å…ƒç´ 
+	 * @return å…ƒç´ æŒ‡é’ˆ(é€šå¸¸ä¸ºnullptr)
 	 */
 	Element* deleteElement();
 	
 	/**
-	 * @brief Îö¹¹º¯Êı
+	 * @brief ææ„å‡½æ•°
 	 */
 	~Element();
 };
 
-// È«¾Ö±äÁ¿ÉùÃ÷
-extern int currentRegOrder;                  ///< µ±Ç°×¢²áË³Ğò
-extern unsigned long long frame;             ///< Ö¡¼ÆÊıÆ÷
-extern queue<Element*> freeList;             ///< ¿ÕÏĞÔªËØÁĞ±í
+// å…¨å±€å˜é‡å£°æ˜
+extern int currentRegOrder;                  ///< å½“å‰æ³¨å†Œé¡ºåº
+extern unsigned long long frame;             ///< å¸§è®¡æ•°å™¨
+extern queue<Element*> freeList;             ///< ç©ºé—²å…ƒç´ åˆ—è¡¨
 
 /**
  * @class cmp
- * @brief ÔªËØ±È½ÏÀà£¬ÓÃÓÚÅÅĞò
+ * @brief å…ƒç´ æ¯”è¾ƒç±»ï¼Œç”¨äºæ’åº
  */
 class cmp {
 public:
-    bool operator()(Element* _A,Element* _B) const ;  ///< ±È½ÏÔËËã·ûÖØÔØ
+    bool operator()(Element* _A,Element* _B) const ;  ///< æ¯”è¾ƒè¿ç®—ç¬¦é‡è½½
 };
 
-extern set<Element*,cmp> elementQueue;  ///< ÔªËØ¶ÓÁĞ
+extern set<Element*,cmp> elementQueue;  ///< å…ƒç´ é˜Ÿåˆ—
 
 /**
  * @namespace pen
- * @brief »­±ÊÏà¹Ø¹¦ÄÜÃüÃû¿Õ¼ä
+ * @brief ç”»ç¬”ç›¸å…³åŠŸèƒ½å‘½åç©ºé—´
  */
 namespace pen {
 	
-extern int order;           ///< »æÖÆË³Ğò
-extern int fontScale;       ///< ×ÖÌåËõ·Å
-extern short penAlpha;      ///< »­±ÊÍ¸Ã÷¶È
-extern int penType;         ///< »­±ÊÀàĞÍ
-extern int charWidth, charHeight;  ///< ×Ö·û¿í¶ÈºÍ¸ß¶È
+extern int order;           ///< ç»˜åˆ¶é¡ºåº
+extern int fontScale;       ///< å­—ä½“ç¼©æ”¾
+extern short penAlpha;      ///< ç”»ç¬”é€æ˜åº¦
+extern int penType;         ///< ç”»ç¬”ç±»å‹
+extern int charWidth, charHeight;  ///< å­—ç¬¦å®½åº¦å’Œé«˜åº¦
 
 /**
-     * @brief ÔÚÖ¸¶¨Î»ÖÃ´òÓ¡×Ö·û´®(ANSI)
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param str Òª´òÓ¡µÄ×Ö·û´®
+     * @brief åœ¨æŒ‡å®šä½ç½®æ‰“å°å­—ç¬¦ä¸²(ANSI)
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param str è¦æ‰“å°çš„å­—ç¬¦ä¸²
      */
     void print(int x, int y, string str);
 
     /**
-     * @brief ÔÚÖ¸¶¨Î»ÖÃ´òÓ¡¿í×Ö·û´®(Unicode)
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param str Òª´òÓ¡µÄ¿í×Ö·û´®
+     * @brief åœ¨æŒ‡å®šä½ç½®æ‰“å°å®½å­—ç¬¦ä¸²(Unicode)
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param str è¦æ‰“å°çš„å®½å­—ç¬¦ä¸²
      */
     void print(int x, int y, wstring str);
 
     /**
-     * @brief ÉèÖÃ×ÖÌåÑùÊ½ºÍ´óĞ¡
-     * @param scale ×ÖÌåËõ·Å±ÈÀı
-     * @param fontName ×ÖÌåÃû³Æ(Ä¬ÈÏÎª"Ó×Ô²")
+     * @brief è®¾ç½®å­—ä½“æ ·å¼å’Œå¤§å°
+     * @param scale å­—ä½“ç¼©æ”¾æ¯”ä¾‹
+     * @param fontName å­—ä½“åç§°(é»˜è®¤ä¸º"å¹¼åœ†")
      */
-    void font(int scale, string fontName = "Ó×Ô²");
+    void font(int scale, string fontName = "å¹¼åœ†");
 
     /**
-     * @brief ÉèÖÃ»­±ÊÑÕÉ«
-     * @param color ÑÕÉ«Öµ(color_tÀàĞÍ)
+     * @brief è®¾ç½®ç”»ç¬”é¢œè‰²
+     * @param color é¢œè‰²å€¼(color_tç±»å‹)
      */
     void color(color_t color);
 
     /**
-     * @brief ÉèÖÃ»­±ÊÀàĞÍ
-     * @param type »­±ÊÀàĞÍ(0x01-×ó¼ü, 0x02-ÖĞ¼üµÈ)
+     * @brief è®¾ç½®ç”»ç¬”ç±»å‹
+     * @param type ç”»ç¬”ç±»å‹(0x01-å·¦é”®, 0x02-ä¸­é”®ç­‰)
      */
     void type(int type);
 
     /**
-     * @brief Çå³ıÖ¸¶¨¾ØĞÎÇøÓò
-     * @param x ×óÉÏ½Çx×ø±ê
-     * @param y ×óÉÏ½Çy×ø±ê
-     * @param ex ÓÒÏÂ½Çx×ø±ê
-     * @param ey ÓÒÏÂ½Çy×ø±ê
+     * @brief æ¸…é™¤æŒ‡å®šçŸ©å½¢åŒºåŸŸ
+     * @param x å·¦ä¸Šè§’xåæ ‡
+     * @param y å·¦ä¸Šè§’yåæ ‡
+     * @param ex å³ä¸‹è§’xåæ ‡
+     * @param ey å³ä¸‹è§’yåæ ‡
      */
     void clear(int x, int y, int ex, int ey);
 
     /**
-     * @brief Çå³ıÖ¸¶¨Î»ÖÃµÄµ¥¸ö×Ö·û
-     * @param x ×Ö·ûx×ø±ê
-     * @param y ×Ö·ûy×ø±ê
+     * @brief æ¸…é™¤æŒ‡å®šä½ç½®çš„å•ä¸ªå­—ç¬¦
+     * @param x å­—ç¬¦xåæ ‡
+     * @param y å­—ç¬¦yåæ ‡
      */
     void clearChar(int x, int y);
 
     /**
-     * @brief Çå³ı´ÓÖ¸¶¨Î»ÖÃ¿ªÊ¼µÄ¶à¸ö×Ö·û
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param charCount ÒªÇå³ıµÄ×Ö·ûÊıÁ¿
+     * @brief æ¸…é™¤ä»æŒ‡å®šä½ç½®å¼€å§‹çš„å¤šä¸ªå­—ç¬¦
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param charCount è¦æ¸…é™¤çš„å­—ç¬¦æ•°é‡
      */
     void clearChars(int x, int y, int charCount);
 
     /**
-     * @brief Çå³ıÕû¸ö»­²¼
+     * @brief æ¸…é™¤æ•´ä¸ªç”»å¸ƒ
      */
     void clearAll();
 
     /**
-     * @brief ÉèÖÃ»æÖÆË³Ğò
-     * @param value Ë³ĞòÖµ(ÊıÖµÔ½´óÔ½ºó»æÖÆ)
+     * @brief è®¾ç½®ç»˜åˆ¶é¡ºåº
+     * @param value é¡ºåºå€¼(æ•°å€¼è¶Šå¤§è¶Šåç»˜åˆ¶)
      */
     void setOrder(int value);
 
     /**
-     * @brief ÉèÖÃ»­±ÊÍ¸Ã÷¶È
-     * @param alpha Í¸Ã÷¶ÈÖµ(0-255)
+     * @brief è®¾ç½®ç”»ç¬”é€æ˜åº¦
+     * @param alpha é€æ˜åº¦å€¼(0-255)
      */
     void setAlpha(short alpha);
 
     /**
-     * @brief »ñÈ¡µ±Ç°»­±ÊÍ¸Ã÷¶È
-     * @return µ±Ç°Í¸Ã÷¶ÈÖµ(0-255)
+     * @brief è·å–å½“å‰ç”»ç¬”é€æ˜åº¦
+     * @return å½“å‰é€æ˜åº¦å€¼(0-255)
      */
     short getAlpha();
 
     /**
-     * @brief Ôö¼Ó»­±ÊÍ¸Ã÷¶È
-     * @param alpha ÒªÔö¼ÓµÄÍ¸Ã÷¶ÈÖµ
+     * @brief å¢åŠ ç”»ç¬”é€æ˜åº¦
+     * @param alpha è¦å¢åŠ çš„é€æ˜åº¦å€¼
      */
     void increaseAlpha(short alpha);
 
     /**
-     * @brief ½µµÍ»­±ÊÍ¸Ã÷¶È
-     * @param alpha Òª½µµÍµÄÍ¸Ã÷¶ÈÖµ
+     * @brief é™ä½ç”»ç¬”é€æ˜åº¦
+     * @param alpha è¦é™ä½çš„é€æ˜åº¦å€¼
      */
     void decreaseAlpha(short alpha);
 
     /**
-     * @brief »æÖÆÖ±Ïß
-     * @param x1 Æğµãx×ø±ê
-     * @param y1 Æğµãy×ø±ê
-     * @param x2 ÖÕµãx×ø±ê
-     * @param y2 ÖÕµãy×ø±ê
+     * @brief ç»˜åˆ¶ç›´çº¿
+     * @param x1 èµ·ç‚¹xåæ ‡
+     * @param y1 èµ·ç‚¹yåæ ‡
+     * @param x2 ç»ˆç‚¹xåæ ‡
+     * @param y2 ç»ˆç‚¹yåæ ‡
      */
     void printLine(int x1, int y1, int x2, int y2);
 
     /**
-     * @brief »æÖÆ¾ØĞÎÌõ
-     * @param left ×ó±ß½ç
-     * @param top ÉÏ±ß½ç
-     * @param right ÓÒ±ß½ç
-     * @param bottom ÏÂ±ß½ç
+     * @brief ç»˜åˆ¶çŸ©å½¢æ¡
+     * @param left å·¦è¾¹ç•Œ
+     * @param top ä¸Šè¾¹ç•Œ
+     * @param right å³è¾¹ç•Œ
+     * @param bottom ä¸‹è¾¹ç•Œ
      */
     void printBar(int left, int top, int right, int bottom);
 
@@ -1085,263 +1085,263 @@ extern int charWidth, charHeight;  ///< ×Ö·û¿í¶ÈºÍ¸ß¶È
 
 /**
  * @namespace textpen
- * @brief ÎÄ±¾»­±ÊÏà¹Ø¹¦ÄÜÃüÃû¿Õ¼ä
+ * @brief æ–‡æœ¬ç”»ç¬”ç›¸å…³åŠŸèƒ½å‘½åç©ºé—´
  */
 namespace textpen {
 	
-extern int order;           ///< »æÖÆË³Ğò
-extern int fontScale;       ///< ×ÖÌåËõ·Å
-extern short penAlpha;      ///< »­±ÊÍ¸Ã÷¶È
-extern int penType;         ///< »­±ÊÀàĞÍ
-extern int charWidth, charHeight;  ///< ×Ö·û¿í¶ÈºÍ¸ß¶È
+extern int order;           ///< ç»˜åˆ¶é¡ºåº
+extern int fontScale;       ///< å­—ä½“ç¼©æ”¾
+extern short penAlpha;      ///< ç”»ç¬”é€æ˜åº¦
+extern int penType;         ///< ç”»ç¬”ç±»å‹
+extern int charWidth, charHeight;  ///< å­—ç¬¦å®½åº¦å’Œé«˜åº¦
 
 /**
-     * @brief ÔÚÖ¸¶¨Î»ÖÃ´òÓ¡×Ö·û´®(ANSI)
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param str Òª´òÓ¡µÄ×Ö·û´®
+     * @brief åœ¨æŒ‡å®šä½ç½®æ‰“å°å­—ç¬¦ä¸²(ANSI)
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param str è¦æ‰“å°çš„å­—ç¬¦ä¸²
      */
     void print(int x, int y, string str);
 
     /**
-     * @brief ÔÚÖ¸¶¨Î»ÖÃ´òÓ¡¿í×Ö·û´®(Unicode)
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param str Òª´òÓ¡µÄ¿í×Ö·û´®
+     * @brief åœ¨æŒ‡å®šä½ç½®æ‰“å°å®½å­—ç¬¦ä¸²(Unicode)
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param str è¦æ‰“å°çš„å®½å­—ç¬¦ä¸²
      */
     void print(int x, int y, wstring str);
 
     /**
-     * @brief ÉèÖÃ×ÖÌåÑùÊ½ºÍ´óĞ¡
-     * @param scale ×ÖÌåËõ·Å±ÈÀı
-     * @param fontName ×ÖÌåÃû³Æ(Ä¬ÈÏÎª"Ó×Ô²")
+     * @brief è®¾ç½®å­—ä½“æ ·å¼å’Œå¤§å°
+     * @param scale å­—ä½“ç¼©æ”¾æ¯”ä¾‹
+     * @param fontName å­—ä½“åç§°(é»˜è®¤ä¸º"å¹¼åœ†")
      */
-    void font(int scale, string fontName = "Ó×Ô²");
+    void font(int scale, string fontName = "å¹¼åœ†");
 
     /**
-     * @brief ÉèÖÃ»­±ÊÑÕÉ«
-     * @param color ÑÕÉ«Öµ(color_tÀàĞÍ)
+     * @brief è®¾ç½®ç”»ç¬”é¢œè‰²
+     * @param color é¢œè‰²å€¼(color_tç±»å‹)
      */
     void color(color_t color);
 
     /**
-     * @brief ÉèÖÃ»­±ÊÀàĞÍ
-     * @param type »­±ÊÀàĞÍ(0x01-×ó¼ü, 0x02-ÖĞ¼üµÈ)
+     * @brief è®¾ç½®ç”»ç¬”ç±»å‹
+     * @param type ç”»ç¬”ç±»å‹(0x01-å·¦é”®, 0x02-ä¸­é”®ç­‰)
      */
     void type(int type);
 
     /**
-     * @brief Çå³ıÖ¸¶¨¾ØĞÎÇøÓò
-     * @param x ×óÉÏ½Çx×ø±ê
-     * @param y ×óÉÏ½Çy×ø±ê
-     * @param ex ÓÒÏÂ½Çx×ø±ê
-     * @param ey ÓÒÏÂ½Çy×ø±ê
+     * @brief æ¸…é™¤æŒ‡å®šçŸ©å½¢åŒºåŸŸ
+     * @param x å·¦ä¸Šè§’xåæ ‡
+     * @param y å·¦ä¸Šè§’yåæ ‡
+     * @param ex å³ä¸‹è§’xåæ ‡
+     * @param ey å³ä¸‹è§’yåæ ‡
      */
     void clear(int x, int y, int ex, int ey);
 
     /**
-     * @brief Çå³ıÖ¸¶¨Î»ÖÃµÄµ¥¸ö×Ö·û
-     * @param x ×Ö·ûx×ø±ê
-     * @param y ×Ö·ûy×ø±ê
+     * @brief æ¸…é™¤æŒ‡å®šä½ç½®çš„å•ä¸ªå­—ç¬¦
+     * @param x å­—ç¬¦xåæ ‡
+     * @param y å­—ç¬¦yåæ ‡
      */
     void clearChar(int x, int y);
 
     /**
-     * @brief Çå³ı´ÓÖ¸¶¨Î»ÖÃ¿ªÊ¼µÄ¶à¸ö×Ö·û
-     * @param x ÆğÊ¼x×ø±ê
-     * @param y ÆğÊ¼y×ø±ê
-     * @param charCount ÒªÇå³ıµÄ×Ö·ûÊıÁ¿
+     * @brief æ¸…é™¤ä»æŒ‡å®šä½ç½®å¼€å§‹çš„å¤šä¸ªå­—ç¬¦
+     * @param x èµ·å§‹xåæ ‡
+     * @param y èµ·å§‹yåæ ‡
+     * @param charCount è¦æ¸…é™¤çš„å­—ç¬¦æ•°é‡
      */
     void clearChars(int x, int y, int charCount);
 
     /**
-     * @brief Çå³ıÕû¸ö»­²¼
+     * @brief æ¸…é™¤æ•´ä¸ªç”»å¸ƒ
      */
     void clearAll();
 
     /**
-     * @brief ÉèÖÃ»æÖÆË³Ğò
-     * @param value Ë³ĞòÖµ(ÊıÖµÔ½´óÔ½ºó»æÖÆ)
+     * @brief è®¾ç½®ç»˜åˆ¶é¡ºåº
+     * @param value é¡ºåºå€¼(æ•°å€¼è¶Šå¤§è¶Šåç»˜åˆ¶)
      */
     void setOrder(int value);
 
     /**
-     * @brief ÉèÖÃ»­±ÊÍ¸Ã÷¶È
-     * @param alpha Í¸Ã÷¶ÈÖµ(0-255)
+     * @brief è®¾ç½®ç”»ç¬”é€æ˜åº¦
+     * @param alpha é€æ˜åº¦å€¼(0-255)
      */
     void setAlpha(short alpha);
 
     /**
-     * @brief »ñÈ¡µ±Ç°»­±ÊÍ¸Ã÷¶È
-     * @return µ±Ç°Í¸Ã÷¶ÈÖµ(0-255)
+     * @brief è·å–å½“å‰ç”»ç¬”é€æ˜åº¦
+     * @return å½“å‰é€æ˜åº¦å€¼(0-255)
      */
     short getAlpha();
 
     /**
-     * @brief Ôö¼Ó»­±ÊÍ¸Ã÷¶È
-     * @param alpha ÒªÔö¼ÓµÄÍ¸Ã÷¶ÈÖµ
+     * @brief å¢åŠ ç”»ç¬”é€æ˜åº¦
+     * @param alpha è¦å¢åŠ çš„é€æ˜åº¦å€¼
      */
     void increaseAlpha(short alpha);
 
     /**
-     * @brief ½µµÍ»­±ÊÍ¸Ã÷¶È
-     * @param alpha Òª½µµÍµÄÍ¸Ã÷¶ÈÖµ
+     * @brief é™ä½ç”»ç¬”é€æ˜åº¦
+     * @param alpha è¦é™ä½çš„é€æ˜åº¦å€¼
      */
     void decreaseAlpha(short alpha);
 
     /**
-     * @brief »æÖÆÖ±Ïß
-     * @param x1 Æğµãx×ø±ê
-     * @param y1 Æğµãy×ø±ê
-     * @param x2 ÖÕµãx×ø±ê
-     * @param y2 ÖÕµãy×ø±ê
+     * @brief ç»˜åˆ¶ç›´çº¿
+     * @param x1 èµ·ç‚¹xåæ ‡
+     * @param y1 èµ·ç‚¹yåæ ‡
+     * @param x2 ç»ˆç‚¹xåæ ‡
+     * @param y2 ç»ˆç‚¹yåæ ‡
      */
     void printLine(int x1, int y1, int x2, int y2);
 
     /**
-     * @brief »æÖÆ¾ØĞÎÌõ
-     * @param left ×ó±ß½ç
-     * @param top ÉÏ±ß½ç
-     * @param right ÓÒ±ß½ç
-     * @param bottom ÏÂ±ß½ç
+     * @brief ç»˜åˆ¶çŸ©å½¢æ¡
+     * @param left å·¦è¾¹ç•Œ
+     * @param top ä¸Šè¾¹ç•Œ
+     * @param right å³è¾¹ç•Œ
+     * @param bottom ä¸‹è¾¹ç•Œ
      */
     void printBar(int left, int top, int right, int bottom);
 
 }
 
-// º¯ÊıÉùÃ÷
+// å‡½æ•°å£°æ˜
 /**
- * @brief Ë¢ĞÂÕû¸ö»­²¼
- * @details Ç¿ÖÆÖØ»æËùÓĞÔªËØ£¬¸üĞÂÏÔÊ¾ÄÚÈİ
+ * @brief åˆ·æ–°æ•´ä¸ªç”»å¸ƒ
+ * @details å¼ºåˆ¶é‡ç»˜æ‰€æœ‰å…ƒç´ ï¼Œæ›´æ–°æ˜¾ç¤ºå†…å®¹
  */
 void reflush();
 
 /**
- * @brief ³õÊ¼»¯Í¼ĞÎ´°¿Ú
- * @param x ´°¿Ú¿í¶È
- * @param y ´°¿Ú¸ß¶È
- * @param mode ³õÊ¼»¯Ä£Ê½(Ä¬ÈÏÎªINIT_RENDERMANUALÊÖ¶¯äÖÈ¾Ä£Ê½)
+ * @brief åˆå§‹åŒ–å›¾å½¢çª—å£
+ * @param x çª—å£å®½åº¦
+ * @param y çª—å£é«˜åº¦
+ * @param mode åˆå§‹åŒ–æ¨¡å¼(é»˜è®¤ä¸ºINIT_RENDERMANUALæ‰‹åŠ¨æ¸²æŸ“æ¨¡å¼)
  */
 void init(int x, int y, int mode = INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
 
 /**
- * @brief Æô¶¯Ö÷ÊÂ¼şÑ­»·
- * @details ¿ªÊ¼´¦ÀíÊäÈëÊÂ¼şºÍäÖÈ¾Ñ­»·
+ * @brief å¯åŠ¨ä¸»äº‹ä»¶å¾ªç¯
+ * @details å¼€å§‹å¤„ç†è¾“å…¥äº‹ä»¶å’Œæ¸²æŸ“å¾ªç¯
  */
 void start();
 
 /**
- * @brief ×¢²áÈ«¾ÖÊÂ¼ş¼àÌı
- * @param listenMode ¼àÌıÄ£Ê½(ÈçÖ¡ÊÂ¼ş¡¢µã»÷ÊÂ¼şµÈ)
- * @param identifier ¼àÌıÆ÷Î¨Ò»±êÊ¶·û
- * @param function »Øµ÷º¯Êı
+ * @brief æ³¨å†Œå…¨å±€äº‹ä»¶ç›‘å¬
+ * @param listenMode ç›‘å¬æ¨¡å¼(å¦‚å¸§äº‹ä»¶ã€ç‚¹å‡»äº‹ä»¶ç­‰)
+ * @param identifier ç›‘å¬å™¨å”¯ä¸€æ ‡è¯†ç¬¦
+ * @param function å›è°ƒå‡½æ•°
  */
 void globalListen(int listenMode, string identifier, std::function<void(void)> function);
 
 /**
- * @brief È¡ÏûÈ«¾ÖÊÂ¼ş¼àÌı
- * @param listenMode ¼àÌıÄ£Ê½
- * @param identifier ÒªÒÆ³ıµÄ¼àÌıÆ÷±êÊ¶·û
+ * @brief å–æ¶ˆå…¨å±€äº‹ä»¶ç›‘å¬
+ * @param listenMode ç›‘å¬æ¨¡å¼
+ * @param identifier è¦ç§»é™¤çš„ç›‘å¬å™¨æ ‡è¯†ç¬¦
  */
 void globalUnlisten(int listenMode, string identifier);
 
 /**
- * @brief »ñÈ¡µ±Ç°¹¤×÷Ä¿Â¼Â·¾¶
- * @return µ±Ç°Â·¾¶×Ö·û´®
+ * @brief è·å–å½“å‰å·¥ä½œç›®å½•è·¯å¾„
+ * @return å½“å‰è·¯å¾„å­—ç¬¦ä¸²
  */
 string getCurrentPath();
 
 /**
- * @brief ½âÎöÂ·¾¶×Ö·û´®
- * @param s Ô­Ê¼Â·¾¶×Ö·û´®
- * @return ½âÎöºóµÄ±ê×¼Â·¾¶
+ * @brief è§£æè·¯å¾„å­—ç¬¦ä¸²
+ * @param s åŸå§‹è·¯å¾„å­—ç¬¦ä¸²
+ * @return è§£æåçš„æ ‡å‡†è·¯å¾„
  */
 string resolvePath(string s);
 
 /**
- * @brief ¼ì²éÊÇ·ñÎªÓĞĞ§UTF-8±àÂë
- * @param fileContent ÎÄ¼şÄÚÈİ
- * @return ÊÇ·ñÓĞĞ§UTF-8±àÂë
+ * @brief æ£€æŸ¥æ˜¯å¦ä¸ºæœ‰æ•ˆUTF-8ç¼–ç 
+ * @param fileContent æ–‡ä»¶å†…å®¹
+ * @return æ˜¯å¦æœ‰æ•ˆUTF-8ç¼–ç 
  */
 bool isValidUTF8(const string& fileContent);
 
 /**
- * @brief ¼ì²âÎÄ±¾±àÂë¸ñÊ½
- * @param fileContent ÎÄ¼şÄÚÈİ
- * @return ±àÂëÀàĞÍ×Ö·û´®
+ * @brief æ£€æµ‹æ–‡æœ¬ç¼–ç æ ¼å¼
+ * @param fileContent æ–‡ä»¶å†…å®¹
+ * @return ç¼–ç ç±»å‹å­—ç¬¦ä¸²
  */
 std::string detectEncoding(const std::string& fileContent);
 
 /**
- * @brief UTF-8×ªANSI±àÂë
- * @param utf8Str UTF-8×Ö·û´®
- * @return ×ª»»ºóµÄANSI×Ö·û´®
+ * @brief UTF-8è½¬ANSIç¼–ç 
+ * @param utf8Str UTF-8å­—ç¬¦ä¸²
+ * @return è½¬æ¢åçš„ANSIå­—ç¬¦ä¸²
  */
 std::string UTF8ToANSI(const std::string& utf8Str);
 
 /**
- * @brief Ö´ĞĞÃüÁî²¢µÈ´ıÍê³É
- * @param cmd ÒªÖ´ĞĞµÄÃüÁî×Ö·û´®
+ * @brief æ‰§è¡Œå‘½ä»¤å¹¶ç­‰å¾…å®Œæˆ
+ * @param cmd è¦æ‰§è¡Œçš„å‘½ä»¤å­—ç¬¦ä¸²
  */
 void runCmdAwait(const std::string cmd);
 
 
 
 /**
- * @brief ÓÃÓÚ¹¹½¨ÎÄ±¾ÏÔÊ¾²ÎÊı²¢µ÷ÓÃ showText µÄ¹¹½¨Æ÷Àà
+ * @brief ç”¨äºæ„å»ºæ–‡æœ¬æ˜¾ç¤ºå‚æ•°å¹¶è°ƒç”¨ showText çš„æ„å»ºå™¨ç±»
  */
 class ShowTextBuilder {
 public:
     /**
-     * @brief ÉèÖÃÎÄ±¾±êÊ¶·û
-     * @param id ÎÄ±¾ ID
+     * @brief è®¾ç½®æ–‡æœ¬æ ‡è¯†ç¬¦
+     * @param id æ–‡æœ¬ ID
      */
     ShowTextBuilder& setIdentifier(std::string id);
 
     /**
-     * @brief ÉèÖÃ×Ö·û´®Éú³Éº¯Êı
-     * @param f ÊäÈë index ·µ»Ø×Ö·û´®µÄº¯Êı
+     * @brief è®¾ç½®å­—ç¬¦ä¸²ç”Ÿæˆå‡½æ•°
+     * @param f è¾“å…¥ index è¿”å›å­—ç¬¦ä¸²çš„å‡½æ•°
      */
     ShowTextBuilder& setStringSolver(std::function<std::string(int)> f);
 
     /**
-     * @brief ÉèÖÃÎ»ÖÃÉú³Éº¯Êı
-     * @param f ÊäÈë index ·µ»ØÎ»ÖÃµÄº¯Êı
+     * @brief è®¾ç½®ä½ç½®ç”Ÿæˆå‡½æ•°
+     * @param f è¾“å…¥ index è¿”å›ä½ç½®çš„å‡½æ•°
      */
     ShowTextBuilder& setPositionSolver(std::function<Position(int)> f);
 
     /**
-     * @brief ÉèÖÃÑÕÉ«Éú³Éº¯Êı£¨¿ÉÑ¡£¬Ä¬ÈÏ BLACK£©
-     * @param f ÊäÈë index ·µ»ØÑÕÉ«µÄº¯Êı
+     * @brief è®¾ç½®é¢œè‰²ç”Ÿæˆå‡½æ•°ï¼ˆå¯é€‰ï¼Œé»˜è®¤ BLACKï¼‰
+     * @param f è¾“å…¥ index è¿”å›é¢œè‰²çš„å‡½æ•°
      */
     ShowTextBuilder& setColorSolver(std::function<color_t(int)> f);
 
     /**
-     * @brief ÉèÖÃËõ·ÅÒò×ÓÉú³Éº¯Êı£¨¿ÉÑ¡£¬Ä¬ÈÏ 25£©
-     * @param f ÊäÈë index ·µ»ØËõ·Å±ÈÀıµÄº¯Êı
+     * @brief è®¾ç½®ç¼©æ”¾å› å­ç”Ÿæˆå‡½æ•°ï¼ˆå¯é€‰ï¼Œé»˜è®¤ 25ï¼‰
+     * @param f è¾“å…¥ index è¿”å›ç¼©æ”¾æ¯”ä¾‹çš„å‡½æ•°
      */
     ShowTextBuilder& setScaleSolver(std::function<int(int)> f);
 
     /**
-     * @brief ÉèÖÃ×ÖÌåÃû³Æ£¨¿ÉÑ¡£¬Ä¬ÈÏ¡°ËÎÌå¡±£©
-     * @param name ×ÖÌåÃû
+     * @brief è®¾ç½®å­—ä½“åç§°ï¼ˆå¯é€‰ï¼Œé»˜è®¤â€œå®‹ä½“â€ï¼‰
+     * @param name å­—ä½“å
      */
     ShowTextBuilder& setFontName(std::string name);
 
     /**
-     * @brief ÉèÖÃ»æÍ¼ÀàĞÍ£¨¿ÉÑ¡£¬Ä¬ÈÏ FeEGE::penType::middle£©
-     * @param type ÀàĞÍ±êÊ¶
+     * @brief è®¾ç½®ç»˜å›¾ç±»å‹ï¼ˆå¯é€‰ï¼Œé»˜è®¤ FeEGE::penType::middleï¼‰
+     * @param type ç±»å‹æ ‡è¯†
      */
     ShowTextBuilder& setPType(int type);
 
     /**
-     * @brief ÉèÖÃÏÔÊ¾Ê±¼ä£¨ºÁÃë£©
-     * @param ms ÏÔÊ¾Ê±¼ä
+     * @brief è®¾ç½®æ˜¾ç¤ºæ—¶é—´ï¼ˆæ¯«ç§’ï¼‰
+     * @param ms æ˜¾ç¤ºæ—¶é—´
      */
     ShowTextBuilder& setMilliseconds(int ms);
 
     /**
-     * @brief Ö´ĞĞÎÄ±¾ÏÔÊ¾Âß¼­£¬µ÷ÓÃ showText º¯Êı
+     * @brief æ‰§è¡Œæ–‡æœ¬æ˜¾ç¤ºé€»è¾‘ï¼Œè°ƒç”¨ showText å‡½æ•°
      */
     void show();
 
