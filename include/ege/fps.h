@@ -1,4 +1,4 @@
-﻿#ifndef EGE_FPS_H
+#ifndef EGE_FPS_H
 #define EGE_FPS_H
 
 #include "egecontrolbase.h"

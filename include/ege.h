@@ -1,4 +1,4 @@
-﻿/*********************************************************
+/*********************************************************
  * EGE (Easy Graphics Engine)  24.04
  * FileName:    ege.h
  * Website:     https://xege.org
@@ -109,6 +109,20 @@
 #       define EGE_CDECL  __cdecl
 #   else
 #       define EGE_CDECL  __cdecl
+#   endif
+#endif
+
+#ifndef EGE_ENUM
+#   ifdef _MSC_VER
+#       if (_MSC_VER >= 1700) // VS2012 and later
+#           define EGE_ENUM(enum_name, enum_base_type) enum enum_name : enum_base_type
+#       else
+#           define EGE_ENUM(enum_name, enum_base_type) enum enum_name
+#       endif
+#   elif __cplusplus >= 201103L // C++11
+#       define EGE_ENUM(enum_name, enum_base_type) enum enum_name : enum_base_type
+#   else
+#       define EGE_ENUM(enum_name, enum_base_type) enum enum_name
 #   endif
 #endif
 
@@ -318,8 +332,21 @@ typedef uint32_t color_t;
  */
 enum alpha_type
 {
-    ALPHATYPE_STRAIGHT      = 0,    ///< Straight alpha (non-premultiplied alpha)
-    ALPHATYPE_PREMULTIPLIED = 1     ///< Premultiplied alpha
+    ALPHATYPE_PREMULTIPLIED = 0,    ///< Premultiplied alpha
+    ALPHATYPE_STRAIGHT      = 1     ///< Straight alpha (non-premultiplied alpha)
+};
+
+/**
+ * @enum color_type
+ * @brief Color types
+ *
+ * Defines the color type of the pixel
+ */
+enum color_type
+{
+    COLORTYPE_PRGB32 = 0,   ///< RGB color with premultiplied alpha channel. (32-bit, 8-bit per channel)
+    COLORTYPE_ARGB32 = 1,   ///< RGB color with alpha channel. (32-bit, 8-bit per channel)
+    COLORTYPE_RGB32  = 2    ///< RGB color. (32-bit, 8-bit per channel, alpha channel is ignored and forced to be opaque)
 };
 
 /**
@@ -368,7 +395,7 @@ struct ege_colpoint
  * Provides commonly used color constants, defined based on web-safe color standards
  * Color values use RGB format and can be used directly in drawing functions
  */
-enum COLORS
+EGE_ENUM(COLORS, color_t)
 {
     ALICEBLUE            = EGERGB(0xF0, 0xF8, 0xFF),
     ANTIQUEWHITE         = EGERGB(0xFA, 0xEB, 0xD7),
@@ -1781,6 +1808,20 @@ color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src);
  * @return Blended color
  */
 color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src, unsigned char srcAlphaFactor);
+
+/**
+ * @brief Convert pixel color types of the image，convert from src color type to dst color type.
+* @details
+* - src == dst, do nothing.
+* - RGB32  --> ARGB32, RGB32 --> PRGB32, ARGB32 --> RGB32: set alpha to 0xFF
+* - ARGB32 --> PRGB32: premultiply alpha
+* - PRGB32 --> ARGB32: unpremultiply alpha
+* - PRGB32 -->  RGB32: unpremultiply alpha and then set alpha to 0xFF
+ * @param pimg image
+ * @param src Source color type
+ * @param dst Destingnation color type
+ */
+void EGEAPI image_convertcolor(PIMAGE pimg, color_type src, color_type dst);
 
 /**
  * @brief Get pixel color
@@ -4074,7 +4115,7 @@ void           EGEAPI delimage(PCIMAGE pimg);
 /**
  * @brief Get image pixel buffer pointer
  * @param pimg Image object pointer to get buffer from, default is NULL (represents window)
- * @return First address of image buffer, buffer is one-dimensional array with size = image width 脳 image height
+ * @return First address of image buffer, buffer is one-dimensional array with size = image width × image height
  * @note Pixel at coordinate (x, y) corresponds to buffer index: buffer[y * width + x]
  * @note Returned pointer can directly manipulate pixel data, changes take effect immediately
  */
@@ -4083,7 +4124,7 @@ color_t*       EGEAPI getbuffer(PIMAGE pimg);
 /**
  * @brief Get image pixel buffer pointer (read-only version)
  * @param pimg Image object pointer to get buffer from, default is NULL (represents window)
- * @return First address of image buffer (read-only), buffer is one-dimensional array with size = image width 脳 image height
+ * @return First address of image buffer (read-only), buffer is one-dimensional array with size = image width × image height
  * @note Pixel at coordinate (x, y) corresponds to buffer index: buffer[y * width + x]
  * @note Returned pointer can only read pixel data, cannot modify
  */
@@ -4429,7 +4470,7 @@ int EGEAPI putimage_transparent(
  * @param xDest X coordinate of drawing position
  * @param yDest Y coordinate of drawing position
  * @param alpha Overall image transparency (0-255), 0 is completely transparent, 255 is completely opaque
- * @param alphaType Alpha type of source image pixels, default is ALPHATYPE_STRAIGHT
+ * @param colorType Color type of source image pixels, default is COLORTYPE_PRGB32
  * @return Returns grOk on success, corresponding error code on failure
  */
 int EGEAPI putimage_alphablend(
@@ -4438,7 +4479,7 @@ int EGEAPI putimage_alphablend(
     int xDest,
     int yDest,
     unsigned char alpha,
-    alpha_type alphaType = ALPHATYPE_STRAIGHT
+    color_type colorType = COLORTYPE_PRGB32
 );
 
 /**
@@ -4450,7 +4491,7 @@ int EGEAPI putimage_alphablend(
  * @param alpha Overall image transparency (0-255), 0 is completely transparent, 255 is completely opaque
  * @param xSrc X coordinate of top-left corner of drawing content in source IMAGE object
  * @param ySrc Y coordinate of top-left corner of drawing content in source IMAGE object
- * @param alphaType Alpha type of source image pixels, default is ALPHATYPE_STRAIGHT
+ * @param colorType Color type of source image pixels, default is COLORTYPE_PRGB32
  * @return Returns grOk on success, corresponding error code on failure
  */
 int EGEAPI putimage_alphablend(
@@ -4461,7 +4502,7 @@ int EGEAPI putimage_alphablend(
     unsigned char alpha,
     int xSrc,
     int ySrc,
-    alpha_type alphaType = ALPHATYPE_STRAIGHT
+    color_type colorType = COLORTYPE_PRGB32
 );
 
 /**
@@ -4475,7 +4516,7 @@ int EGEAPI putimage_alphablend(
  * @param ySrc Y coordinate of top-left corner of drawing content in source IMAGE object
  * @param widthSrc Width of drawing content in source IMAGE object
  * @param heightSrc Height of drawing content in source IMAGE object
- * @param alphaType Alpha type of source image pixels, default is ALPHATYPE_STRAIGHT
+ * @param colorType Color type of source image pixels, default is COLORTYPE_PRGB32
  * @return Returns grOk on success, corresponding error code on failure
  */
 int EGEAPI putimage_alphablend(
@@ -4488,7 +4529,7 @@ int EGEAPI putimage_alphablend(
     int ySrc,
     int widthSrc,
     int heightSrc,
-    alpha_type alphaType = ALPHATYPE_STRAIGHT
+    color_type colorType = COLORTYPE_PRGB32
 );
 
 /**
@@ -4505,7 +4546,7 @@ int EGEAPI putimage_alphablend(
  * @param widthSrc Width of drawing content in source IMAGE object
  * @param heightSrc Height of drawing content in source IMAGE object
  * @param smooth Whether to use smooth processing (anti-aliasing), default is false
- * @param alphaType Alpha type of source image pixels, default is ALPHATYPE_STRAIGHT
+ * @param colorType Color type of source image pixels, default is COLORTYPE_PRGB32
  * @return Returns grOk on success, corresponding error code on failure
  */
 int EGEAPI putimage_alphablend(
@@ -4521,7 +4562,7 @@ int EGEAPI putimage_alphablend(
     int widthSrc,
     int heightSrc,
     bool smooth = false,
-    alpha_type alphaType = ALPHATYPE_STRAIGHT
+    color_type colorType = COLORTYPE_PRGB32
 );
 
 /**
@@ -5225,10 +5266,12 @@ private:
     PVOID m_dwCallBack; ///< Callback handle
 };
 
-int           EGEAPI ege_compress  (void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen);
-int           EGEAPI ege_compress2 (void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen, int level);
-int           EGEAPI ege_uncompress(void *dest, unsigned long *destLen, const void *source, unsigned long sourceLen);
-unsigned long EGEAPI ege_uncompress_size(const void *source, unsigned long sourceLen);
+uint32_t EGEAPI ege_compress_bound(uint32_t dataSize);
+int      EGEAPI ege_compress (void* compressData, uint32_t* compressSize, const void* data, uint32_t size);
+int      EGEAPI ege_compress2(void* compressData, uint32_t* compressSize, const void* data, uint32_t size, int level);
+
+int      EGEAPI ege_uncompress(void* buffer, uint32_t* bufferSize, const void* compressData, uint32_t compressSize);
+uint32_t EGEAPI ege_uncompress_size(const void* compressData, uint32_t compressSize);
 
 }
 

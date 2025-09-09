@@ -1,4 +1,4 @@
-﻿#ifndef EGE_SYS_EDIT_H
+#ifndef EGE_SYS_EDIT_H
 #define EGE_SYS_EDIT_H
 
 #include "egecontrolbase.h"
