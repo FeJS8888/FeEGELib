@@ -1,4 +1,4 @@
-#include "Base.h"
+ï»¿#include "Base.h"
 #include "Element.h"
 #include <math.h>
 
@@ -12,9 +12,9 @@ bool needReflushCursor = true;
 double InputPositionX,InputPositionY;
 
 bool Lpressed;
-typedef std::vector<Position> Polygon;  ///< ¶à±ßĞÎÀàĞÍ¶¨Òå£¬ÓÉ¶¥µãÏòÁ¿×é³É
+typedef std::vector<Position> Polygon;  ///< å¤šè¾¹å½¢ç±»å‹å®šä¹‰ï¼Œç”±é¡¶ç‚¹å‘é‡ç»„æˆ
 	
-// Position ÊµÏÖ
+// Position å®ç°
 Position::Position() : x(0), y(0) {}
 Position::Position(double _x, double _y) : x(_x), y(_y) {}
 
@@ -34,7 +34,7 @@ Position Position::perpendicular() const {
     return Position(-y, x);
 }
 
-// ×Ô¶¯ÅĞ¶Ï±àÂë²¢µ÷ÓÃ EGE Êä³ö
+// è‡ªåŠ¨åˆ¤æ–­ç¼–ç å¹¶è°ƒç”¨ EGE è¾“å‡º
 void outtextxy_auto(int x, int y, const std::string& str) {
     std::string text = str;
 
@@ -56,16 +56,16 @@ void reflushMouseStatu(mouse_msg msg){
 	}
 }
 std::wstring autoToWString(const std::string& str) {
-    // ÓÅÏÈ³¢ÊÔ UTF-8
+    // ä¼˜å…ˆå°è¯• UTF-8
     int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str.c_str(), -1, nullptr, 0);
     if (len > 0) {
         std::wstring result(len, 0);
         MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], len);
-        result.pop_back(); // È¥µôÄ©Î²¿Õ×Ö·û
+        result.pop_back(); // å»æ‰æœ«å°¾ç©ºå­—ç¬¦
         return result;
     }
 
-    // Èç¹û UTF-8 ½âÂëÊ§°Ü£¬³¢ÊÔÏµÍ³ ANSI£¨Í¨³£Îª GBK£©
+    // å¦‚æœ UTF-8 è§£ç å¤±è´¥ï¼Œå°è¯•ç³»ç»Ÿ ANSIï¼ˆé€šå¸¸ä¸º GBKï¼‰
     len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, nullptr, 0);
     if (len > 0) {
         std::wstring result(len, 0);
@@ -74,7 +74,7 @@ std::wstring autoToWString(const std::string& str) {
         return result;
     }
 
-    // Èç¹û¶¼Ê§°Ü£¬·µ»Ø¿Õ´®£¨»òÅ×³öÒì³££©
+    // å¦‚æœéƒ½å¤±è´¥ï¼Œè¿”å›ç©ºä¸²ï¼ˆæˆ–æŠ›å‡ºå¼‚å¸¸ï¼‰
     return L"(Decode Failed)";
 }
 
@@ -94,17 +94,17 @@ int fixed(double x){
 
 void SetIMEPosition(HWND hwnd, int x, int y)
 {
-    // »ñÈ¡µ±Ç°´°¿ÚÊäÈë·¨ÉÏÏÂÎÄ
+    // è·å–å½“å‰çª—å£è¾“å…¥æ³•ä¸Šä¸‹æ–‡
     HIMC hIMC = ImmGetContext(hwnd);
     if (hIMC) {
         COMPOSITIONFORM cf = {0};
-        cf.dwStyle = CFS_POINT;   // Ê¹ÓÃÎ»ÖÃÑùÊ½
+        cf.dwStyle = CFS_POINT;   // ä½¿ç”¨ä½ç½®æ ·å¼
         cf.ptCurrentPos.x = x;
         cf.ptCurrentPos.y = y;
 
         ImmSetCompositionWindow(hIMC, &cf);
 
-        ImmReleaseContext(hwnd, hIMC);  // ÊÍ·ÅÊäÈë·¨ÉÏÏÂÎÄ
+        ImmReleaseContext(hwnd, hIMC);  // é‡Šæ”¾è¾“å…¥æ³•ä¸Šä¸‹æ–‡
     }
 }
 
@@ -122,11 +122,11 @@ LRESULT CALLBACK FeEGEProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 
 /**
- * @brief ´Ó IME »ñÈ¡×éºÏ»ò½á¹û×Ö·û´®¡£
+ * @brief ä» IME è·å–ç»„åˆæˆ–ç»“æœå­—ç¬¦ä¸²ã€‚
  *
- * @param hwnd ´°¿Ú¾ä±ú¡£
- * @param dwIndex Òª»ñÈ¡µÄ×Ö·û´®ÀàĞÍ£¬¿ÉÒÔÊÇ GCS_COMPSTR »ò GCS_RESULTSTR¡£
- * @return ³É¹¦Ê±·µ»Ø»ñÈ¡µ½µÄ×Ö·û´®£¬Ê§°ÜÊ±·µ»Ø¿Õ×Ö·û´®¡£
+ * @param hwnd çª—å£å¥æŸ„ã€‚
+ * @param dwIndex è¦è·å–çš„å­—ç¬¦ä¸²ç±»å‹ï¼Œå¯ä»¥æ˜¯ GCS_COMPSTR æˆ– GCS_RESULTSTRã€‚
+ * @return æˆåŠŸæ—¶è¿”å›è·å–åˆ°çš„å­—ç¬¦ä¸²ï¼Œå¤±è´¥æ—¶è¿”å›ç©ºå­—ç¬¦ä¸²ã€‚
  */
 std::wstring GetImeCompositionString(HWND hwnd, DWORD dwIndex) {
     std::wstring result;
@@ -139,8 +139,8 @@ std::wstring GetImeCompositionString(HWND hwnd, DWORD dwIndex) {
     if (size > 0) {
         int wcharCount = size / sizeof(wchar_t);
 
-        // °²È«µØ¶ÁÈ¡Êı¾İ£¨±ÜÃâ resize ÁôÏÂÔàÊı¾İ£©
-        std::vector<wchar_t> buffer(wcharCount + 1, L'\0');  // +1 ±£ÏÕ¿ÕÎ»
+        // å®‰å…¨åœ°è¯»å–æ•°æ®ï¼ˆé¿å… resize ç•™ä¸‹è„æ•°æ®ï¼‰
+        std::vector<wchar_t> buffer(wcharCount + 1, L'\0');  // +1 ä¿é™©ç©ºä½
         ImmGetCompositionStringW(hIMC, dwIndex, buffer.data(), size);
 
         result.assign(buffer.begin(), buffer.begin() + wcharCount);

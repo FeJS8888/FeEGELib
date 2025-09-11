@@ -1,6 +1,6 @@
-#pragma once
+ï»¿#pragma once
 
-// C++ ±ê×¼¿â
+// C++ æ ‡å‡†åº“
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
@@ -22,19 +22,19 @@
 #include <unordered_map>
 #include <vector>
 
-// Windows ÏµÍ³ API
+// Windows ç³»ç»Ÿ API
 #include <windows.h>
 #include <tlhelp32.h>
 #include <fcntl.h>
 #include <io.h>
 
-// Í¼ĞÎ¿â
+// å›¾å½¢åº“
 #include <graphics.h>
 
-// µÚÈı·½¿â
+// ç¬¬ä¸‰æ–¹åº“
 #include "json.hpp"
 
-// ×Ô¶¨ÒåÍ·ÎÄ¼ş
+// è‡ªå®šä¹‰å¤´æ–‡ä»¶
 #include "sys_edit.h"
 #include "font_manager.h"
 
@@ -49,91 +49,91 @@ extern FontManager fontManager;
 
 /**
  * @class Position
- * @brief ¶şÎ¬ÏòÁ¿Àà£¬ÓÃÓÚ±íÊ¾ÎïÀíÒıÇæÖĞµÄÎ»ÖÃ¡¢·½ÏòµÈ
+ * @brief äºŒç»´å‘é‡ç±»ï¼Œç”¨äºè¡¨ç¤ºç‰©ç†å¼•æ“ä¸­çš„ä½ç½®ã€æ–¹å‘ç­‰
  */
 class Position {
 public:
-    double x, y;  ///< ÏòÁ¿µÄxºÍy·ÖÁ¿
+    double x, y;  ///< å‘é‡çš„xå’Œyåˆ†é‡
 
     /**
-     * @brief Ä¬ÈÏ¹¹Ôìº¯Êı
-     * @details ³õÊ¼»¯ÏòÁ¿Îª(0,0)
+     * @brief é»˜è®¤æ„é€ å‡½æ•°
+     * @details åˆå§‹åŒ–å‘é‡ä¸º(0,0)
      */
     Position();
 
     /**
-     * @brief ´ø²ÎÊıµÄ¹¹Ôìº¯Êı
-     * @param _x x·ÖÁ¿Öµ
-     * @param _y y·ÖÁ¿Öµ
+     * @brief å¸¦å‚æ•°çš„æ„é€ å‡½æ•°
+     * @param _x xåˆ†é‡å€¼
+     * @param _y yåˆ†é‡å€¼
      */
     Position(double _x, double _y);
 
     /**
-     * @brief ÏòÁ¿¼Ó·¨ÔËËã·ûÖØÔØ
-     * @param rhs ÓÒ²Ù×÷ÊıÏòÁ¿
-     * @return Ïà¼ÓºóµÄĞÂÏòÁ¿
+     * @brief å‘é‡åŠ æ³•è¿ç®—ç¬¦é‡è½½
+     * @param rhs å³æ“ä½œæ•°å‘é‡
+     * @return ç›¸åŠ åçš„æ–°å‘é‡
      */
     Position operator+(const Position& rhs) const;
 
     /**
-     * @brief ÏòÁ¿¼õ·¨ÔËËã·ûÖØÔØ
-     * @param rhs ÓÒ²Ù×÷ÊıÏòÁ¿
-     * @return Ïà¼õºóµÄĞÂÏòÁ¿
+     * @brief å‘é‡å‡æ³•è¿ç®—ç¬¦é‡è½½
+     * @param rhs å³æ“ä½œæ•°å‘é‡
+     * @return ç›¸å‡åçš„æ–°å‘é‡
      */
     Position operator-(const Position& rhs) const;
 
     /**
-     * @brief ÏòÁ¿Êı³ËÔËËã·ûÖØÔØ
-     * @param s ±êÁ¿Öµ
-     * @return Ëõ·ÅºóµÄĞÂÏòÁ¿
+     * @brief å‘é‡æ•°ä¹˜è¿ç®—ç¬¦é‡è½½
+     * @param s æ ‡é‡å€¼
+     * @return ç¼©æ”¾åçš„æ–°å‘é‡
      */
     Position operator*(double s) const;
 
     /**
-     * @brief ¼ÆËãÏòÁ¿µã»ı
-     * @param rhs ÁíÒ»¸öÏòÁ¿
-     * @return Á½¸öÏòÁ¿µÄµã»ıÖµ
+     * @brief è®¡ç®—å‘é‡ç‚¹ç§¯
+     * @param rhs å¦ä¸€ä¸ªå‘é‡
+     * @return ä¸¤ä¸ªå‘é‡çš„ç‚¹ç§¯å€¼
      */
     double dot(const Position& rhs) const;
 
     /**
-     * @brief ¼ÆËãÏòÁ¿³¤¶È
-     * @return ÏòÁ¿µÄÄ£³¤
+     * @brief è®¡ç®—å‘é‡é•¿åº¦
+     * @return å‘é‡çš„æ¨¡é•¿
      */
     double length() const;
 
     /**
-     * @brief ÏòÁ¿¹éÒ»»¯
-     * @return ¹éÒ»»¯ºóµÄµ¥Î»ÏòÁ¿
+     * @brief å‘é‡å½’ä¸€åŒ–
+     * @return å½’ä¸€åŒ–åçš„å•ä½å‘é‡
      */
     Position normalize() const;
 
     /**
-     * @brief »ñÈ¡´¹Ö±ÏòÁ¿
-     * @return ´¹Ö±ÓÚµ±Ç°ÏòÁ¿µÄÏòÁ¿
+     * @brief è·å–å‚ç›´å‘é‡
+     * @return å‚ç›´äºå½“å‰å‘é‡çš„å‘é‡
      */
     Position perpendicular() const;
 };
 
 /**
  * @class PenetrationInfo
- * @brief Åö×²´©Í¸ĞÅÏ¢Àà
+ * @brief ç¢°æ’ç©¿é€ä¿¡æ¯ç±»
  */
 class PenetrationInfo {
 public:
-    Position direction;  ///< Åö×²·½Ïò(·¨ÏòÁ¿)
-    double depth;       ///< ´©Í¸Éî¶È
+    Position direction;  ///< ç¢°æ’æ–¹å‘(æ³•å‘é‡)
+    double depth;       ///< ç©¿é€æ·±åº¦
 };
 
-typedef std::vector<Position> Polygon;  ///< ¶à±ßĞÎÀàĞÍ¶¨Òå£¬ÓÉ¶¥µãÏòÁ¿×é³É
+typedef std::vector<Position> Polygon;  ///< å¤šè¾¹å½¢ç±»å‹å®šä¹‰ï¼Œç”±é¡¶ç‚¹å‘é‡ç»„æˆ
 
-// Ä£°åº¯Êı£ºÏŞÖÆÊıÖµÔÚÇø¼äÄÚ
+// æ¨¡æ¿å‡½æ•°ï¼šé™åˆ¶æ•°å€¼åœ¨åŒºé—´å†…
 template<typename T1,typename T2,typename T3>
 T1 clamp(T1 val, T2 minVal, T3 maxVal) {
     return (val < minVal) ? minVal : (val > maxVal) ? maxVal : val;
 }
 
-// ´«Èë UTF-8 »ò ANSI ±àÂë×Ö·û´®£¬×Ô¶¯×ª»»ºóµ÷ÓÃ EGE Êä³öÎÄ±¾
+// ä¼ å…¥ UTF-8 æˆ– ANSI ç¼–ç å­—ç¬¦ä¸²ï¼Œè‡ªåŠ¨è½¬æ¢åè°ƒç”¨ EGE è¾“å‡ºæ–‡æœ¬
 void outtextxy_auto(int x, int y, const std::string& str);
 
 void reflushMouseStatu(mouse_msg msg);

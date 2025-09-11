@@ -1,4 +1,4 @@
-#include "Widget.h"
+ï»¿#include "Widget.h"
 
 using namespace FeEGE;
 set<Widget*> widgets;
@@ -35,11 +35,11 @@ void Panel::draw() {
     setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
 
-    // »æÖÆ×ÔÉí±³¾°£¨Ô²½Ç¾ØĞÎ£©
+    // ç»˜åˆ¶è‡ªèº«èƒŒæ™¯ï¼ˆåœ†è§’çŸ©å½¢ï¼‰
     setfillcolor(bgColor, layer);
     ege_fillrect(0, 0, width, height, layer);
 
-    // »æÖÆ×Ó¿Ø¼ş
+    // ç»˜åˆ¶å­æ§ä»¶
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
@@ -47,7 +47,7 @@ void Panel::draw() {
         children[i]->draw(layer, childX, childY);
     }
 
-    // Õ³Ìùµ½Ö÷´°¿Ú
+    // ç²˜è´´åˆ°ä¸»çª—å£
     putimage_alphafilter(nullptr, layer, left, top, maskLayer, 0, 0, -1, -1);
 }
 
@@ -57,11 +57,11 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
 
-    // »æÖÆ×ÔÉí±³¾°£¨Ô²½Ç¾ØĞÎ£©
+    // ç»˜åˆ¶è‡ªèº«èƒŒæ™¯ï¼ˆåœ†è§’çŸ©å½¢ï¼‰
     setfillcolor(bgColor, layer);
     ege_fillrect(0, 0, width, height, layer);
 
-    // »æÖÆ×Ó¿Ø¼ş
+    // ç»˜åˆ¶å­æ§ä»¶
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
@@ -69,7 +69,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         children[i]->draw(layer, childX, childY);
     }
 
-    // Õ³Ìùµ½Ö÷´°¿Ú
+    // ç²˜è´´åˆ°ä¸»çª—å£
     putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
 }
 
@@ -141,7 +141,7 @@ void Panel::setAlpha(double a) {
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
-// Ripple ½á¹¹ÌåÊµÏÖ
+// Ripple ç»“æ„ä½“å®ç°
 Ripple::Ripple(int _x, int _y, int _r, int _life)
     : x(_x), y(_y), maxRadius(_r), life(_life) {}
 
@@ -157,7 +157,7 @@ void Ripple::draw(PIMAGE dst,double s) const {
     ege_fillellipse(x - r / 2, y - r / 2, r, r, dst);
 }
 
-// Button ÀàÊµÏÖ
+// Button ç±»å®ç°
 Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     this->cx = cx;
     this->cy = cy;
@@ -174,7 +174,7 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     ege_enable_aa(true, maskLayer);
     ege_enable_aa(true, bgLayer);
     
-    // ÕÚÕÖ
+    // é®ç½©
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGERGBA(255,255,255,255), maskLayer);
@@ -198,7 +198,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     cleardevice(btnLayer);
     cleardevice(bgLayer);
 
-    // °´Å¥±³¾°
+    // æŒ‰é’®èƒŒæ™¯
     setfillcolor(color, btnLayer);
     setfillcolor(color, bgLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
@@ -212,7 +212,7 @@ void Button::draw(PIMAGE dst,int x,int y){
 	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getwidth(icon),true);
 	}
     
-    // ¸üĞÂ²¢»æÖÆ ripples
+    // æ›´æ–°å¹¶ç»˜åˆ¶ ripples
     for (auto& r : ripples) {
         r.update();
         r.draw(btnLayer,scale);
@@ -221,15 +221,15 @@ void Button::draw(PIMAGE dst,int x,int y){
         [](const Ripple& r) { return !r.alive(); }),
         ripples.end());
 
-    // °´Å¥ÎÄ×Ö
+    // æŒ‰é’®æ–‡å­—
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    setfont(23 * scale, 0, "ËÎÌå", btnLayer);
+    setfont(23 * scale, 0, "å®‹ä½“", btnLayer);
     ege_outtextxy(width / 2 - textwidth(content.c_str(), btnLayer) / 2, 
                  height / 2 - textheight(content.c_str(), btnLayer) / 2, 
                  content.c_str(), btnLayer);
     
-    // Ó¦ÓÃÕÚÕÖ»æÖÆ
+    // åº”ç”¨é®ç½©ç»˜åˆ¶
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
@@ -250,48 +250,48 @@ void Button::handleEvent(const mouse_msg& msg) {
 }
 
 bool Button::isInside(int x, int y) const {
-    // ×ª»»Îª°´Å¥ÄÚ²¿×ø±êÏµ
+    // è½¬æ¢ä¸ºæŒ‰é’®å†…éƒ¨åæ ‡ç³»
     int localX = x - left;
     int localY = y - top;
 
-    // ÏÈ¼ì²éÊÇ·ñÔÚ°´Å¥¾ØĞÎ¿òÍâ
+    // å…ˆæ£€æŸ¥æ˜¯å¦åœ¨æŒ‰é’®çŸ©å½¢æ¡†å¤–
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
         return false;
 
-    // ÖĞĞÄ¾ØĞÎÇø£¨²»¿¼ÂÇÔ²½Ç£©Ö±½Ó·µ»Ø true
+    // ä¸­å¿ƒçŸ©å½¢åŒºï¼ˆä¸è€ƒè™‘åœ†è§’ï¼‰ç›´æ¥è¿”å› true
     if (localX >= radius && localX < width - radius)
         return true;
     if (localY >= radius && localY < height - radius)
         return true;
 
-    // ¼ì²éËÄ¸öÔ²½ÇÇøÓò
+    // æ£€æŸ¥å››ä¸ªåœ†è§’åŒºåŸŸ
     int dx, dy;
-    // ×óÉÏ½Ç
+    // å·¦ä¸Šè§’
     if (localX < radius && localY < radius) {
         dx = radius - localX;
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ÓÒÉÏ½Ç
+    // å³ä¸Šè§’
     if (localX >= width - radius && localY < radius) {
         dx = localX - (width - radius);
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ×óÏÂ½Ç
+    // å·¦ä¸‹è§’
     if (localX < radius && localY >= height - radius) {
         dx = radius - localX;
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ÓÒÏÂ½Ç
+    // å³ä¸‹è§’
     if (localX >= width - radius && localY >= height - radius) {
         dx = localX - (width - radius);
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
 
-    // ÆäÓàÇøÓòÎªÖĞ¼äµÄÊ®×ÖĞÎ²¿·Ö
+    // å…¶ä½™åŒºåŸŸä¸ºä¸­é—´çš„åå­—å½¢éƒ¨åˆ†
     return true;
 }
 
@@ -318,7 +318,7 @@ void Button::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
-    // ÕÚÕÖ
+    // é®ç½©
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
@@ -342,7 +342,7 @@ void Button::setColor(color_t col){
     color = col;
 }
 
-// InputBox ÀàÊµÏÖ
+// InputBox ç±»å®ç°
 InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     this->cx = cx;
     this->cy = cy;
@@ -355,7 +355,7 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     maskLayer = newimage(width, height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
-    // ÕÚÕÖ
+    // é®ç½©
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
@@ -399,9 +399,9 @@ double InputBoxSinDoubleForCursor(double time) {
 // 	setbkcolor(CYAN);
 // 	settextcolor(BLACK);
 // 	setfont(&lf);
-// 	ege_outtextxy(100, 100, L"aaaÖĞÎÄ");
+// 	ege_outtextxy(100, 100, L"aaaä¸­æ–‡");
 // 	delay_ms(10000);
-//     // Ö±½ÓÊä³öµ½ÆÁÄ»£¬²»Í¨¹ı dst
+//     // ç›´æ¥è¾“å‡ºåˆ°å±å¹•ï¼Œä¸é€šè¿‡ dst
     
 //     return;
 // }
@@ -430,11 +430,11 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
 
-    // °´Å¥±³¾°
+    // æŒ‰é’®èƒŒæ™¯
     setfillcolor(EGEACOLOR(255, color), btnLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
 
-    // ¸üĞÂ²¢»æÖÆ ripples
+    // æ›´æ–°å¹¶ç»˜åˆ¶ ripples
     for (auto& r : ripples) {
         r.update();
         r.draw(btnLayer, scale);
@@ -443,7 +443,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         [](const Ripple& r) { return !r.alive(); }),
         ripples.end());
 
-    // ÊäÈë¿òÎÄ×Ö
+    // è¾“å…¥æ¡†æ–‡å­—
     // std::wcout << L"FontManager loaded: " << (fontManager.IsLoaded() ? L"YES" : L"NO") << std::endl;
     // std::wcout << L"Font name: " << fontManager.GetFontName() << std::endl;
 
@@ -451,14 +451,14 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     // std::wcout << L"Created font face name: " << lf.lfFaceName << std::endl;
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK,btnLayer);
-    setfont(scale * text_height,0,L"ËÎÌå",btnLayer);
+    setfont(scale * text_height,0,L"å®‹ä½“",btnLayer);
     // ege_outtextxy(0,0,"Hello,World",btnLayer);
 
     if(sgn(scale * text_height - 1) >= 0){
-        // ¼ÆËãÎÄ±¾ÏÔÊ¾²ÎÊı - ĞŞ¸Ä¿ªÊ¼
+        // è®¡ç®—æ–‡æœ¬æ˜¾ç¤ºå‚æ•° - ä¿®æ”¹å¼€å§‹
         const float padding = 14;
         
-        // ĞŞÕı±äÁ¿¸²¸ÇÎÊÌâ£¬·Ö±ğ¼ÆËã¸÷¸ö¿í¶È
+        // ä¿®æ­£å˜é‡è¦†ç›–é—®é¢˜ï¼Œåˆ†åˆ«è®¡ç®—å„ä¸ªå®½åº¦
         std::wstring cursor_before_cursor = content.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
         std::wstring cursor_before_text = content.substr(0, cursor_pos) + IMECompositionString;
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width,cursor_with_full_ime_width;
@@ -468,38 +468,38 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         measuretext(content.c_str(), &full_text_width, &tmp, btnLayer);
         float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
         
-        // Ê¹ÓÃ scroll_offset Ìæ´ú¸´ÔÓµÄ¹ö¶¯Âß¼­
+        // ä½¿ç”¨ scroll_offset æ›¿ä»£å¤æ‚çš„æ»šåŠ¨é€»è¾‘
         float text_start_x = padding - scroll_offset;
-        // ĞŞ¸Ä½áÊø
+        // ä¿®æ”¹ç»“æŸ
         
-        // »æÖÆÎÄ±¾
+        // ç»˜åˆ¶æ–‡æœ¬
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
                     content.c_str(), btnLayer);
         
         if (on_focus) {
-            // ¾Û½¹×´Ì¬ÕÚÕÖ
+            // èšç„¦çŠ¶æ€é®ç½©
             setfillcolor(EGEARGB(50,30,30,30), btnLayer);
             ege_fillrect(0, 0, width, height, btnLayer);
 
-            // »æÖÆ¹â±ê
+            // ç»˜åˆ¶å…‰æ ‡
             std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed_time = current_time - start_time;
             double cursor_opacity = InputBoxSinDoubleForCursor(elapsed_time.count());
             setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
             
-            // Ê¹ÓÃĞÂµÄ¹â±êÎ»ÖÃ¼ÆËã
+            // ä½¿ç”¨æ–°çš„å…‰æ ‡ä½ç½®è®¡ç®—
             float cursor_draw_x = text_start_x + cursor_with_ime_width;
             
-            // »æÖÆ¹â±ê
+            // ç»˜åˆ¶å…‰æ ‡
             ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5, 
                     2, textRealHeight + 7, btnLayer);
             
-            // IMEÊäÈëÏÂ»®Ïß
+            // IMEè¾“å…¥ä¸‹åˆ’çº¿
             if(IMECompositionString.size()){
                 setlinestyle(DOTTED_LINE, 0U, 1, btnLayer);
                 setlinecolor(EGEARGB(255,0,0,0), btnLayer);
                 
-                // Ê¹ÓÃĞÂµÄÎ»ÖÃ¼ÆËã
+                // ä½¿ç”¨æ–°çš„ä½ç½®è®¡ç®—
                 float ime_start_x = text_start_x + cursor_pos_width;
                 float ime_end_x = text_start_x + cursor_with_full_ime_width;
                 
@@ -508,13 +508,13 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
                 setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
             }
             
-            // ¸üĞÂIMEÎ»ÖÃ
+            // æ›´æ–°IMEä½ç½®
             InputPositionX = left + cursor_draw_x;
             InputPositionY = top + height - 20;
         }
     }
     
-    // Ó¦ÓÃÕÚÕÖ»æÖÆ
+    // åº”ç”¨é®ç½©ç»˜åˆ¶
     // putimage(0,0,btnLayer);
     putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
     needRedraw = false;
@@ -526,7 +526,7 @@ void InputBox::draw(){
 
 void InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
-    // Êó±êÒÆÈëÒÆ³ö´¦Àí
+    // é¼ æ ‡ç§»å…¥ç§»å‡ºå¤„ç†
     if (inside) {
         setCursor(IDC_IBEAM);
         lastInside = true;
@@ -538,7 +538,7 @@ void InputBox::handleEvent(const mouse_msg& msg) {
         }
     }
 
-    // Êó±ê×ó¼ü°´ÏÂÇÒÔÚÊäÈë¿òÄÚ²¿
+    // é¼ æ ‡å·¦é”®æŒ‰ä¸‹ä¸”åœ¨è¾“å…¥æ¡†å†…éƒ¨
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
@@ -551,7 +551,7 @@ void InputBox::handleEvent(const mouse_msg& msg) {
             reflushCursorTick();
         }
 
-        // ¼ÆËãµã»÷Î»ÖÃ¶ÔÓ¦µÄ×Ö·ûÏÂ±ê£¨¶ş·Ö·¨£©
+        // è®¡ç®—ç‚¹å‡»ä½ç½®å¯¹åº”çš„å­—ç¬¦ä¸‹æ ‡ï¼ˆäºŒåˆ†æ³•ï¼‰
         const float padding = 14;
         float click_x = localX - padding + scroll_offset;
         int l = 0, r = content.length();
@@ -580,7 +580,7 @@ void InputBox::handleEvent(const mouse_msg& msg) {
         inv.movecursor(best_pos, best_pos);
         needRedraw = true;
     }
-    // Êó±ê×ó¼ü°´ÏÂÇÒ²»ÔÚÊäÈë¿òÄÚ
+    // é¼ æ ‡å·¦é”®æŒ‰ä¸‹ä¸”ä¸åœ¨è¾“å…¥æ¡†å†…
     else if (msg.is_left() && msg.is_down()) {
         on_focus = false;
         inv.killfocus();
@@ -589,49 +589,49 @@ void InputBox::handleEvent(const mouse_msg& msg) {
 }
 
 bool InputBox::isInside(int x, int y) const {
-    // ×ª»»Îª°´Å¥ÄÚ²¿×ø±êÏµ
+    // è½¬æ¢ä¸ºæŒ‰é’®å†…éƒ¨åæ ‡ç³»
     int localX = x - left;
     int localY = y - top;
     // cout<<"IS localX: "<<localX<<" localY: "<<localY<<"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
-    // ÏÈ¼ì²éÊÇ·ñÔÚ°´Å¥¾ØĞÎ¿òÍâ
+    // å…ˆæ£€æŸ¥æ˜¯å¦åœ¨æŒ‰é’®çŸ©å½¢æ¡†å¤–
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
         return false;
 
-    // ÖĞĞÄ¾ØĞÎÇø£¨²»¿¼ÂÇÔ²½Ç£©Ö±½Ó·µ»Ø true
+    // ä¸­å¿ƒçŸ©å½¢åŒºï¼ˆä¸è€ƒè™‘åœ†è§’ï¼‰ç›´æ¥è¿”å› true
     if (localX >= radius && localX < width - radius)
         return true;
     if (localY >= radius && localY < height - radius)
         return true;
 
-    // ¼ì²éËÄ¸öÔ²½ÇÇøÓò
+    // æ£€æŸ¥å››ä¸ªåœ†è§’åŒºåŸŸ
     int dx, dy;
-    // ×óÉÏ½Ç
+    // å·¦ä¸Šè§’
     if (localX < radius && localY < radius) {
         dx = radius - localX;
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ÓÒÉÏ½Ç
+    // å³ä¸Šè§’
     if (localX >= width - radius && localY < radius) {
         dx = localX - (width - radius);
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ×óÏÂ½Ç
+    // å·¦ä¸‹è§’
     if (localX < radius && localY >= height - radius) {
         dx = radius - localX;
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
-    // ÓÒÏÂ½Ç
+    // å³ä¸‹è§’
     if (localX >= width - radius && localY >= height - radius) {
         dx = localX - (width - radius);
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
 
-    // ÆäÓàÇøÓòÎªÖĞ¼äµÄÊ®×ÖĞÎ²¿·Ö
+    // å…¶ä½™åŒºåŸŸä¸ºä¸­é—´çš„åå­—å½¢éƒ¨åˆ†
     return true;
 }
 
@@ -658,7 +658,7 @@ void InputBox::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
-    // ÕÚÕÖ
+    // é®ç½©
     setbkcolor_f(TRANSPARENT, maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
@@ -710,7 +710,7 @@ void InputBox::adjustScrollForCursor() {
 
     float target_pos = IMECompositionString.size() ? cursor_with_ime_pos : cursor_pixel_pos;
 
-    // ĞŞÕı£ºÓÒ±ß½çÅĞ¶ÏÎª >=£¬scroll_offset ¹«Ê½Ã÷È·
+    // ä¿®æ­£ï¼šå³è¾¹ç•Œåˆ¤æ–­ä¸º >=ï¼Œscroll_offset å…¬å¼æ˜ç¡®
     if (target_pos - scroll_offset >= visible_width - padding) {
         scroll_offset = target_pos - (visible_width - padding);
         needRedraw = true;
@@ -740,7 +740,7 @@ const std::wstring& InputBox::getContent(){
     return content;
 }
 
-// Slider ÀàÊµÏÖ
+// Slider ç±»å®ç°
 Slider::Slider()
     : left(0), top(0), m_value(0.0), m_dragging(false), m_dragOffset(0),
       m_bgColor(EGERGB(200, 200, 200)), m_fgColor(EGERGB(100, 100, 255)) {
@@ -762,20 +762,20 @@ void Slider::create(int x, int y, double w, double h) {
 void Slider::draw(PIMAGE dst,int x,int y){
 	int left = x - width / 2;
     int top = y - height / 2;
-    // ¶¯Ì¬¸üĞÂËõ·Å±ÈÀı
+    // åŠ¨æ€æ›´æ–°ç¼©æ”¾æ¯”ä¾‹
     if (m_pressed) {
-        m_scale += (0.8f - m_scale) * 0.2f; // »º¶¯µ½ 60%
+        m_scale += (0.8f - m_scale) * 0.2f; // ç¼“åŠ¨åˆ° 60%
     } else {
-        m_scale += (1.0f - m_scale) * 0.2f; // »Øµ¯
+        m_scale += (1.0f - m_scale) * 0.2f; // å›å¼¹
     }
 
-    // ±³¾°¹ìµÀ
+    // èƒŒæ™¯è½¨é“
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
     
     if (m_orientation == Orientation::Column) {
         radius = width / 2;
-        // ÊúÖ±¹ìµÀ
+        // ç«–ç›´è½¨é“
         ege_fillroundrect(left + width / 2 - thickness, top,
                             thickness * 2, height,
                             thickness, thickness, thickness, thickness, dst);
@@ -798,7 +798,7 @@ void Slider::draw(PIMAGE dst,int x,int y){
     } 
     else {
         radius = height / 2;
-        // Ë®Æ½¹ìµÀ
+        // æ°´å¹³è½¨é“
         ege_fillroundrect(left, top + height / 2 - thickness,
                             width, thickness * 2,
                             thickness, thickness, thickness, thickness, dst);
@@ -960,7 +960,7 @@ void ProgressBar::draw(PIMAGE dst, int x, int y) {
     int left = x - width / 2;
     int top = y - height / 2;
 
-    // »º¶¯µ½Ä¿±ê½ø¶È
+    // ç¼“åŠ¨åˆ°ç›®æ ‡è¿›åº¦
     currentProgress += (targetProgress - currentProgress) * 0.15;
     if (fabs(currentProgress - targetProgress) < 0.005)
         currentProgress = targetProgress;
@@ -970,7 +970,7 @@ void ProgressBar::draw(PIMAGE dst, int x, int y) {
         return;
     }
 
-    // ÖØ»æ
+    // é‡ç»˜
     setbkcolor_f(EGEACOLOR(0, bgColor), barLayer);
     cleardevice(barLayer);
 
@@ -1012,7 +1012,7 @@ void ProgressBar::setScale(double s) {
     needRedraw = true;
 }
 
-// PanelBuilder ÊµÏÖ
+// PanelBuilder å®ç°
 PanelBuilder& PanelBuilder::setCenter(int x, int y) {
     cx = x; cy = y;
     return *this;
@@ -1054,7 +1054,7 @@ Panel* PanelBuilder::build() {
     return panel;
 }
 
-// ButtonBuilder ÊµÏÖ
+// ButtonBuilder å®ç°
 ButtonBuilder& ButtonBuilder::setIdentifier(const wstring& id) {
     identifier = id;
     return *this;
@@ -1118,7 +1118,7 @@ Button* ButtonBuilder::build() {
     return btn;
 }
 
-// InputBoxBuilder ÊµÏÖ
+// InputBoxBuilder å®ç°
 InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
     identifier = id;
     return *this;
@@ -1270,7 +1270,7 @@ Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
     mainButton->setOnClickEvent([this] { 
         toggleDropdown(); 
     });
-    dropdownPanel = new Panel(cx, cy + h, w, 0, r, color);  // ³õÊ¼»¯Îª¸ß¶È0
+    dropdownPanel = new Panel(cx, cy + h, w, 0, r, color);  // åˆå§‹åŒ–ä¸ºé«˜åº¦0
     dropdownPanel->setScale(scale);
 }
 
@@ -1301,12 +1301,12 @@ void Dropdown::updateDropdownLayout() {
 }
 
 void Dropdown::draw(PIMAGE dst, int x, int y) {
-    // Ö÷°´Å¥Õı³£»æÖÆ
+    // ä¸»æŒ‰é’®æ­£å¸¸ç»˜åˆ¶
     mainButton->draw(dst, x, y);
 
-    // Èç¹ûÕ¹¿ªÖĞ£¬»òÕıÔÚµ­Èëµ­³ö¶¯»­
+    // å¦‚æœå±•å¼€ä¸­ï¼Œæˆ–æ­£åœ¨æ·¡å…¥æ·¡å‡ºåŠ¨ç”»
     if (expanded || fadeAlpha > 0.08) {
-        // ¸üĞÂÍ¸Ã÷¶È£¨½¥±ä£©
+        // æ›´æ–°é€æ˜åº¦ï¼ˆæ¸å˜ï¼‰
         if (fadingIn) {
             fadeAlpha += 0.09;
             if (fadeAlpha >= 1.0) {
@@ -1322,7 +1322,7 @@ void Dropdown::draw(PIMAGE dst, int x, int y) {
             }
         }
 
-        // ÉèÖÃÍ¸Ã÷¶È²¢»æÖÆÏÂÀ­Ãæ°å
+        // è®¾ç½®é€æ˜åº¦å¹¶ç»˜åˆ¶ä¸‹æ‹‰é¢æ¿
         int actualAlpha = static_cast<int>(fadeAlpha * 255);
         dropdownPanel->setAlpha(actualAlpha);
         dropdownPanel->draw(dst, cx, cy + height / 2 + height * options.size() / 2 + 4);
@@ -1343,10 +1343,10 @@ void Dropdown::handleEvent(const mouse_msg& msg) {
 
     mainButton->handleEvent(msg);
 
-    // ¼ì²âµã»÷¿Õ°×¹Ø±Õ
+    // æ£€æµ‹ç‚¹å‡»ç©ºç™½å…³é—­
     if (msg.is_left() && msg.is_down()) {
         if (!isInside(msg.x, msg.y)) {
-            // µãµ½ÁË¿Õ°×ÇøÓò£¬¹Ø±ÕÏÂÀ­
+            // ç‚¹åˆ°äº†ç©ºç™½åŒºåŸŸï¼Œå…³é—­ä¸‹æ‹‰
             fadingOut = true;
             fadingIn = false;
         }
@@ -1388,15 +1388,15 @@ void Dropdown::setColor(color_t col) {
 }
 
 bool Dropdown::isInside(int x, int y) const {
-    // ¼ì²éÊÇ·ñÔÚÖ÷°´Å¥ÄÚ
+    // æ£€æŸ¥æ˜¯å¦åœ¨ä¸»æŒ‰é’®å†…
     if (mainButton->isInside(x, y))
         return true;
 
-    // Èç¹ûÎ´Õ¹¿ª£¬ÎŞĞè¼ì²éÏÂÀ­Ïî
+    // å¦‚æœæœªå±•å¼€ï¼Œæ— éœ€æ£€æŸ¥ä¸‹æ‹‰é¡¹
     if (!expanded && fadeAlpha <= 0.01)
         return false;
 
-    // ¼ì²éÊÇ·ñÔÚÏÂÀ­Ñ¡ÏîÄÚ
+    // æ£€æŸ¥æ˜¯å¦åœ¨ä¸‹æ‹‰é€‰é¡¹å†…
     for (Button* btn : options) {
         if (btn->isInside(x, y))
             return true;
@@ -1489,7 +1489,7 @@ void Radio::draw(PIMAGE dst, int x, int y) {
     bool nowChecked = isChecked();
     bool showDot = isChecked() || (animOut && animProgress < 1.0);
     if (!nowChecked && wasChecked && !animOut) {
-        // ±»È¡ÏûÑ¡ÖĞÁË£¬Æô¶¯ËõĞ¡¶¯»­
+        // è¢«å–æ¶ˆé€‰ä¸­äº†ï¼Œå¯åŠ¨ç¼©å°åŠ¨ç”»
         animOut = true;
         animIn = false;
         animProgress = 0.0;
@@ -1498,7 +1498,7 @@ void Radio::draw(PIMAGE dst, int x, int y) {
 
     double R = radius;
 
-    // ĞüÍ£ÒõÓ°
+    // æ‚¬åœé˜´å½±
     if (hovered) {
         double shadowRadius = R + 6;
         setfillcolor(EGERGBA(50, 50, 50, 32), dst);
@@ -1514,11 +1514,11 @@ void Radio::draw(PIMAGE dst, int x, int y) {
         ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
     } 
     else if (style == RadioStyle::Outline) {
-        // Ö»»æÖÆÏß¿ò£¬²»Ìî³ä
+        // åªç»˜åˆ¶çº¿æ¡†ï¼Œä¸å¡«å……
         ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
     }
 
-    // ¸üĞÂ¶¯»­½ø¶È
+    // æ›´æ–°åŠ¨ç”»è¿›åº¦
     if (animIn) {
         animProgress += animSpeed;
         if (animProgress >= 1.0) {
@@ -1532,7 +1532,7 @@ void Radio::draw(PIMAGE dst, int x, int y) {
         }
     }
 
-    // ¶¯»­Ëõ·Å
+    // åŠ¨ç”»ç¼©æ”¾
     double scaleFactor = 1.0;
     if (animIn) {
         scaleFactor = 0.7 + 0.4 * animProgress;
@@ -1611,7 +1611,7 @@ Radio* RadioBuilder::build() {
     radio->setScale(scale);
     if (groupPtr) radio->setGroupValueRef(groupPtr);
     if (onSelect) radio->setOnSelect(onSelect);
-    radio->setStyle(style); // ? ÉèÖÃÑùÊ½
+    radio->setStyle(style); // ? è®¾ç½®æ ·å¼
     widgets.insert(radio);
     return radio;
 }
@@ -1763,12 +1763,12 @@ void Toggle::handleEvent(const mouse_msg& msg) {
 
     if (msg.is_left()) {
         if (msg.is_down()) {
-            // ¼ÇÂ¼ÊÇ·ñÔÚÇøÓòÄÚ°´ÏÂ
+            // è®°å½•æ˜¯å¦åœ¨åŒºåŸŸå†…æŒ‰ä¸‹
             pressedIn = hovered;
         } else if (msg.is_up()) {
-            // Èç¹ûËÉ¿ªÊ±»¹ÔÚÇøÓòÄÚÇÒÊÇÖ®Ç°°´ÏÂµÄ
+            // å¦‚æœæ¾å¼€æ—¶è¿˜åœ¨åŒºåŸŸå†…ä¸”æ˜¯ä¹‹å‰æŒ‰ä¸‹çš„
             if (hovered && pressedIn) {
-                toggle(); // ? ÕâÀï²ÅÖ´ĞĞÇĞ»»¶¯»­Óë»Øµ÷
+                toggle(); // ? è¿™é‡Œæ‰æ‰§è¡Œåˆ‡æ¢åŠ¨ç”»ä¸å›è°ƒ
             }
             pressedIn = false;
         }
@@ -1781,7 +1781,7 @@ color_t removeAlpha(color_t c) {
 
 
 color_t mixColor(color_t c1, color_t c2, double ratio) {
-    // È·±£È¥³ı alpha Í¨µÀ
+    // ç¡®ä¿å»é™¤ alpha é€šé“
     c1 = removeAlpha(c1);
     c2 = removeAlpha(c2);
     int r = (int)(GetRValue(c1) * (1 - ratio) + GetRValue(c2) * ratio);
@@ -1791,7 +1791,7 @@ color_t mixColor(color_t c1, color_t c2, double ratio) {
 }
 
 void Toggle::draw(PIMAGE dst, int x, int y) {
-    // === ¶¯»­ÍÆ½ø ===
+    // === åŠ¨ç”»æ¨è¿› ===
     if (std::abs(knobOffset - knobTarget) > 1e-3)
         knobOffset += (knobTarget - knobOffset) * animationSpeed;
     else
@@ -1804,13 +1804,13 @@ void Toggle::draw(PIMAGE dst, int x, int y) {
     double h_knob = height * scale;
     double r_knob = h_knob / 2;
 
-    // === »¬¿éÎ»ÖÃ ===
+    // === æ»‘å—ä½ç½® ===
     double knobX = x - w / 2 + r_track + knobOffset * (w - h_track);
 
-    // === ¹ìµÀÑÕÉ« ===
+    // === è½¨é“é¢œè‰² ===
     color_t trackColor;
     if (disabled) {
-        trackColor = EGERGB(200, 200, 200); // ½ûÓÃ¹ìµÀ
+        trackColor = EGERGB(200, 200, 200); // ç¦ç”¨è½¨é“
     } else if (keepColor) {
         trackColor = checked ? mixColor(baseColor, WHITE, 0.55)
                             : mixColor(baseColor, WHITE, 0.80);
@@ -1823,26 +1823,26 @@ void Toggle::draw(PIMAGE dst, int x, int y) {
     setlinecolor(TRANSPARENT, dst);
     ege_fillroundrect(x - w / 2, y - h_track / 2, w, h_track, r_track, r_track, r_track, r_track, dst);
 
-    // === Ğü¸¡»ÒÈ¦±³¾°£¨hover Ê±£©
+    // === æ‚¬æµ®ç°åœˆèƒŒæ™¯ï¼ˆhover æ—¶ï¼‰
     if (hovered && !disabled) {
         double hoverR = r_knob + 7;
         setfillcolor(EGERGBA(100, 100, 100, 32), dst);
         ege_fillellipse(knobX - hoverR, y - hoverR, hoverR * 2, hoverR * 2, dst);
     }
 
-    // === »¬¿éÑÕÉ«£¨¹Ø±ÕÊ±ÎªÇ³»Ò¶ø·Ç´¿°×£©
+    // === æ»‘å—é¢œè‰²ï¼ˆå…³é—­æ—¶ä¸ºæµ…ç°è€Œéçº¯ç™½ï¼‰
     color_t knobColor;
     if (disabled) {
-        knobColor = EGERGB(220, 220, 220); // »Ò»¬¿é
+        knobColor = EGERGB(220, 220, 220); // ç°æ»‘å—
     } else if (keepColor) {
         knobColor = checked ? baseColor : EGERGB(245, 245, 245);
     } else {
         knobColor = checked ? baseColor : EGERGB(240, 240, 240);
     }
 
-    // === »¬¿é»æÖÆ£¨¼Ó±ß¿òÒÔÔöÇ¿¿É¼ûĞÔ£©
+    // === æ»‘å—ç»˜åˆ¶ï¼ˆåŠ è¾¹æ¡†ä»¥å¢å¼ºå¯è§æ€§ï¼‰
     setfillcolor(knobColor, dst);
-    setlinecolor(EGERGB(180, 180, 180), dst);  // »Ò±ß¿ò
+    setlinecolor(EGERGB(180, 180, 180), dst);  // ç°è¾¹æ¡†
     setlinewidth(1, dst);
     ege_fillellipse(knobX - r_knob, y - r_knob, h_knob, h_knob, dst);
 }
@@ -1903,11 +1903,11 @@ Toggle* ToggleBuilder::build() {
     return toggle;
 }
 
-// ¹¹Ôìº¯Êı
+// æ„é€ å‡½æ•°
 Text::Text(int x, int y, int maxW)
     : posX(x), posY(y), maxWidth(maxW) {}
 
-// ÉèÖÃÎÄ±¾
+// è®¾ç½®æ–‡æœ¬
 void Text::setContent(const std::wstring& text) {
     contentW = text;
     updateLayout();
@@ -1950,7 +1950,7 @@ int Text::getMaxWidth() const {
     return maxWidth;
 }
 
-// ²¼¾Ö¼ÆËã
+// å¸ƒå±€è®¡ç®—
 void Text::updateLayout() {
     lines.clear();
     textWidth = 0;
@@ -1984,12 +1984,12 @@ void Text::updateLayout() {
     textHeight = lines.size() * textheight("A");
 }
 
-// Ä¬ÈÏ»æÖÆ
+// é»˜è®¤ç»˜åˆ¶
 void Text::draw() {
     draw(nullptr, posX, posY);
 }
 
-// »æÖÆµ½Ä¿±êÍ¼Ïñ
+// ç»˜åˆ¶åˆ°ç›®æ ‡å›¾åƒ
 void Text::draw(PIMAGE dst, int x, int y) {
     setfont((int)(fontSize * scale), 0, fontName.c_str(),dst);
     settextcolor(color,dst);
@@ -2009,7 +2009,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
 }
 
 void Text::handleEvent(const mouse_msg& msg) {
-    // Text ÊÇ´¿Õ¹Ê¾¿Ø¼ş£¬²»´¦ÀíÊÂ¼ş
+    // Text æ˜¯çº¯å±•ç¤ºæ§ä»¶ï¼Œä¸å¤„ç†äº‹ä»¶
 }
 
 void Text::setAlign(TextAlign a) {
@@ -2131,7 +2131,7 @@ double Knob::clamp(double v) {
     return v;
 }
 
-// ´ÓÖµ¼ÆËã½Ç¶È (ÆğÊ¼Îª 135¡ã, ÖÕÖ¹Îª 405¡ã)
+// ä»å€¼è®¡ç®—è§’åº¦ (èµ·å§‹ä¸º 135Â°, ç»ˆæ­¢ä¸º 405Â°)
 double Knob::valueToAngle(double v) const {
     double ratio = (v - minValue) / (maxValue - minValue);
     return 135.0 + ratio * 270.0;
@@ -2141,24 +2141,24 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     double r = radius * scale;
     double cx = x, cy = y;
 
-    // === ±³¾°Ô²»· ===
+    // === èƒŒæ™¯åœ†ç¯ ===
     setlinecolor(bgColor, dst);
     setlinewidth((int)(r * 0.2), dst);
     ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, 270.0f, dst);
 
 
-    // === Ç°¾°Ô²»·£¨Öµ£©===
+    // === å‰æ™¯åœ†ç¯ï¼ˆå€¼ï¼‰===
     setlinecolor(fgColor, dst);
     setlinewidth((int)(r * 0.2), dst);
     double angle = valueToAngle(value);
     ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, angle - 135.0f, dst);
 
-    // === ÄÚ²¿Ô² ===
+    // === å†…éƒ¨åœ† ===
     setfillcolor(WHITE, dst);
     setlinecolor(TRANSPARENT, dst);
     fillellipse((int)(cx), (int)(cy), (int)(r * 1.2), (int)(r * 1.2), dst);
 
-    // === µ±Ç°ÖµÏÔÊ¾ ===
+    // === å½“å‰å€¼æ˜¾ç¤º ===
 
     setfont((int)(r * 0.6), 0, L"Consolas");
 }
@@ -2168,7 +2168,7 @@ void Knob::draw() {
 }
 
 void Knob::handleEvent(const mouse_msg& msg) {
-    // ÍÏ¶¯Âß¼­½«ÔÚÏÂÒ»²½ÊµÏÖ
+    // æ‹–åŠ¨é€»è¾‘å°†åœ¨ä¸‹ä¸€æ­¥å®ç°
 }
 
 std::map<std::wstring,Widget*> IdToWidget;

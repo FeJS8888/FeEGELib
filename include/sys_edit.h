@@ -1,4 +1,4 @@
-#ifndef SYS_EDIT_H
+ï»¿#ifndef SYS_EDIT_H
 #define SYS_EDIT_H
 
 #include <ege/egecontrolbase.h>
@@ -182,9 +182,9 @@ public:
     
     void killfocus()
 	{
-	    // ½«½¹µãÉèÖÃ»ØÖ÷´°¿Ú»ò NULL£¨ÎŞ½¹µã£©
+	    // å°†ç„¦ç‚¹è®¾ç½®å›ä¸»çª—å£æˆ– NULLï¼ˆæ— ç„¦ç‚¹ï¼‰
 	    msg_createwindow msg = {NULL};
-		msg.hwnd = GetForegroundWindow(); // ×¢ÒâÕâÀï£¬ÕâÑù¿ÉÒÔ²»¸Ä±ä´°¿Ú»î¶¯×´Ì¬
+		msg.hwnd = GetForegroundWindow(); // æ³¨æ„è¿™é‡Œï¼Œè¿™æ ·å¯ä»¥ä¸æ”¹å˜çª—å£æ´»åŠ¨çŠ¶æ€
 		msg.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		PostMessageW(getHWnd(), WM_USER + 2, 0, (LPARAM)&msg);
 		WaitForSingleObject(msg.hEvent, INFINITE);

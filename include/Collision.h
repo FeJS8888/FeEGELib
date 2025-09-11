@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Base.h"
 
 using namespace FeEGE;
@@ -6,80 +6,80 @@ using namespace FeEGE;
 namespace FeEGE{
 /**
  * @namespace FeEGE
- * @brief FeEGEÎïÀíÒıÇæµÄÅö×²¼ì²âÄ£¿é
+ * @brief FeEGEç‰©ç†å¼•æ“çš„ç¢°æ’æ£€æµ‹æ¨¡å—
  */
 
 /**
- * @brief ¼ì²âÁ½¸öÍ¹¶à±ßĞÎÊÇ·ñÅö×²
- * @param shapeA µÚÒ»¸ö¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @param shapeB µÚ¶ş¸ö¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @return ÊÇ·ñ·¢ÉúÅö×²
+ * @brief æ£€æµ‹ä¸¤ä¸ªå‡¸å¤šè¾¹å½¢æ˜¯å¦ç¢°æ’
+ * @param shapeA ç¬¬ä¸€ä¸ªå¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @param shapeB ç¬¬äºŒä¸ªå¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @return æ˜¯å¦å‘ç”Ÿç¢°æ’
  */
 bool isTouched(const std::vector<Position>& shapeA, const std::vector<Position>& shapeB);
 
 /**
- * @brief »ñÈ¡×îºóÒ»´ÎÅö×²µÄÏêÏ¸ĞÅÏ¢
- * @return °üº¬Åö×²·½ÏòºÍÉî¶ÈµÄPenetrationInfo¶ÔÏó
+ * @brief è·å–æœ€åä¸€æ¬¡ç¢°æ’çš„è¯¦ç»†ä¿¡æ¯
+ * @return åŒ…å«ç¢°æ’æ–¹å‘å’Œæ·±åº¦çš„PenetrationInfoå¯¹è±¡
  */
 const PenetrationInfo& getLastInfo();
 
 /**
- * @brief ¼ÆËãÁ½¸öĞÎ×´ÔÚÖ¸¶¨·½ÏòÉÏµÄ·ÖÀë¾àÀë
- * @param shapeA µÚÒ»¸öĞÎ×´
- * @param shapeB µÚ¶ş¸öĞÎ×´
- * @param direction ¼ì²â·½Ïò
- * @return ·ÖÀë¾àÀë
+ * @brief è®¡ç®—ä¸¤ä¸ªå½¢çŠ¶åœ¨æŒ‡å®šæ–¹å‘ä¸Šçš„åˆ†ç¦»è·ç¦»
+ * @param shapeA ç¬¬ä¸€ä¸ªå½¢çŠ¶
+ * @param shapeB ç¬¬äºŒä¸ªå½¢çŠ¶
+ * @param direction æ£€æµ‹æ–¹å‘
+ * @return åˆ†ç¦»è·ç¦»
  */
 double getSeparateDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction);
 
 /**
- * @brief »ñÈ¡Á½¸öÍ¹¶à±ßĞÎÔÚÖ¸¶¨·½ÏòÉÏµÄÖ§³Öµã¼äÍ¶Ó°¾àÀë
+ * @brief è·å–ä¸¤ä¸ªå‡¸å¤šè¾¹å½¢åœ¨æŒ‡å®šæ–¹å‘ä¸Šçš„æ”¯æŒç‚¹é—´æŠ•å½±è·ç¦»
  * 
- * @param shapeA µÚÒ»¸ö¶à±ßĞÎ
- * @param shapeB µÚ¶ş¸ö¶à±ßĞÎ
- * @param direction µ¥Î»·½ÏòÏòÁ¿
- * @return double ÔÚ¸ø¶¨·½ÏòÉÏµÄ¹ÀËã¼ä¾à£¨Ö§³Öº¯Êı²îÍ¶Ó°£©
+ * @param shapeA ç¬¬ä¸€ä¸ªå¤šè¾¹å½¢
+ * @param shapeB ç¬¬äºŒä¸ªå¤šè¾¹å½¢
+ * @param direction å•ä½æ–¹å‘å‘é‡
+ * @return double åœ¨ç»™å®šæ–¹å‘ä¸Šçš„ä¼°ç®—é—´è·ï¼ˆæ”¯æŒå‡½æ•°å·®æŠ•å½±ï¼‰
  * 
  * @note
- * - µ±¶à±ßĞÎÎ´½Ó´¥Ê±£¬·µ»ØÕıÖµ£¬±íÊ¾×îĞ¡¼ä¾àµÄ¹À¼Æ£»
- * - µ±¶à±ßĞÎ½Ó´¥»ò´©Í¸Ê±£¬·µ»ØÖµ¿ÉÄÜÎª 0 »ò¸ºÊı£¬µ«**²»µÈ¼ÛÓÚÊµ¼Ê´©Í¸Éî¶È**£»
- * - ÈôĞè»ñÈ¡ÕæÊµµÄ´©Í¸Éî¶È£¬ÇëÊ¹ÓÃ `getLastInfo()` ²¢Í¶Ó°Æä `direction * depth`£»
- * - ±¾º¯Êı³£ÓÃÓÚÒÆ¶¯Ô¤²âÖĞµÄ¿ìËÙ¼ä¾à¹À¼Æ¡£
+ * - å½“å¤šè¾¹å½¢æœªæ¥è§¦æ—¶ï¼Œè¿”å›æ­£å€¼ï¼Œè¡¨ç¤ºæœ€å°é—´è·çš„ä¼°è®¡ï¼›
+ * - å½“å¤šè¾¹å½¢æ¥è§¦æˆ–ç©¿é€æ—¶ï¼Œè¿”å›å€¼å¯èƒ½ä¸º 0 æˆ–è´Ÿæ•°ï¼Œä½†**ä¸ç­‰ä»·äºå®é™…ç©¿é€æ·±åº¦**ï¼›
+ * - è‹¥éœ€è·å–çœŸå®çš„ç©¿é€æ·±åº¦ï¼Œè¯·ä½¿ç”¨ `getLastInfo()` å¹¶æŠ•å½±å…¶ `direction * depth`ï¼›
+ * - æœ¬å‡½æ•°å¸¸ç”¨äºç§»åŠ¨é¢„æµ‹ä¸­çš„å¿«é€Ÿé—´è·ä¼°è®¡ã€‚
  */
 double getSafeDistance(const std::vector<Position>& shapeA,const std::vector<Position>& shapeB,const Position& direction);
 
 /**
- * @brief ±ä»»¶à±ßĞÎĞÎ×´£¨Ëõ·ÅºÍĞı×ª£©
- * @param shape Ô­Ê¼¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @param scale Ëõ·Å±ÈÀı£¨1.0ÎªÔ­Ê¼´óĞ¡£©
- * @param rotationOrigin Ğı×ªÖĞĞÄµã×ø±ê
- * @param rotationAngle Ğı×ª½Ç¶È£¨»¡¶ÈÖÆ£©
- * @return ±ä»»ºóµÄ¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @note ÏÈ½øĞĞËõ·Å£¬ÔÙ½øĞĞĞı×ª
+ * @brief å˜æ¢å¤šè¾¹å½¢å½¢çŠ¶ï¼ˆç¼©æ”¾å’Œæ—‹è½¬ï¼‰
+ * @param shape åŸå§‹å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @param scale ç¼©æ”¾æ¯”ä¾‹ï¼ˆ1.0ä¸ºåŸå§‹å¤§å°ï¼‰
+ * @param rotationOrigin æ—‹è½¬ä¸­å¿ƒç‚¹åæ ‡
+ * @param rotationAngle æ—‹è½¬è§’åº¦ï¼ˆå¼§åº¦åˆ¶ï¼‰
+ * @return å˜æ¢åçš„å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @note å…ˆè¿›è¡Œç¼©æ”¾ï¼Œå†è¿›è¡Œæ—‹è½¬
  */
 std::vector<Position> transformShape(const std::vector<Position>& shape,double scale,const Position& rotationOrigin,double rotationAngle);
 
 /**
- * @brief ¶Ô¶à±ßĞÎ¶¥µã¼¯ºÏ½øĞĞÎ»ÖÃ±ä»»£¨Æ½ÒÆ£©
- * @param shape Ô­Ê¼¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @param origin ±ä»»»ù×¼µã£¨¾Ö²¿×ø±êÏµÔ­µã£©
- * @param pos Ä¿±êÎ»ÖÃ£¨ÊÀ½ç×ø±êÏµ£©
- * @return ±ä»»ºóµÄ¶à±ßĞÎ¶¥µã¼¯ºÏ
- * @details ½«¶à±ßĞÎ´Ó¾Ö²¿×ø±êÏµ£¨ÒÔoriginÎªÔ­µã£©Æ½ÒÆµ½ÊÀ½ç×ø±êÏµÖĞµÄposÎ»ÖÃ
- * @note 1. Ê×ÏÈ½«¶à±ßĞÎ¶¥µã×ª»»ÎªÏà¶ÔÓÚoriginµÄ¾Ö²¿×ø±ê
- *       2. È»ºó½«¾Ö²¿×ø±êÆ½ÒÆµ½Ä¿±êposÎ»ÖÃ
- *       3. ±£³Ö¶à±ßĞÎµÄĞÎ×´ºÍ·½Ïò²»±ä
+ * @brief å¯¹å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆè¿›è¡Œä½ç½®å˜æ¢ï¼ˆå¹³ç§»ï¼‰
+ * @param shape åŸå§‹å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @param origin å˜æ¢åŸºå‡†ç‚¹ï¼ˆå±€éƒ¨åæ ‡ç³»åŸç‚¹ï¼‰
+ * @param pos ç›®æ ‡ä½ç½®ï¼ˆä¸–ç•Œåæ ‡ç³»ï¼‰
+ * @return å˜æ¢åçš„å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆ
+ * @details å°†å¤šè¾¹å½¢ä»å±€éƒ¨åæ ‡ç³»ï¼ˆä»¥originä¸ºåŸç‚¹ï¼‰å¹³ç§»åˆ°ä¸–ç•Œåæ ‡ç³»ä¸­çš„posä½ç½®
+ * @note 1. é¦–å…ˆå°†å¤šè¾¹å½¢é¡¶ç‚¹è½¬æ¢ä¸ºç›¸å¯¹äºoriginçš„å±€éƒ¨åæ ‡
+ *       2. ç„¶åå°†å±€éƒ¨åæ ‡å¹³ç§»åˆ°ç›®æ ‡posä½ç½®
+ *       3. ä¿æŒå¤šè¾¹å½¢çš„å½¢çŠ¶å’Œæ–¹å‘ä¸å˜
  */
 std::vector<Position> transformPosition(const std::vector<Position>& shape,const Position& origin,const Position& pos);
 
 /**
- * @brief ÅĞ¶ÏµãÊÇ·ñÔÚÍ¹¶à±ßĞÎÄÚ
- * @param polygon Í¹¶à±ßĞÎ¶¥µã¼¯ºÏ£¨°´Ë³Ê±Õë»òÄæÊ±ÕëË³ĞòÅÅÁĞ£©
- * @param point Òª¼ì²âµÄµã×ø±ê
- * @return µãÊÇ·ñÔÚ¶à±ßĞÎÄÚ
- * @retval true µãÔÚ¶à±ßĞÎÄÚ»ò±ßÉÏ
- * @retval false µãÔÚ¶à±ßĞÎÍâ
- * @note Ê¹ÓÃÉäÏß·¨ÊµÏÖ£¬ÒªÇó¶à±ßĞÎ±ØĞëÊÇÍ¹¶à±ßĞÎ
+ * @brief åˆ¤æ–­ç‚¹æ˜¯å¦åœ¨å‡¸å¤šè¾¹å½¢å†…
+ * @param polygon å‡¸å¤šè¾¹å½¢é¡¶ç‚¹é›†åˆï¼ˆæŒ‰é¡ºæ—¶é’ˆæˆ–é€†æ—¶é’ˆé¡ºåºæ’åˆ—ï¼‰
+ * @param point è¦æ£€æµ‹çš„ç‚¹åæ ‡
+ * @return ç‚¹æ˜¯å¦åœ¨å¤šè¾¹å½¢å†…
+ * @retval true ç‚¹åœ¨å¤šè¾¹å½¢å†…æˆ–è¾¹ä¸Š
+ * @retval false ç‚¹åœ¨å¤šè¾¹å½¢å¤–
+ * @note ä½¿ç”¨å°„çº¿æ³•å®ç°ï¼Œè¦æ±‚å¤šè¾¹å½¢å¿…é¡»æ˜¯å‡¸å¤šè¾¹å½¢
  */
 bool isPointInConvexPolygon(const std::vector<Position>& polygon,const Position& point);
 
