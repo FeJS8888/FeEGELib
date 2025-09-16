@@ -966,6 +966,48 @@ private:
     double valueToAngle(double v) const;
 };
 
+class Sidebar : public Widget {
+public:
+    Sidebar(int cx, int cy, double w, double h, double r, color_t bg);
+
+    void addItem(Widget* child, double offsetY = 0);
+    void toggle();   // 展开/收起
+    void setExpanded(bool exp);
+    bool isExpanded() const;
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+    void setPosition(int x, int y) override;
+    void setScale(double s) override;
+
+private:
+    Panel* container;                 // 内部使用 Panel 来承载子控件
+    std::vector<Widget*> items;
+    double origin_width, origin_height;
+    double radius;
+    color_t bgColor;
+    bool expanded = true;
+    double collapsedWidth = 50;       // 收起时的宽度
+};
+
+class SidebarBuilder {
+public:
+    SidebarBuilder& setCenter(int x, int y);
+    SidebarBuilder& setSize(double w, double h);
+    SidebarBuilder& setRadius(double r);
+    SidebarBuilder& setBackground(color_t color);
+    SidebarBuilder& addItem(Widget* item);
+    Sidebar* build();
+
+private:
+    int cx = 0, cy = 0;
+    double width = 200, height = 400;
+    double radius = 8;
+    color_t bg = EGERGB(240, 240, 240);
+    std::vector<Widget*> items;
+};
+
 extern std::set<Widget*> widgets;
 extern std::map<std::wstring,Widget*> IdToWidget;
 
