@@ -126,7 +126,7 @@ void Panel::setSize(double w,double h){
     ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
 	
-	setbkcolor_f(TRANSPARENT, maskLayer);
+	setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -139,7 +139,7 @@ void Panel::clearChildren(){
 
 void Panel::setAlpha(double a) {
     alpha = clamp(a, 0, 255);
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -179,7 +179,7 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     ege_enable_aa(true, bgLayer);
     
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGERGBA(255,255,255,255), maskLayer);
     ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -323,7 +323,7 @@ void Button::setScale(double s){
     radius = origin_radius * s;
     scale = s;
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
@@ -357,13 +357,15 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     top = cy - height / 2;
     btnLayer = newimage(width, height);
     maskLayer = newimage(width, height);
+    bgLayer = newimage(width,height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
+    ege_enable_aa(true, bgLayer);
     // 遮罩
-    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGERGBA(255,255,255,255), maskLayer);
+    ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
     inv.create(false, 2);
     inv.visible(false);
     inv.move(-1, -1);
@@ -378,14 +380,10 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
 InputBox::~InputBox() {
     delimage(btnLayer);
     delimage(maskLayer);
+    delimage(bgLayer);
 }
 
-// A simple constant for the blinking frequency in Hz (cycles per second).
-// Adjust this value to change the blinking speed.
-const double BLINK_FREQUENCY = 0.65; // 1 Hz means one full blink cycle per second.
-
-// The threshold to trigger the pause. A value closer to 1.0 makes the pause
-// window smaller, while a smaller value makes it longer.
+const double BLINK_FREQUENCY = 0.65;
 const double PAUSE_THRESHOLD = 0.6;
 double InputBoxSinDoubleForCursor(double time) {
     double sine_value = std::sin(time * 2.0 * M_PI * BLINK_FREQUENCY);
@@ -397,18 +395,6 @@ double InputBoxSinDoubleForCursor(double time) {
     }
     return (sine_value + 1.0) / 2.0;
 }
-
-// void InputBox::draw(PIMAGE dst, int x, int y) {
-//     LOGFONTW lf = fontManager.CreateLogFont(40);
-// 	setbkcolor(CYAN);
-// 	settextcolor(BLACK);
-// 	setfont(&lf);
-// 	ege_outtextxy(100, 100, L"aaa中文");
-// 	delay_ms(10000);
-//     // 直接输出到屏幕，不通过 dst
-    
-//     return;
-// }
 
 void InputBox::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
@@ -423,7 +409,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if(!on_focus && !ripples.size() && !needRedraw){
-        putimage_withalpha(dst, btnLayer, left, top);
+        putimage_withalpha(dst, bgLayer, left, top);
         return;
     }
 
@@ -433,6 +419,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    cleardevice(bgLayer);
 
     // 按钮背景
     setfillcolor(EGEACOLOR(255, color), btnLayer);
@@ -520,7 +508,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     
     // 应用遮罩绘制
     // putimage(0,0,btnLayer);
-    putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
+    putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
 }
 
@@ -663,7 +652,7 @@ void InputBox::setScale(double s){
     radius = origin_radius * s;
     scale = s;
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
@@ -2232,6 +2221,9 @@ void Sidebar::setScale(double s) {
     width = origin_width * s;
     height = origin_height * s;
     container->setScale(s);
+}
+
+Sidebar::~Sidebar(){
 }
 
 // Builder 实现

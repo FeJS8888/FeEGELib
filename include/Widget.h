@@ -228,6 +228,7 @@ private:
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
+    PIMAGE bgLayer = nullptr; ///< 遮罩图层
     std::wstring content;   ///< 输入内容
     FeEGE::sys_edit inv;   ///< 输入控件
     bool on_focus;         ///< 是否获得焦点
@@ -980,6 +981,8 @@ public:
     void handleEvent(const mouse_msg& msg) override;
     void setPosition(int x, int y) override;
     void setScale(double s) override;
+
+    ~Sidebar();
 
 private:
     Panel* container;                 // 内部使用 Panel 来承载子控件
