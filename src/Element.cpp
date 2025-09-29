@@ -1420,8 +1420,8 @@ void reflush() {
 }
 
 void init(int x,int y,int mode){
-	setinitmode(mode);
-	initgraph(x,y,mode);
+	// setinitmode(mode | INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
+	initgraph(x,y,mode | INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
 	initXY();
 	FeEGE::initPen();
 	FeEGE::initTextPen();

@@ -8,19 +8,23 @@ Widget::~Widget() {}
 Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     this->cx = cx;
     this->cy = cy;
-    this->width = width;
-    this->height = height;
-    this->bgColor = bgColor;
+    this->width = w;
+    this->height = h;
+    this->bgColor = bg;
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
+    if(layer) delimage(layer);
+    if(maskLayer) delimage(maskLayer);
+    layer = newimage(w,h);
+    maskLayer = newimage(w,h);
 	ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
 	
-	setbkcolor_f(TRANSPARENT, maskLayer);
+	setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 void Panel::addChild(Widget* child, double offsetX, double offsetY) {
@@ -36,8 +40,8 @@ void Panel::draw() {
     cleardevice(layer);
 
     // 绘制自身背景（圆角矩形）
-    setfillcolor(bgColor, layer);
-    ege_fillrect(0, 0, width, height, layer);
+    setfillcolor(EGEACOLOR(255, bgColor), layer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
 
     // 绘制子控件
     for (size_t i = 0; i < children.size(); ++i) {
@@ -98,10 +102,10 @@ void Panel::setScale(double s){
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-	setbkcolor_f(TRANSPARENT, maskLayer);
+	setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
 }
 
 double Panel::getScale(){
@@ -115,14 +119,14 @@ void Panel::handleEvent(const mouse_msg& msg){
 void Panel::setSize(double w,double h){
     origin_width = width = w;
     origin_height = height = h;
-    delimage(layer);
-    delimage(maskLayer);
+    if(layer) delimage(layer);
+    if(maskLayer) delimage(maskLayer);
     layer = newimage(width,height);
     maskLayer = newimage(width,height);
     ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
 	
-	setbkcolor_f(TRANSPARENT, maskLayer);
+	setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -135,7 +139,7 @@ void Panel::clearChildren(){
 
 void Panel::setAlpha(double a) {
     alpha = clamp(a, 0, 255);
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -175,7 +179,7 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     ege_enable_aa(true, bgLayer);
     
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGERGBA(255,255,255,255), maskLayer);
     ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -319,7 +323,7 @@ void Button::setScale(double s){
     radius = origin_radius * s;
     scale = s;
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
@@ -353,13 +357,15 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     top = cy - height / 2;
     btnLayer = newimage(width, height);
     maskLayer = newimage(width, height);
+    bgLayer = newimage(width,height);
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
+    ege_enable_aa(true, bgLayer);
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    setfillcolor(EGERGBA(255,255,255,255), maskLayer);
+    ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
     inv.create(false, 2);
     inv.visible(false);
     inv.move(-1, -1);
@@ -374,14 +380,10 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
 InputBox::~InputBox() {
     delimage(btnLayer);
     delimage(maskLayer);
+    delimage(bgLayer);
 }
 
-// A simple constant for the blinking frequency in Hz (cycles per second).
-// Adjust this value to change the blinking speed.
-const double BLINK_FREQUENCY = 0.65; // 1 Hz means one full blink cycle per second.
-
-// The threshold to trigger the pause. A value closer to 1.0 makes the pause
-// window smaller, while a smaller value makes it longer.
+const double BLINK_FREQUENCY = 0.65;
 const double PAUSE_THRESHOLD = 0.6;
 double InputBoxSinDoubleForCursor(double time) {
     double sine_value = std::sin(time * 2.0 * M_PI * BLINK_FREQUENCY);
@@ -393,18 +395,6 @@ double InputBoxSinDoubleForCursor(double time) {
     }
     return (sine_value + 1.0) / 2.0;
 }
-
-// void InputBox::draw(PIMAGE dst, int x, int y) {
-//     LOGFONTW lf = fontManager.CreateLogFont(40);
-// 	setbkcolor(CYAN);
-// 	settextcolor(BLACK);
-// 	setfont(&lf);
-// 	ege_outtextxy(100, 100, L"aaa中文");
-// 	delay_ms(10000);
-//     // 直接输出到屏幕，不通过 dst
-    
-//     return;
-// }
 
 void InputBox::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
@@ -419,7 +409,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if(!on_focus && !ripples.size() && !needRedraw){
-        putimage_withalpha(dst, btnLayer, left, top);
+        putimage_withalpha(dst, bgLayer, left, top);
         return;
     }
 
@@ -429,6 +419,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    cleardevice(bgLayer);
 
     // 按钮背景
     setfillcolor(EGEACOLOR(255, color), btnLayer);
@@ -516,7 +508,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     
     // 应用遮罩绘制
     // putimage(0,0,btnLayer);
-    putimage_alphafilter(dst, btnLayer, left, top, maskLayer, 0, 0, -1, -1);
+    putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
+    putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
 }
 
@@ -659,7 +652,7 @@ void InputBox::setScale(double s){
     radius = origin_radius * s;
     scale = s;
     // 遮罩
-    setbkcolor_f(TRANSPARENT, maskLayer);
+    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
@@ -1045,6 +1038,7 @@ PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offse
 }
 
 Panel* PanelBuilder::build() {
+    cout<<bg<<"<<<\n";
     auto panel = new Panel(cx, cy, width, height, radius, bg);
     panel->setScale(scale);
     widgets.insert(panel);
@@ -2169,6 +2163,102 @@ void Knob::draw() {
 
 void Knob::handleEvent(const mouse_msg& msg) {
     // 拖动逻辑将在下一步实现
+}
+
+
+Sidebar::Sidebar(int cx, int cy, double w, double h, double r, color_t bg) {
+    this->cx = cx;
+    this->cy = cy;
+    origin_width = width = w;
+    origin_height = height = h;
+    radius = r;
+    bgColor = bg;
+
+    container = new Panel(cx, cy, w, h, r, bg);
+}
+
+void Sidebar::addItem(Widget* child, double offsetY) {
+    double y = -origin_height / 2 + 40 + items.size() * 60 + offsetY;
+    container->addChild(child, 0, y);
+    items.push_back(child);
+}
+
+void Sidebar::toggle() {
+    setExpanded(!expanded);
+}
+
+void Sidebar::setExpanded(bool exp) {
+    expanded = exp;
+    if (expanded) {
+        container->setSize(origin_width, origin_height);
+    } else {
+        container->setSize(collapsedWidth, origin_height);
+    }
+}
+
+bool Sidebar::isExpanded() const {
+    return expanded;
+}
+
+void Sidebar::draw(PIMAGE dst, int x, int y) {
+    container->draw(dst, x, y);
+}
+
+void Sidebar::draw() {
+    container->draw();
+}
+
+void Sidebar::handleEvent(const mouse_msg& msg) {
+    container->handleEvent(msg);
+}
+
+void Sidebar::setPosition(int x, int y) {
+    cx = x; cy = y;
+    container->setPosition(x, y);
+}
+
+void Sidebar::setScale(double s) {
+    width = origin_width * s;
+    height = origin_height * s;
+    container->setScale(s);
+}
+
+Sidebar::~Sidebar(){
+}
+
+// Builder 实现
+SidebarBuilder& SidebarBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+SidebarBuilder& SidebarBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+SidebarBuilder& SidebarBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+SidebarBuilder& SidebarBuilder::setBackground(color_t color) {
+    bg = color;
+    return *this;
+}
+
+SidebarBuilder& SidebarBuilder::addItem(Widget* item) {
+    items.push_back(item);
+    return *this;
+}
+
+Sidebar* SidebarBuilder::build() {
+    auto sidebar = new Sidebar(cx, cy, width, height, radius, bg);
+    for (auto* item : items) {
+        sidebar->addItem(item);
+    }
+    widgets.insert(sidebar);
+    return sidebar;
 }
 
 std::map<std::wstring,Widget*> IdToWidget;

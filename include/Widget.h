@@ -228,6 +228,7 @@ private:
     std::vector<Ripple> ripples; ///< 波纹效果集合
     PIMAGE btnLayer = nullptr;  ///< 按钮图层
     PIMAGE maskLayer = nullptr; ///< 遮罩图层
+    PIMAGE bgLayer = nullptr; ///< 遮罩图层
     std::wstring content;   ///< 输入内容
     FeEGE::sys_edit inv;   ///< 输入控件
     bool on_focus;         ///< 是否获得焦点
@@ -964,6 +965,50 @@ private:
 
     double clamp(double v);
     double valueToAngle(double v) const;
+};
+
+class Sidebar : public Widget {
+public:
+    Sidebar(int cx, int cy, double w, double h, double r, color_t bg);
+
+    void addItem(Widget* child, double offsetY = 0);
+    void toggle();   // 展开/收起
+    void setExpanded(bool exp);
+    bool isExpanded() const;
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+    void setPosition(int x, int y) override;
+    void setScale(double s) override;
+
+    ~Sidebar();
+
+private:
+    Panel* container;                 // 内部使用 Panel 来承载子控件
+    std::vector<Widget*> items;
+    double origin_width, origin_height;
+    double radius;
+    color_t bgColor;
+    bool expanded = true;
+    double collapsedWidth = 50;       // 收起时的宽度
+};
+
+class SidebarBuilder {
+public:
+    SidebarBuilder& setCenter(int x, int y);
+    SidebarBuilder& setSize(double w, double h);
+    SidebarBuilder& setRadius(double r);
+    SidebarBuilder& setBackground(color_t color);
+    SidebarBuilder& addItem(Widget* item);
+    Sidebar* build();
+
+private:
+    int cx = 0, cy = 0;
+    double width = 200, height = 400;
+    double radius = 8;
+    color_t bg = EGERGB(240, 240, 240);
+    std::vector<Widget*> items;
 };
 
 extern std::set<Widget*> widgets;
