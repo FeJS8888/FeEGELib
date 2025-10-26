@@ -288,7 +288,7 @@ void Button::handleEvent(const mouse_msg& msg) {
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        m_counter ++;
+        m_counter++;
         ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70,dynamic_cast<Widget*>(this),m_counter);
         needRedraw = true;
         m_clicking = true;
