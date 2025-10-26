@@ -4,6 +4,7 @@
  */
 
 #include "Layout.h"
+#include "Widget.h"
 #include <algorithm>
 
 /**
