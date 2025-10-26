@@ -160,7 +160,7 @@ std::vector<Widget*>& Panel::getChildren() {
 
 // Ripple 结构体实现
 Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
-    : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p),counter(_c) {}
+    : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}
 
 bool Ripple::alive() const {
     if (auto btn = dynamic_cast<Button*>(parent)){
