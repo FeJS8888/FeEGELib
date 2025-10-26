@@ -3,6 +3,13 @@
 using namespace FeEGE;
 set<Widget*> widgets;
 
+double Widget::getWidth(){
+    return width;
+}
+double Widget::getHeight(){
+    return height;
+}
+
 Widget::~Widget() {}
 
 Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
@@ -34,7 +41,8 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
 }
 
 void Panel::draw() {
-	double left = cx - width / 2;
+	if (layout) layout->apply(*this);  // 自动计算子控件位置
+    double left = cx - width / 2;
 	double top = cy - height / 2;
     setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
@@ -56,6 +64,7 @@ void Panel::draw() {
 }
 
 void Panel::draw(PIMAGE dst, int x, int y) {
+    if (layout) layout->apply(*this);  // 自动计算子控件位置
     double left = x - width / 2;
 	double top = y - height / 2;
     setbkcolor_f(EGEACOLOR(0,bgColor), layer);
@@ -145,20 +154,51 @@ void Panel::setAlpha(double a) {
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
+std::vector<Widget*>& Panel::getChildren() { 
+    return children; 
+}
+
 // Ripple 结构体实现
-Ripple::Ripple(int _x, int _y, int _r, int _life)
-    : x(_x), y(_y), maxRadius(_r), life(_life) {}
+Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
+    : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}
 
-bool Ripple::alive() const { return age < life; }
+bool Ripple::alive() const {
+    if (auto btn = dynamic_cast<Button*>(parent)){
+        return (btn->getClickState() && (btn->getMCounter() == counter)) || (age < life);
+    }
+    if (auto ib = dynamic_cast<InputBox*>(parent))
+        return (ib->getClickState() && (ib->getMCounter() == counter)) || (age < life);
+    return age < life;
+}
 
-void Ripple::update() { age++; }
+void Ripple::update() {
+    // --- 空指针保护 ---
+    if (!parent) {
+        age++;
+        return;
+    }
+
+    // --- 动态类型安全检测 ---
+    if (age >= life * 0.75) {
+        if (auto btn = dynamic_cast<Button*>(parent)) {
+            // cout<<"Ripple Update: Button Click State = " << btn->getClickState() << ", Counter = " << btn->getMCounter() << ", Ripple Counter = " << counter << endl;
+            if (btn->getClickState() && (btn->getMCounter() == counter)) return;
+        } 
+        else if (auto ib = dynamic_cast<InputBox*>(parent)) {
+            if (ib->getClickState() && (ib->getMCounter() == counter)) return;
+        }
+    }
+
+    // --- 正常递增 ---
+    age++;
+}
 
 void Ripple::draw(PIMAGE dst,double s) const {
     double progress = (double)age / life;
     double r = maxRadius * progress * s;
-    int alpha = static_cast<int>(100 * (1.0 - progress));
+    int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
     setfillcolor(EGEARGB(alpha, 30, 30, 30), dst);
-    ege_fillellipse(x - r / 2, y - r / 2, r, r, dst);
+    ege_fillellipse(x - r, y - r, r * 2, r * 2, dst);
 }
 
 // Button 类实现
@@ -244,12 +284,18 @@ void Button::draw(){
 }
 
 void Button::handleEvent(const mouse_msg& msg) {
-    if (msg.is_left() && msg.is_down() && isInside(msg.x, msg.y)) {
+    bool inside = isInside(msg.x, msg.y);
+    if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
-        ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
-        if(on_click_event != nullptr) on_click_event();
+        m_counter++;
+        ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70,dynamic_cast<Widget*>(this),m_counter);
         needRedraw = true;
+        m_clicking = true;
+    }
+    else if(msg.is_left() && msg.is_up()){
+        if(inside && on_click_event != nullptr) on_click_event();
+        m_clicking = false;
     }
 }
 
@@ -344,6 +390,14 @@ void Button::setOnClickEvent(std::function<void(void)> func){
 
 void Button::setColor(color_t col){
     color = col;
+}
+
+bool Button::getClickState(){
+    return m_clicking;
+}
+
+int Button::getMCounter(){
+    return m_counter;
 }
 
 // InputBox 类实现
@@ -537,7 +591,8 @@ void InputBox::handleEvent(const mouse_msg& msg) {
         int localY = msg.y - top;
 
         if (!on_focus) {
-            ripples.emplace_back(localX, localY, std::max(width, height) * 1.8, 40);
+            m_counter ++;
+            ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70, dynamic_cast<Widget*>(this),m_counter);
             on_focus = true;
             needRedraw = true;
             inv.setfocus();
@@ -729,8 +784,16 @@ void InputBox::reflushCursorTick(){
     start_time = std::chrono::high_resolution_clock::now();
 }
 
+bool InputBox::getClickState(){
+    return m_clicking;
+}
+
 const std::wstring& InputBox::getContent(){
     return content;
+}
+
+int InputBox::getMCounter(){
+    return m_counter;
 }
 
 // Slider 类实现
@@ -762,6 +825,11 @@ void Slider::draw(PIMAGE dst,int x,int y){
         m_scale += (1.0f - m_scale) * 0.2f; // 回弹
     }
 
+    // 平滑过渡进度
+    m_progress += (m_finalprogress - m_progress) * 0.15;
+    if (fabs(m_progress - m_finalprogress) < 0.005)
+        m_progress = m_finalprogress;
+
     // 背景轨道
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
@@ -774,7 +842,7 @@ void Slider::draw(PIMAGE dst,int x,int y){
                             thickness, thickness, thickness, thickness, dst);
 
         int knobX = left + width / 2;
-        int knobY = top + static_cast<int>((1.0 - m_value) * height);
+        int knobY = top + static_cast<int>((1.0 - m_progress) * height);
         double r = radius * m_scale;
 
         setfillcolor(m_fgColor, dst);
@@ -796,7 +864,7 @@ void Slider::draw(PIMAGE dst,int x,int y){
                             width, thickness * 2,
                             thickness, thickness, thickness, thickness, dst);
 
-        int knobX = left + static_cast<int>(m_value * width);
+        int knobX = left + static_cast<int>(m_progress * width);
         int knobY = top + height / 2;
         double r = radius * m_scale;
 
@@ -822,10 +890,10 @@ bool Slider::isInside(int x, int y){
     int knobX, knobY;
     if (m_orientation == Orientation::Column) {
         knobX = left + width / 2;
-        knobY = top + static_cast<int>((1.0 - m_value) * height);
+        knobY = top + static_cast<int>((1.0 - m_progress) * height);
         radius = width / 2;
     } else { // Row
-        knobX = left + static_cast<int>(m_value * width);
+        knobX = left + static_cast<int>(m_progress * width);
         knobY = top + height / 2;
         radius = height / 2;
     }
@@ -834,19 +902,53 @@ bool Slider::isInside(int x, int y){
     return dx * dx + dy * dy <= radius * radius;
 }
 
+bool Slider::isInsideBar(int x, int y){
+    return x >= left && x <= left + width && 
+           y >= top && y <= top + height;
+}
+
+void Slider::setStep(double s){
+    step = s;
+}
+
+double Slider::fixProgress() {
+    double value = m_finalprogress;
+    if (step > 0) {
+        value = round(value / step) * step;
+    }
+    return value;
+}
+
 void Slider::handleEvent(const mouse_msg& msg) {
     m_hover = isInside(msg.x, msg.y);
+    m_skip = isInsideBar(msg.x, msg.y);
 
-    if (msg.is_left() && msg.is_down() && m_hover) {
+    if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
+        m_dragging = true;
+        m_pressed = true;
+        if (m_orientation == Orientation::Column) {
+            int my = clamp(msg.y, top, top + height);
+            m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
+        } else { // Row
+            int mx = clamp(msg.x, left, left + width);
+            m_finalprogress = (mx - left) / static_cast<double>(width);
+        }
+        if (m_value != fixProgress() && m_onChange != nullptr)
+        {
+            m_value = fixProgress();
+            m_onChange(m_value);
+        }
+    }
+    else if (msg.is_left() && msg.is_down() && m_hover) {
         m_dragging = true;
         m_pressed = true;
         int knobX, knobY;
         if (m_orientation == Orientation::Column) {
             knobX = left + width / 2;
-            knobY = top + static_cast<int>((1.0 - m_value) * height);
+            knobY = top + static_cast<int>((1.0 - m_progress) * height);
             m_dragOffset = msg.y - knobY;
         } else { // Row
-            knobX = left + static_cast<int>(m_value * width);
+            knobX = left + static_cast<int>(m_progress * width);
             knobY = top + height / 2;
             m_dragOffset = msg.x - knobX;
         }
@@ -854,22 +956,27 @@ void Slider::handleEvent(const mouse_msg& msg) {
     else if (msg.is_move() && m_dragging) {
         if (m_orientation == Orientation::Column) {
             int my = clamp(msg.y - m_dragOffset, top, top + height);
-            m_value = 1.0 - (my - top) / static_cast<double>(height);
+            m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
         } else { // Row
             int mx = clamp(msg.x - m_dragOffset, left, left + width);
-            m_value = (mx - left) / static_cast<double>(width);
+            m_finalprogress = (mx - left) / static_cast<double>(width);
         }
-        if (m_onChange)
+        if (m_value != fixProgress() && m_onChange != nullptr)
+        {
+            m_value = fixProgress();
             m_onChange(m_value);
+        }
     } 
     else if (msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
+        m_finalprogress = fixProgress();
     }
 }
 
 void Slider::setProgress(double v) {
-    m_value = clamp(v, 0.0, 1.0);
+    m_progress = clamp(v, 0.0, 1.0);
+    m_value = m_progress = fixProgress();
 }
 
 double Slider::getProgress() const {
@@ -953,7 +1060,7 @@ void ProgressBar::draw(PIMAGE dst, int x, int y) {
     int left = x - width / 2;
     int top = y - height / 2;
 
-    // 缓动到目标进度
+    //缓动到目标进度
     currentProgress += (targetProgress - currentProgress) * 0.15;
     if (fabs(currentProgress - targetProgress) < 0.005)
         currentProgress = targetProgress;
@@ -1006,6 +1113,11 @@ void ProgressBar::setScale(double s) {
 }
 
 // PanelBuilder 实现
+PanelBuilder& PanelBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
 PanelBuilder& PanelBuilder::setCenter(int x, int y) {
     cx = x; cy = y;
     return *this;
@@ -1037,11 +1149,17 @@ PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offse
     return *this;
 }
 
+PanelBuilder& PanelBuilder::setLayout(std::shared_ptr<Layout> l) {
+    layout = std::move(l);
+    return *this;
+}
+
 Panel* PanelBuilder::build() {
-    cout<<bg<<"<<<\n";
     auto panel = new Panel(cx, cy, width, height, radius, bg);
     panel->setScale(scale);
     widgets.insert(panel);
+    IdToWidget[identifier] = panel;
+    if (layout) panel->setLayout(layout);
     for(size_t i = 0;i < children.size();++ i){
         panel->addChild(children[i],childOffsets[i].x,childOffsets[i].y);
     }
@@ -1080,7 +1198,9 @@ ButtonBuilder& ButtonBuilder::setScale(double s) {
 }
 
 ButtonBuilder& ButtonBuilder::setOnClick(std::function<void()> func) {
-    onClick = func;
+    onClick = [func]() {
+        pushSchedule(func);
+    };
     return *this;
 }
 
@@ -1205,13 +1325,25 @@ SliderBuilder& SliderBuilder::setOrientation(Orientation ori){
     return *this;
 }
 
+SliderBuilder& SliderBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setStep(double s) {
+    step = s;
+    return *this;
+}
+
 Slider* SliderBuilder::build() {
     auto slider = new Slider();
+    IdToWidget[identifier] = slider;
     slider->create(x,y, width, height);
     slider->setColor(bgColor, fgColor);
     slider->setThickness(thickness);
     slider->setProgress(progress);
     slider->setScale(scale);
+    slider->setStep(step);
     if (onChange) slider->setOnChange(onChange);
     slider->setOrientation(orientation);
     widgets.insert(slider);
@@ -1248,8 +1380,14 @@ ProgressBarBuilder& ProgressBarBuilder::setBackground(color_t bg) {
     return *this;
 }
 
+ProgressBarBuilder& ProgressBarBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
 ProgressBar* ProgressBarBuilder::build() {
     auto bar = new ProgressBar(cx, cy, width, height);
+    IdToWidget[identifier] = bar;
     bar->setColor(fgColor);
     bar->setBackground(bgColor);
     bar->setProgress(progress);

@@ -7,9 +7,12 @@
 #pragma once
 
 #include "Element.h"
+#include "Layout.h"
 #include "Base.h"
 
 using namespace FeEGE;
+
+class Layout;
 
 /**
  * @brief 所有可绘制控件的基类
@@ -37,6 +40,8 @@ public:
     
     virtual void setScale(double s) = 0;
 
+    double getWidth();
+    double getHeight();
 protected:
     int cx, cy;  ///< 中心坐标
     double width, height;
@@ -93,7 +98,10 @@ public:
     void handleEvent(const mouse_msg& msg) override;
 
     void setAlpha(double a);
+    std::vector<Widget*>& getChildren();
 
+    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
+    std::shared_ptr<Layout> getLayout() const { return layout; }
 private:
     double radius;
     double origin_width, origin_height;
@@ -105,6 +113,7 @@ private:
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
+    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象}
 };
 
 /**
@@ -115,6 +124,8 @@ struct Ripple{
     int maxRadius;      ///< 最大半径
     int life;           ///< 生命周期
     int age = 0;        ///< 当前年龄
+    int counter = -1;
+    Widget* parent;
 
     /**
      * @brief 构造函数
@@ -123,7 +134,7 @@ struct Ripple{
      * @param _r 最大半径
      * @param _life 生命周期
      */
-    Ripple(int _x, int _y, int _r, int _life);
+    Ripple(int _x, int _y, int _r, int _life,Widget* p,int _c);
 
     /**
      * @brief 检查波纹是否存活
@@ -160,6 +171,8 @@ private:
     std::function<void(void)> on_click_event = nullptr;
     color_t color;
     bool needRedraw = true;
+    bool m_clicking = false;
+    int m_counter = 0;
     PIMAGE icon = nullptr;
     int iconSize = 100;
 
@@ -195,6 +208,8 @@ public:
     void setContent(const std::wstring& str);
     std::wstring getContent();
 
+    bool getClickState();
+
     /**
      * @brief 检查点是否在按钮内
      * @param x x坐标
@@ -214,6 +229,8 @@ public:
     void setIcon(PIMAGE img);
 
     void setIconSize(int is);
+
+    int getMCounter();
 };
 
 /**
@@ -231,7 +248,9 @@ private:
     PIMAGE bgLayer = nullptr; ///< 遮罩图层
     std::wstring content;   ///< 输入内容
     FeEGE::sys_edit inv;   ///< 输入控件
-    bool on_focus;         ///< 是否获得焦点
+    bool on_focus = false;         ///< 是否获得焦点
+    bool m_clicking = false;
+    int m_counter = 0;
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
 
@@ -316,6 +335,9 @@ public:
     void reflushCursorTick();
 
     const std::wstring& getContent();
+    bool getClickState();
+
+    int getMCounter();
 };
 
 enum class Orientation {
@@ -334,14 +356,18 @@ private:
     double origin_radius;
     int m_dragOffset;          ///< 拖动偏移量
     double m_value;            ///< 当前值(0.0-1.0)
-    bool m_dragging;           ///< 是否正在拖动
+    double m_progress = 0.0;   ///< 当前进度(0.0-1.0)
+    double m_finalprogress = 0.0; ///< 最终进度(0.0-1.0)
+    bool m_dragging = false;           ///< 是否正在拖动
     color_t m_bgColor, m_fgColor; ///< 背景和前景色
     std::function<void(double)> m_onChange; ///< 值改变回调
 	bool m_hover = false;            ///< 鼠标是否悬停
+    bool m_skip = false;             ///< 是否点击轨道改变进度
 	bool m_pressed = false;          ///< 是否正在按住
 	float m_scale = 1.0f;            ///< 当前缩放比例
 	double thickness = 4;
 	double origin_thickness = 4;
+    double step = 0.0;              ///< 步进值，0表示无步进
     bool needRedraw = true;
     Orientation m_orientation = Orientation::Row; // 方向
     float text_offset_x = 0; // 文本水平偏移量
@@ -375,6 +401,14 @@ public:
      * @return 是否在输入框内
      */
     bool isInside(int x, int y);
+
+    /**
+     * @brief 检查点是否在滑动条轨道内
+     * @param x x坐标
+     * @param y y坐标
+     * @return 是否在轨道内
+     */
+    bool isInsideBar(int x, int y);
 
     /**
      * @brief 处理鼠标事件
@@ -413,11 +447,35 @@ public:
      */
     void setOnChange(std::function<void(double)> callback);
     
+    /**
+     * @brief 设置位置
+     * @param x x坐标
+     * @param y y坐标
+     */
     void setPosition(int x,int y) override;
     
+    /**
+     * @brief 设置缩放比例
+     * @param s 缩放比例
+     */
     void setScale(double s) override;
 
+    /**
+     * @brief 设置滑动条方向
+     * @param ori 方向枚举
+     */
     void setOrientation(Orientation ori);
+
+    /**
+     * @brief 设置步进值
+     * @param s 步进值
+     */
+    void setStep(double s);
+
+    /**
+     * @brief 修正进度值到最近的步进点
+     */
+    double fixProgress();
 };
 
 class ProgressBar : public Widget {
@@ -463,6 +521,7 @@ public:
     PanelBuilder& setBackground(color_t color);
     PanelBuilder& setScale(double s);
     PanelBuilder& addChild(Widget* child, double offsetX, double offsetY);
+    PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
     Panel* build();
 
 private:
@@ -474,6 +533,7 @@ private:
     double scale = 1.0;
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
+    std::shared_ptr<Layout> layout = nullptr;
 };
 
 /**
@@ -583,7 +643,17 @@ public:
      */
     SliderBuilder& setOnChange(std::function<void(double)> callback);
 
+    /**
+     * @brief 设置滑动条方向
+     * @param ori 方向枚举
+     */
     SliderBuilder& setOrientation(Orientation ori);
+
+    /**
+     * @brief 设置步进值
+     * @param s 步进值
+     */
+    SliderBuilder& setStep(double s);
 
     /**
      * @brief 构建并返回 Slider 对象
@@ -599,6 +669,7 @@ private:
     double thickness = 4;
     double progress = 0.0;
     double scale = 1.0;
+    double step = 0.0;
     std::function<void(double)> onChange = nullptr;
     Orientation orientation = Orientation::Row;
 };

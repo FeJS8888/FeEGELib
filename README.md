@@ -1,10 +1,10 @@
-# FeEGELib V2.6.1.0
+# FeEGELib V2.10.0.0
 
 [![Page Views Count](https://badges.toozhao.com/badges/01JH01V78N1S0P0A9RVFJ5SWXZ/blue.svg)](https://badges.toozhao.com/stats/01JH01V78N1S0P0A9RVFJ5SWXZ "Get your own page views count badge on badges.toozhao.com")
 
 [![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=FeJS8888\&repo=FeEGELib\&show_owner=true\&theme=catppuccin_latte)](https://github.com/FeJS8888/FeEGELib)
 
-> 更新日期：2025/08/31
+> 更新日期：2025/10/26
 > 基于 [EGE V24.04](https://xege.org/) 开发的一套图形开发框架
 
 ---
@@ -27,7 +27,7 @@
 * 🔧 异步图像加载
 * 🔧 碰撞检测系统
 * 🌈 缓动动画系统
-* 🔧 UI 组件集（Button / Panel / InputBox / Toggle 等）
+* 🔧 UI 组件集（Button / Panel / InputBox / Toggle / Slider / Progressbar 等）
 * 🔧 简易物理系统（待完善，目前存在 bug）
 
 ---
@@ -39,7 +39,7 @@
 编译参数：
 
 ```bash
--std=c++14 -O2
+-std=c++23 -O2
 ```
 
 链接参数：
