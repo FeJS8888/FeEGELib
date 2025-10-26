@@ -248,8 +248,8 @@ private:
     PIMAGE bgLayer = nullptr; ///< 遮罩图层
     std::wstring content;   ///< 输入内容
     FeEGE::sys_edit inv;   ///< 输入控件
-    bool on_focus;         ///< 是否获得焦点
-    bool m_clicking;
+    bool on_focus = false;         ///< 是否获得焦点
+    bool m_clicking = false;
     int m_counter = 0;
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
@@ -358,7 +358,7 @@ private:
     double m_value;            ///< 当前值(0.0-1.0)
     double m_progress = 0.0;   ///< 当前进度(0.0-1.0)
     double m_finalprogress = 0.0; ///< 最终进度(0.0-1.0)
-    bool m_dragging;           ///< 是否正在拖动
+    bool m_dragging = false;           ///< 是否正在拖动
     color_t m_bgColor, m_fgColor; ///< 背景和前景色
     std::function<void(double)> m_onChange; ///< 值改变回调
 	bool m_hover = false;            ///< 鼠标是否悬停
