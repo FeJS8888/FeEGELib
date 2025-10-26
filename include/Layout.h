@@ -6,11 +6,8 @@
 
 #pragma once
 
-#include "Widget.h"
-
 class Widget;
 class Panel;
-
 /**
  * @brief 布局方向
  */
