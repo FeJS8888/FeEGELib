@@ -38,6 +38,10 @@
 #include "sys_edit.h"
 #include "font_manager.h"
 
+#define UTF16_IO_BEGIN
+
+#define UTF16_IO_END
+
 namespace FeEGE {
 	
 extern bool Lpressed;
