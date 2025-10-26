@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(FeEGEApp)
 
-set(CMAKE_CXX_STANDARD 20)
-
-# target_compile_definitions(FeEGEApp PRIVATE FPS)
-# set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
+set(CMAKE_CXX_STANDARD 23)
 
 # 添加你的源文件
 add_executable(FeEGEApp
@@ -20,6 +17,9 @@ add_executable(FeEGEApp
 
 target_include_directories(FeEGEApp PRIVATE include)
 
+# target_compile_definitions(FeEGEApp PRIVATE FPS)
+set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
+
 # 链接静态库（graphics.a）
 target_link_libraries(FeEGEApp PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgraphics.a)
 
@@ -27,7 +27,6 @@ target_link_libraries(FeEGEApp PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgraphics.a)
 target_link_libraries(FeEGEApp PRIVATE gdi32)
 target_link_libraries(FeEGEApp PRIVATE gdiplus)
 target_link_libraries(FeEGEApp PRIVATE imm32)
-
 
 target_compile_options(FeEGEApp PRIVATE -static-libgcc -static-libstdc++)
 target_link_options(FeEGEApp PRIVATE -static-libgcc -static-libstdc++)
