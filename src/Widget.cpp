@@ -1198,7 +1198,7 @@ ButtonBuilder& ButtonBuilder::setScale(double s) {
 }
 
 ButtonBuilder& ButtonBuilder::setOnClick(std::function<void()> func) {
-    onClick = [=]() {
+    onClick = [func]() {
         pushSchedule(func);
     };
     return *this;
