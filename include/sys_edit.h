@@ -119,7 +119,7 @@ public:
         if (m_hwnd)
         {
             DWORD start = 0, end = 0;
-            SendMessage(m_hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+            SendMessageW(m_hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
             return (int)start;
         }
         return -1;
