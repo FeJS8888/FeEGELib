@@ -158,6 +158,10 @@ std::vector<Widget*>& Panel::getChildren() {
     return children; 
 }
 
+void Panel::setChildrenOffset(int index,Position pos){
+    childOffsets[index] = pos;
+}
+
 // Ripple 结构体实现
 Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
     : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}

@@ -6,8 +6,11 @@
 
 #pragma once
 
+#include <memory>
+
 class Widget;
 class Panel;
+
 /**
  * @brief 布局方向
  */
@@ -44,7 +47,7 @@ class FlexLayout : public Layout {
 public:
     FlexLayout() = default;
 
-    // 链式配置接口
+    // 普通链式配置接口
     FlexLayout& direction(LayoutDirection dir);
     FlexLayout& spacing(double s);
     FlexLayout& padding(double p);
@@ -52,6 +55,39 @@ public:
 
     // 应用布局
     void apply(Panel& parent) override;
+
+    // --- Getter (供 Builder 使用) ---
+    LayoutDirection getDirection() const { return direction_; }
+    LayoutAlign getAlign() const { return align_; }
+    double getSpacing() const { return spacing_; }
+    double getPadding() const { return padding_; }
+
+    // --- Setter (供 Builder 使用) ---
+    void setDirection(LayoutDirection dir) { direction_ = dir; }
+    void setAlign(LayoutAlign align) { align_ = align; }
+    void setSpacing(double s) { spacing_ = s; }
+    void setPadding(double p) { padding_ = p; }
+
+private:
+    LayoutDirection direction_ = LayoutDirection::Row;
+    LayoutAlign align_ = LayoutAlign::Start;
+    double spacing_ = 0;
+    double padding_ = 0;
+};
+
+/**
+ * @brief FlexLayout 构建器类
+ * 
+ * 负责配置并生成 FlexLayout 对象
+ */
+class FlexLayoutBuilder {
+public:
+    FlexLayoutBuilder& setDirection(LayoutDirection dir);
+    FlexLayoutBuilder& setAlign(LayoutAlign align);
+    FlexLayoutBuilder& setSpacing(double s);
+    FlexLayoutBuilder& setPadding(double p);
+
+    std::shared_ptr<FlexLayout> build();
 
 private:
     LayoutDirection direction_ = LayoutDirection::Row;
