@@ -41,26 +41,7 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
 }
 
 void Panel::draw() {
-	if (layout) layout->apply(*this);  // 自动计算子控件位置
-    double left = cx - width / 2;
-	double top = cy - height / 2;
-    setbkcolor_f(EGEACOLOR(0,bgColor), layer);
-    cleardevice(layer);
-
-    // 绘制自身背景（圆角矩形）
-    setfillcolor(EGEACOLOR(255, bgColor), layer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
-
-    // 绘制子控件
-    for (size_t i = 0; i < children.size(); ++i) {
-        int childX = width / 2 + childOffsets[i].x * scale;
-        int childY = height / 2 + childOffsets[i].y * scale;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
-        children[i]->draw(layer, childX, childY);
-    }
-
-    // 粘贴到主窗口
-    putimage_alphafilter(nullptr, layer, left, top, maskLayer, 0, 0, -1, -1);
+    draw(nullptr,cx,cy);
 }
 
 void Panel::draw(PIMAGE dst, int x, int y) {
