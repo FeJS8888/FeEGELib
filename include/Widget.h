@@ -99,6 +99,7 @@ public:
 
     void setAlpha(double a);
     std::vector<Widget*>& getChildren();
+    void setChildrenOffset(int index,Position pos);
 
     void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
     std::shared_ptr<Layout> getLayout() const { return layout; }
@@ -520,7 +521,7 @@ public:
     PanelBuilder& setRadius(double r);
     PanelBuilder& setBackground(color_t color);
     PanelBuilder& setScale(double s);
-    PanelBuilder& addChild(Widget* child, double offsetX, double offsetY);
+    PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
     Panel* build();
 
