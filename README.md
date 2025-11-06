@@ -102,6 +102,45 @@ int main() {
 
 ---
 
+## 🧪 测试套件
+
+项目包含完整的单元测试套件，覆盖核心功能模块。
+
+### 运行测试
+
+1. **使用批处理脚本（推荐）**：
+   ```bash
+   build_and_test.bat
+   ```
+
+2. **手动编译**：
+   ```bash
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build .
+   ```
+
+3. **运行测试**：
+   ```bash
+   # 所有测试可执行文件位于 build/bin/ 目录
+   ./build/bin/test_base.exe
+   ./build/bin/test_collision.exe
+   ./build/bin/test_element_basic.exe
+   ./build/bin/test_layout.exe
+   ```
+
+### 测试覆盖
+
+- ✓ **Base 模块**：Position 向量、SimpleOptional、工具函数
+- ✓ **Collision 模块**：碰撞检测、多边形变换、SAT 算法
+- ✓ **Element 模块**：动画系统、路径处理、编码检测
+- ✓ **Layout 模块**：Flex 布局、构建器模式
+
+详见 [test/README.md](test/README.md)
+
+---
+
 ## 📮 联系作者
 
 欢迎 issue / PR / Star！
