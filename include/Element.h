@@ -61,6 +61,11 @@ Element* newElement(string id,PIMAGE image,double x = 0,double y = 0);
  */
 Element* newElement(string id,string imagePath,double x = 0,double y = 0);
 
+/**
+ * @brief 从文件路径获取图像
+ * @param imagePath 图像文件路径
+ * @return 图像指针
+ */
 PIMAGE getImage(const string& imagePath);
 
 // 全局变量声明
@@ -775,6 +780,11 @@ public:
 	 */
 	void nextImage();
 	
+	/**
+	 * @brief 添加多边形碰撞形状
+	 * @param shape 多边形顶点集合
+	 * @details 为元素添加自定义碰撞检测多边形形状
+	 */
 	void addPolygon(const FeEGE::Polygon& shape);
 	
 	#ifndef NO_THREAD
@@ -1356,4 +1366,16 @@ private:
     int milliseconds;
 };
 
+/**
+ * @brief 显示动态文本
+ * @param identifier 文本标识符
+ * @param stringSolver 字符串生成函数(输入索引，返回字符串)
+ * @param positionSolver 位置生成函数(输入索引，返回位置)
+ * @param colorSolver 颜色生成函数(输入索引，返回颜色)
+ * @param scaleSolevr 缩放生成函数(输入索引，返回缩放比例)
+ * @param fontName 字体名称
+ * @param pType 画笔类型
+ * @param milliseconds 显示时间(毫秒)
+ * @details 根据提供的求解器函数动态生成并显示文本内容
+ */
 void showText(string identifier,function<string(int)> stringSolver,function<Position(int)> positionSolver,function<color_t(int)> colorSolver,function<int(int)> scaleSolevr,const string& fontName,int pType,int milliseconds);

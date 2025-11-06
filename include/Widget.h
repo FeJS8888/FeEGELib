@@ -24,8 +24,12 @@ public:
      */
     virtual ~Widget();
     
+    /**
+     * @brief 处理鼠标事件
+     * @param msg 鼠标消息
+     */
     virtual void handleEvent(const mouse_msg& msg) = 0;
-    bool is_global = true;
+    bool is_global = true;  ///< 是否全局控件
 
     /**
      * @brief 绘制控件到指定图像
@@ -34,18 +38,40 @@ public:
      * @param offsetY 控件中心 y 坐标（相对于 dst）
      */
     virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
+    
+    /**
+     * @brief 绘制控件到默认图像
+     */
     virtual void draw() = 0;
     
+    /**
+     * @brief 设置控件位置
+     * @param x x坐标
+     * @param y y坐标
+     */
     virtual void setPosition(int x,int y) = 0;
     
+    /**
+     * @brief 设置控件缩放比例
+     * @param s 缩放比例
+     */
     virtual void setScale(double s) = 0;
 
+    /**
+     * @brief 获取控件宽度
+     * @return 宽度值
+     */
     double getWidth();
+    
+    /**
+     * @brief 获取控件高度
+     * @return 高度值
+     */
     double getHeight();
 protected:
-    int cx, cy;  ///< 中心坐标
-    double width, height;
-    double scale = 1;
+    int cx, cy;           ///< 中心坐标
+    double width, height; ///< 控件尺寸
+    double scale = 1;     ///< 缩放比例
 };
 
 /**
@@ -64,6 +90,9 @@ public:
      */
     Panel(int cx, int cy, double w, double h, double r, color_t bg);
     
+    /**
+     * @brief 析构函数
+     */
     ~Panel();
 
     /**
@@ -81,27 +110,84 @@ public:
      * @param y 粘贴到 dst 中的中心 y 坐标
      */
     void draw(PIMAGE dst, int x, int y) override;
+    
+    /**
+     * @brief 绘制 Panel 到默认图像
+     */
     void draw() override;
     
+    /**
+     * @brief 设置面板位置
+     * @param x x坐标
+     * @param y y坐标
+     */
     void setPosition(int x,int y) override;
     
+    /**
+     * @brief 获取面板位置
+     * @return 位置对象
+     */
     Position getPosition();
     
+    /**
+     * @brief 设置面板缩放比例
+     * @param s 缩放比例
+     */
     void setScale(double s) override;
     
+    /**
+     * @brief 获取面板缩放比例
+     * @return 缩放比例
+     */
     double getScale();
 
+    /**
+     * @brief 设置面板尺寸
+     * @param w 宽度
+     * @param h 高度
+     */
     void setSize(double w,double h);
 
+    /**
+     * @brief 清除所有子控件
+     */
     void clearChildren();
     
+    /**
+     * @brief 处理鼠标事件
+     * @param msg 鼠标消息
+     */
     void handleEvent(const mouse_msg& msg) override;
 
+    /**
+     * @brief 设置透明度
+     * @param a 透明度值(0-255)
+     */
     void setAlpha(double a);
+    
+    /**
+     * @brief 获取子控件列表
+     * @return 子控件列表引用
+     */
     std::vector<Widget*>& getChildren();
+    
+    /**
+     * @brief 设置子控件偏移
+     * @param index 子控件索引
+     * @param pos 新的偏移位置
+     */
     void setChildrenOffset(int index,Position pos);
 
+    /**
+     * @brief 设置布局管理器
+     * @param l 布局对象
+     */
     void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
+    
+    /**
+     * @brief 获取布局管理器
+     * @return 布局对象
+     */
     std::shared_ptr<Layout> getLayout() const { return layout; }
 private:
     double radius;
@@ -151,6 +237,7 @@ struct Ripple{
     /**
      * @brief 绘制波纹
      * @param dst 目标图像
+     * @param scale 缩放比例
      */
     void draw(PIMAGE dst,double scale) const;
 };
@@ -160,22 +247,22 @@ struct Ripple{
  */
 class Button : public Widget {
 private:
-    double radius;             ///< 圆角半径
-    double origin_width, origin_height;
-    double origin_radius;
-    double left, top;          ///< 左上角坐标
-    std::vector<Ripple> ripples; ///< 波纹效果集合
-    PIMAGE btnLayer = nullptr;  ///< 按钮图层
-    PIMAGE maskLayer = nullptr; ///< 遮罩图层
-    PIMAGE bgLayer = nullptr; ///< 背景图层
-    std::wstring content;
-    std::function<void(void)> on_click_event = nullptr;
-    color_t color;
-    bool needRedraw = true;
-    bool m_clicking = false;
-    int m_counter = 0;
-    PIMAGE icon = nullptr;
-    int iconSize = 100;
+    double radius;                              ///< 圆角半径
+    double origin_width, origin_height;         ///< 原始宽高
+    double origin_radius;                       ///< 原始圆角半径
+    double left, top;                           ///< 左上角坐标
+    std::vector<Ripple> ripples;                ///< 波纹效果集合
+    PIMAGE btnLayer = nullptr;                  ///< 按钮图层
+    PIMAGE maskLayer = nullptr;                 ///< 遮罩图层
+    PIMAGE bgLayer = nullptr;                   ///< 背景图层
+    std::wstring content;                       ///< 按钮文本
+    std::function<void(void)> on_click_event = nullptr;  ///< 点击事件回调
+    color_t color;                              ///< 按钮颜色
+    bool needRedraw = true;                     ///< 是否需要重绘
+    bool m_clicking = false;                    ///< 是否正在点击
+    int m_counter = 0;                          ///< 计数器
+    PIMAGE icon = nullptr;                      ///< 图标图像
+    int iconSize = 100;                         ///< 图标尺寸
 
 public:
     /**
@@ -194,10 +281,16 @@ public:
     virtual ~Button();
 
     /**
-     * @brief 绘制按钮
-     * @param content 按钮文本
+     * @brief 绘制按钮到指定图像
+     * @param dst 目标图像
+     * @param x x坐标
+     * @param y y坐标
      */
     virtual void draw(PIMAGE dst,int x,int y) override;
+    
+    /**
+     * @brief 绘制按钮到默认图像
+     */
     virtual void draw() override;
 
     /**
@@ -206,9 +299,22 @@ public:
      */
     virtual void handleEvent(const mouse_msg& msg);
     
+    /**
+     * @brief 设置按钮文本
+     * @param str 文本内容
+     */
     void setContent(const std::wstring& str);
+    
+    /**
+     * @brief 获取按钮文本
+     * @return 文本内容
+     */
     std::wstring getContent();
 
+    /**
+     * @brief 获取点击状态
+     * @return 是否正在点击
+     */
     bool getClickState();
 
     /**
@@ -219,18 +325,47 @@ public:
      */
     bool isInside(int x, int y) const;
     
+    /**
+     * @brief 设置按钮位置
+     * @param x x坐标
+     * @param y y坐标
+     */
     void setPosition(int x,int y) override;
     
+    /**
+     * @brief 设置按钮缩放比例
+     * @param s 缩放比例
+     */
     void setScale(double s) override;
     
+    /**
+     * @brief 设置点击事件回调
+     * @param func 回调函数
+     */
     void setOnClickEvent(std::function<void(void)> func);
 
+    /**
+     * @brief 设置按钮颜色
+     * @param col 颜色值
+     */
     void setColor(color_t col);
     
+    /**
+     * @brief 设置按钮图标
+     * @param img 图标图像
+     */
     void setIcon(PIMAGE img);
 
+    /**
+     * @brief 设置图标尺寸
+     * @param is 图标尺寸
+     */
     void setIconSize(int is);
 
+    /**
+     * @brief 获取计数器值
+     * @return 计数器值
+     */
     int getMCounter();
 };
 
@@ -1039,51 +1174,158 @@ private:
     double valueToAngle(double v) const;
 };
 
+/**
+ * @class Sidebar
+ * @brief 侧边栏控件类
+ * @details 可展开/收起的侧边栏，支持添加子控件项
+ */
 class Sidebar : public Widget {
 public:
+    /**
+     * @brief 构造函数
+     * @param cx 中心x坐标
+     * @param cy 中心y坐标
+     * @param w 宽度
+     * @param h 高度
+     * @param r 圆角半径
+     * @param bg 背景颜色
+     */
     Sidebar(int cx, int cy, double w, double h, double r, color_t bg);
 
+    /**
+     * @brief 添加子项
+     * @param child 子控件指针
+     * @param offsetY y轴偏移量(默认0)
+     */
     void addItem(Widget* child, double offsetY = 0);
-    void toggle();   // 展开/收起
+    
+    /**
+     * @brief 切换展开/收起状态
+     */
+    void toggle();
+    
+    /**
+     * @brief 设置展开状态
+     * @param exp 是否展开
+     */
     void setExpanded(bool exp);
+    
+    /**
+     * @brief 获取展开状态
+     * @return 是否展开
+     */
     bool isExpanded() const;
 
+    /**
+     * @brief 绘制侧边栏到指定图像
+     * @param dst 目标图像
+     * @param x x坐标
+     * @param y y坐标
+     */
     void draw(PIMAGE dst, int x, int y) override;
+    
+    /**
+     * @brief 绘制侧边栏到默认图像
+     */
     void draw() override;
+    
+    /**
+     * @brief 处理鼠标事件
+     * @param msg 鼠标消息
+     */
     void handleEvent(const mouse_msg& msg) override;
+    
+    /**
+     * @brief 设置侧边栏位置
+     * @param x x坐标
+     * @param y y坐标
+     */
     void setPosition(int x, int y) override;
+    
+    /**
+     * @brief 设置侧边栏缩放比例
+     * @param s 缩放比例
+     */
     void setScale(double s) override;
 
+    /**
+     * @brief 析构函数
+     */
     ~Sidebar();
 
 private:
-    Panel* container;                 // 内部使用 Panel 来承载子控件
-    std::vector<Widget*> items;
-    double origin_width, origin_height;
-    double radius;
-    color_t bgColor;
-    bool expanded = true;
-    double collapsedWidth = 50;       // 收起时的宽度
+    Panel* container;                    ///< 内部使用 Panel 来承载子控件
+    std::vector<Widget*> items;          ///< 子项列表
+    double origin_width, origin_height;  ///< 原始宽高
+    double radius;                       ///< 圆角半径
+    color_t bgColor;                     ///< 背景颜色
+    bool expanded = true;                ///< 是否展开
+    double collapsedWidth = 50;          ///< 收起时的宽度
 };
 
+/**
+ * @class SidebarBuilder
+ * @brief 侧边栏构建器类
+ */
 class SidebarBuilder {
 public:
+    /**
+     * @brief 设置中心位置
+     * @param x x坐标
+     * @param y y坐标
+     * @return 构建器引用
+     */
     SidebarBuilder& setCenter(int x, int y);
+    
+    /**
+     * @brief 设置尺寸
+     * @param w 宽度
+     * @param h 高度
+     * @return 构建器引用
+     */
     SidebarBuilder& setSize(double w, double h);
+    
+    /**
+     * @brief 设置圆角半径
+     * @param r 圆角半径
+     * @return 构建器引用
+     */
     SidebarBuilder& setRadius(double r);
+    
+    /**
+     * @brief 设置背景颜色
+     * @param color 颜色值
+     * @return 构建器引用
+     */
     SidebarBuilder& setBackground(color_t color);
+    
+    /**
+     * @brief 添加子项
+     * @param item 子控件指针
+     * @return 构建器引用
+     */
     SidebarBuilder& addItem(Widget* item);
+    
+    /**
+     * @brief 构建侧边栏对象
+     * @return 侧边栏指针
+     */
     Sidebar* build();
 
 private:
-    int cx = 0, cy = 0;
-    double width = 200, height = 400;
-    double radius = 8;
-    color_t bg = EGERGB(240, 240, 240);
-    std::vector<Widget*> items;
+    int cx = 0, cy = 0;                  ///< 中心坐标
+    double width = 200, height = 400;    ///< 宽高
+    double radius = 8;                   ///< 圆角半径
+    color_t bg = EGERGB(240, 240, 240);  ///< 背景颜色
+    std::vector<Widget*> items;          ///< 子项列表
 };
 
-extern std::set<Widget*> widgets;
-extern std::map<std::wstring,Widget*> IdToWidget;
+extern std::set<Widget*> widgets;                ///< 全局控件集合
+extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射
 
+/**
+ * @brief 通过ID获取控件
+ * @param identifier 控件ID
+ * @return 控件指针(未找到返回nullptr)
+ */
 Widget* getWidgetById(const std::wstring& identifier);

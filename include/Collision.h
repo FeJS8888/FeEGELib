@@ -83,5 +83,12 @@ std::vector<Position> transformPosition(const std::vector<Position>& shape,const
  */
 bool isPointInConvexPolygon(const std::vector<Position>& polygon,const Position& point);
 
+/**
+ * @brief 从JSON文件读取多边形数据
+ * @param file JSON文件路径
+ * @param id 多边形ID标识
+ * @return 多边形顶点集合
+ * @details 从指定的JSON文件中读取指定ID的多边形顶点数据
+ */
 std::vector<Position> readPolygonFromJSON(const std::string& file,const std::string& id);
 } // namespace FeEGE
