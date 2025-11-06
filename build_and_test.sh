@@ -62,14 +62,19 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     ./bin/test_collision || echo "⚠️  test_collision failed"
     
     echo ""
-    echo "[3/4] Running Element basic tests..."
+    echo "[3/5] Running Element basic tests..."
     echo "----------------------------------------"
     ./bin/test_element_basic || echo "⚠️  test_element_basic failed"
     
     echo ""
-    echo "[4/4] Running Layout module tests..."
+    echo "[4/5] Running Layout module tests..."
     echo "----------------------------------------"
     ./bin/test_layout || echo "⚠️  test_layout failed"
+    
+    echo ""
+    echo "[5/5] Running Integration tests..."
+    echo "----------------------------------------"
+    ./bin/test_integration || echo "⚠️  test_integration failed"
     
     echo ""
     echo "========================================"

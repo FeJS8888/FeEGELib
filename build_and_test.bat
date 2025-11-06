@@ -64,9 +64,14 @@ if /i "%run_tests%"=="Y" (
     bin\test_element_basic.exe
     
     echo.
-    echo [4/4] 运行 Layout 模块测试...
+    echo [4/5] 运行 Layout 模块测试...
     echo ----------------------------------------
     bin\test_layout.exe
+    
+    echo.
+    echo [5/5] 运行集成测试...
+    echo ----------------------------------------
+    bin\test_integration.exe
     
     echo.
     echo ========================================

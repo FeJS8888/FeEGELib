@@ -52,6 +52,18 @@
 - LayoutDirection 枚举（Row/Column）
 - LayoutAlign 枚举（Start/Center/End/SpaceBetween）
 
+### 5. test_integration.cpp
+集成测试，组合多个模块功能：
+- Position 与 Collision 集成
+- 变换后的形状碰撞检测
+- clamp 与 Position 坐标
+- Position 归一化在碰撞中的应用
+- 垂直向量与碰撞检测
+- SimpleOptional 与碰撞结果
+- Layout 与 Position 计算
+- 多边形点包含的边界情况
+- 综合向量数学运算
+
 ## 编译和运行
 
 ### 前置条件
@@ -94,6 +106,9 @@ cmake --build .
 
 # 运行 Layout 模块测试
 ./build/bin/test_layout.exe
+
+# 运行集成测试
+./build/bin/test_integration.exe
 ```
 
 ## 测试覆盖范围
@@ -120,6 +135,12 @@ cmake --build .
 - ✓ Flex 布局配置
 - ✓ 构建器模式
 - ✓ 布局方向和对齐方式
+
+### 集成测试 (Integration)
+- ✓ 跨模块功能组合
+- ✓ Position 与 Collision 协作
+- ✓ Layout 与 Position 计算
+- ✓ 综合场景测试
 
 ## 注意事项
 

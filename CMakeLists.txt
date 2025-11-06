@@ -94,3 +94,13 @@ target_include_directories(test_layout PRIVATE include)
 target_link_libraries(test_layout PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgraphics.a gdi32 gdiplus imm32)
 target_compile_options(test_layout PRIVATE -static-libgcc -static-libstdc++)
 target_link_options(test_layout PRIVATE -static-libgcc -static-libstdc++)
+
+# 测试：集成测试
+add_executable(test_integration
+    test/test_integration.cpp
+    ${LIB_SOURCES}
+)
+target_include_directories(test_integration PRIVATE include)
+target_link_libraries(test_integration PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgraphics.a gdi32 gdiplus imm32)
+target_compile_options(test_integration PRIVATE -static-libgcc -static-libstdc++)
+target_link_options(test_integration PRIVATE -static-libgcc -static-libstdc++)
