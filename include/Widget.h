@@ -195,8 +195,8 @@ private:
     double origin_radius;
     color_t bgColor;
     double alpha = 255;
-    PIMAGE layer = newimage(width, height);
-    PIMAGE maskLayer = newimage(width,height);
+    PIMAGE layer = nullptr;
+    PIMAGE maskLayer = nullptr;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -834,6 +834,7 @@ private:
 class Dropdown : public Widget {
 public:
     Dropdown(int cx, int cy, double w, double h, double r);
+    ~Dropdown();
 
     void addOption(const std::wstring& text, std::function<void()> onClick);
     void setContent(const std::wstring& text);
