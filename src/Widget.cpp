@@ -10,7 +10,19 @@ double Widget::getHeight(){
     return height;
 }
 
-Widget::~Widget() {}
+Widget::~Widget() {
+    // 从全局widgets集合中移除
+    widgets.erase(this);
+    
+    // 从IdToWidget映射中移除所有指向this的条目
+    for (auto it = IdToWidget.begin(); it != IdToWidget.end(); ) {
+        if (it->second == this) {
+            it = IdToWidget.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 
 Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     this->cx = cx;
@@ -21,8 +33,6 @@ Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
-    if(layer) delimage(layer);
-    if(maskLayer) delimage(maskLayer);
     layer = newimage(w,h);
     maskLayer = newimage(w,h);
 	ege_enable_aa(true,layer);
@@ -69,6 +79,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
+    if (maskLayer) delimage(maskLayer);
 }
 
 void Panel::setPosition(int x,int y){
@@ -140,7 +151,9 @@ std::vector<Widget*>& Panel::getChildren() {
 }
 
 void Panel::setChildrenOffset(int index,Position pos){
-    childOffsets[index] = pos;
+    if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
+        childOffsets[index] = pos;
+    }
 }
 
 // Ripple 结构体实现
@@ -211,8 +224,9 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
 }
 
 Button::~Button() {
-    delimage(btnLayer);
-    delimage(maskLayer);
+    if (btnLayer) delimage(btnLayer);
+    if (maskLayer) delimage(maskLayer);
+    if (bgLayer) delimage(bgLayer);
 }
 
 void Button::draw(PIMAGE dst,int x,int y){
@@ -417,9 +431,9 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
 }
 
 InputBox::~InputBox() {
-    delimage(btnLayer);
-    delimage(maskLayer);
-    delimage(bgLayer);
+    if (btnLayer) delimage(btnLayer);
+    if (maskLayer) delimage(maskLayer);
+    if (bgLayer) delimage(bgLayer);
 }
 
 const double BLINK_FREQUENCY = 0.65;
@@ -1391,6 +1405,15 @@ Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
     dropdownPanel->setScale(scale);
 }
 
+Dropdown::~Dropdown() {
+    if (mainButton) delete mainButton;
+    if (dropdownPanel) delete dropdownPanel;
+    for (Button* option : options) {
+        if (option) delete option;
+    }
+    options.clear();
+}
+
 void Dropdown::addOption(const std::wstring& text, std::function<void()> onClick) {
     double optionHeight = height;
     Button* option = new Button(cx, cy, width, optionHeight, radius);
@@ -2347,6 +2370,7 @@ void Sidebar::setScale(double s) {
 }
 
 Sidebar::~Sidebar(){
+    if (container) delete container;
 }
 
 // Builder 实现
@@ -2387,5 +2411,9 @@ Sidebar* SidebarBuilder::build() {
 std::map<std::wstring,Widget*> IdToWidget;
 
 Widget* getWidgetById(const std::wstring& identifier){
-    return IdToWidget[identifier];
+    auto it = IdToWidget.find(identifier);
+    if (it != IdToWidget.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
