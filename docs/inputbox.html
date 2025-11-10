@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>InputBox 输入框 - FeEGELib API</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 40px; }
+        header h1 { font-size: 2.5em; }
+        nav { background: #2c3e50; padding: 15px 40px; }
+        nav a { color: white; text-decoration: none; margin-right: 20px; }
+        .content { padding: 40px; }
+        h2 { color: #667eea; margin: 30px 0 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .method { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+        pre { background: #f8f8f8; padding: 20px; border-radius: 5px; overflow-x: auto; }
+        .back-link { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>InputBox 输入框</h1><p>文本输入框控件，支持光标、选择和 IME</p></header>
+        <nav><a href="index.html">返回首页</a></nav>
+        <div class="content">
+            <h2>�� 特性</h2>
+            <ul style="margin-left: 30px;">
+                <li>光标定位和闪烁动画</li>
+                <li>文本选择和拖拽</li>
+                <li>IME 输入法支持</li>
+                <li>自动文本滚动</li>
+                <li>波纹点击效果</li>
+            </ul>
+            
+            <h2>主要方法</h2>
+            <div class="method">
+                <strong>setContent(const std::wstring& s)</strong> - 设置输入内容<br>
+                <strong>getContent()</strong> - 获取输入内容<br>
+                <strong>setMaxlen(int maxlen)</strong> - 设置最大输入长度<br>
+                <strong>setTextHeight(double height)</strong> - 设置文字高度
+            </div>
+            
+            <h2>示例</h2>
+            <pre><code class="language-cpp">InputBox* input = InputBoxBuilder()
+    .setIdentifier(L"nameInput")
+    .setCenter(400, 300)
+    .setSize(300, 40)
+    .setRadius(8)
+    .setTextHeight(20)
+    .setMaxLength(50)
+    .build();
+
+// 获取输入内容
+std::wstring text = input->getContent();</code></pre>
+            
+            <a href="index.html" class="back-link">← 返回首页</a>
+        </div>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

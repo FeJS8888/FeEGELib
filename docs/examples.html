@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>示例代码 - FeEGELib</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<style>
+body{font-family:"Microsoft YaHei";line-height:1.6;background:#f5f5f5;margin:0}
+.container{max-width:1200px;margin:0 auto;background:white}
+header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:30px 40px}
+nav{background:#2c3e50;padding:15px 40px}nav a{color:white;text-decoration:none;margin-right:20px}
+.content{padding:40px}h2{color:#667eea;margin:30px 0 20px;border-bottom:2px solid #667eea}
+pre{background:#f8f8f8;padding:20px;border-radius:5px;overflow-x:auto;margin:20px 0}
+.back-link{display:inline-block;margin-top:30px;padding:10px 20px;background:#667eea;color:white;text-decoration:none;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>🎨 Widget 示例代码</h1><p>完整的使用示例</p></header>
+<nav><a href="index.html">返回首页</a></nav>
+<div class="content">
+<h2>完整示例：登录界面</h2>
+<pre><code class="language-cpp">#include "FeEGELib.h"
+using namespace FeEGE;
+
+int main() {
+    init(800, 600);
+    
+    // 创建主面板
+    Panel* loginPanel = PanelBuilder()
+        .setCenter(400, 300)
+        .setSize(400, 350)
+        .setRadius(15)
+        .setBackground(EGERGB(250, 250, 250))
+        .build();
+    
+    // 标题文字
+    Text* title = TextBuilder()
+        .setPosition(400, 150)
+        .setContent(L"用户登录")
+        .setFont(32, L"Microsoft YaHei")
+        .setColor(EGERGB(102, 126, 234))
+        .build();
+    
+    // 用户名输入框
+    InputBox* username = InputBoxBuilder()
+        .setCenter(400, 250)
+        .setSize(300, 45)
+        .setRadius(8)
+        .setTextHeight(20)
+        .build();
+    
+    // 密码输入框
+    InputBox* password = InputBoxBuilder()
+        .setCenter(400, 320)
+        .setSize(300, 45)
+        .setRadius(8)
+        .setTextHeight(20)
+        .build();
+    
+    // 登录按钮
+    Button* loginBtn = ButtonBuilder()
+        .setCenter(400, 400)
+        .setSize(200, 50)
+        .setRadius(25)
+        .setContent(L"登录")
+        .setColor(EGERGB(102, 126, 234))
+        .setOnClick([]() {
+            // 处理登录逻辑
+            std::wcout << L"登录按钮被点击" << std::endl;
+        })
+        .build();
+    
+    start();
+    
+    // 清理资源
+    delete loginPanel;
+    delete title;
+    delete username;
+    delete password;
+    delete loginBtn;
+    
+    return 0;
+}</code></pre>
+
+<h2>进度条示例</h2>
+<pre><code class="language-cpp">ProgressBar* pb = ProgressBarBuilder()
+    .setCenter(400, 300)
+    .setSize(400, 25)
+    .setColor(EGERGB(76, 175, 80))
+    .build();
+
+// 模拟进度更新
+for (int i = 0; i <= 100; i++) {
+    pb->setProgress(i / 100.0);
+    delay_ms(50);
+}</code></pre>
+
+<h2>滑动条示例</h2>
+<pre><code class="language-cpp">Slider* volumeSlider = SliderBuilder()
+    .setCenter(400, 300)
+    .setSize(300, 20)
+    .setProgress(0.5)
+    .setStep(0.01)
+    .setOnChange([](double val) {
+        int volume = (int)(val * 100);
+        std::cout << "音量: " << volume << "%" << std::endl;
+    })
+    .build();</code></pre>
+
+<a href="index.html" class="back-link">← 返回首页</a>
+</div>
+</div>
+<script>hljs.highlightAll();</script>
+</body>
+</html>
