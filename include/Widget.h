@@ -69,9 +69,9 @@ public:
      */
     double getHeight();
 protected:
-    int cx, cy;           ///< 中心坐标
-    double width, height; ///< 控件尺寸
-    double scale = 1;     ///< 缩放比例
+    int cx = 0, cy = 0;       ///< 中心坐标
+    double width = 0, height = 0; ///< 控件尺寸
+    double scale = 1;         ///< 缩放比例
 };
 
 /**
@@ -1321,12 +1321,13 @@ private:
     std::vector<Widget*> items;          ///< 子项列表
 };
 
-extern std::set<Widget*> widgets;                ///< 全局控件集合
-extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射
+extern std::set<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
+extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
 
 /**
  * @brief 通过ID获取控件
  * @param identifier 控件ID
  * @return 控件指针(未找到返回nullptr)
+ * @warning 返回的指针可能在任何时候失效，使用前应检查有效性
  */
 Widget* getWidgetById(const std::wstring& identifier);

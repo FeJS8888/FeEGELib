@@ -10,7 +10,19 @@ double Widget::getHeight(){
     return height;
 }
 
-Widget::~Widget() {}
+Widget::~Widget() {
+    // 从全局widgets集合中移除
+    widgets.erase(this);
+    
+    // 从IdToWidget映射中移除所有指向this的条目
+    for (auto it = IdToWidget.begin(); it != IdToWidget.end(); ) {
+        if (it->second == this) {
+            it = IdToWidget.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 
 Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     this->cx = cx;
@@ -2399,5 +2411,9 @@ Sidebar* SidebarBuilder::build() {
 std::map<std::wstring,Widget*> IdToWidget;
 
 Widget* getWidgetById(const std::wstring& identifier){
-    return IdToWidget[identifier];
+    auto it = IdToWidget.find(identifier);
+    if (it != IdToWidget.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
