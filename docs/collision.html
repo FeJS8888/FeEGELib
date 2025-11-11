@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碰撞检测系统 - FeEGELib API 文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .back-link:hover {
+            background: #764ba2;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        h3 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .method {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .method-signature {
+            font-family: "Consolas", "Monaco", monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .param {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .param-name {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .example {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .example code {
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .algorithm-box {
+            background: #e7f3ff;
+            border: 2px solid #2196F3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .algorithm-box h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .toc ul {
+            list-style-position: inside;
+            line-height: 2;
+        }
+        
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💥 碰撞检测系统</h1>
+            <p>基于 GJK/EPA 算法的高精度碰撞检测</p>
+        </header>
+        
+        <div class="content">
+            <a href="index.html" class="back-link">← 返回首页</a>
+            
+            <div class="section">
+                <h2>📖 概述</h2>
+                <p>
+                    FeEGELib 提供了完整的碰撞检测系统，支持两种检测模式：
+                </p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>像素级碰撞检测</strong>：基于图像像素的重叠检测，适用于简单场景</li>
+                    <li><strong>GJK/EPA 碰撞检测</strong>：基于凸多边形的精确碰撞检测，支持复杂形状和物理模拟</li>
+                </ol>
+                <p style="margin-top: 10px;">
+                    该系统实现了工业级的 GJK（Gilbert-Johnson-Keerthi）算法用于碰撞检测，
+                    以及 EPA（Expanding Polytope Algorithm）算法用于穿透深度计算。
+                </p>
+            </div>
+            
+            <div class="toc">
+                <h3>目录</h3>
+                <ul>
+                    <li><a href="#pixel-collision">像素碰撞检测</a></li>
+                    <li><a href="#gjk-collision">GJK/EPA 碰撞检测</a></li>
+                    <li><a href="#api-reference">API 参考</a></li>
+                    <li><a href="#transform">变换函数</a></li>
+                    <li><a href="#utils">实用工具</a></li>
+                    <li><a href="#examples">使用示例</a></li>
+                    <li><a href="#algorithm">算法原理</a></li>
+                </ul>
+            </div>
+            
+            <h2 id="pixel-collision">🎨 像素碰撞检测</h2>
+            
+            <div class="section">
+                <h3>工作原理</h3>
+                <p>
+                    像素碰撞检测是 Element 的默认碰撞检测模式。它通过检测两个元素的像素是否有重叠来判断碰撞。
+                </p>
+                
+                <h4>优点：</h4>
+                <ul style="margin-left: 20px;">
+                    <li>实现简单，无需额外配置</li>
+                    <li>对任意形状都有效</li>
+                    <li>适合图像边界不规则的情况</li>
+                </ul>
+                
+                <h4>缺点：</h4>
+                <ul style="margin-left: 20px;">
+                    <li>性能较低，需要遍历像素</li>
+                    <li>无法获取碰撞方向和深度信息</li>
+                    <li>不适合大量元素的碰撞检测</li>
+                </ul>
+            </div>
+            
+            <div class="method">
+                <h3>使用方法</h3>
+                
+                <div class="example">
+                    <code>
+// 创建两个元素（默认使用像素碰撞）<br>
+Element* player = newElement("player", "./player.png", 100, 100);<br>
+Element* enemy = newElement("enemy", "./enemy.png", 120, 120);<br>
+<br>
+// 检测碰撞<br>
+if (player->isTouchedBy(enemy)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "发生碰撞！" << endl;<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="gjk-collision">⚡ GJK/EPA 碰撞检测</h2>
+            
+            <div class="section">
+                <h3>工作原理</h3>
+                <p>
+                    GJK/EPA 是一种基于凸多边形的高效碰撞检测算法。它使用数学方法计算两个凸多边形是否相交，
+                    以及相交时的穿透深度和方向。
+                </p>
+                
+                <h4>优点：</h4>
+                <ul style="margin-left: 20px;">
+                    <li>性能优秀，适合大量对象的碰撞检测</li>
+                    <li>提供精确的碰撞信息（方向、深度）</li>
+                    <li>支持物理模拟和碰撞响应</li>
+                    <li>独立于图像大小和旋转角度</li>
+                </ul>
+                
+                <h4>限制：</h4>
+                <ul style="margin-left: 20px;">
+                    <li>只支持凸多边形</li>
+                    <li>需要手动定义碰撞形状</li>
+                    <li>复杂形状需要分解为多个凸多边形</li>
+                </ul>
+            </div>
+            
+            <div class="algorithm-box">
+                <h4>🔍 GJK 算法简介</h4>
+                <p>
+                    GJK（Gilbert-Johnson-Keerthi）算法通过构建 Minkowski 差集来判断两个凸形状是否相交。
+                    如果差集包含原点，则两个形状发生碰撞。
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>时间复杂度：</strong>O(n)，其中 n 是多边形顶点数<br>
+                    <strong>空间复杂度：</strong>O(1)
+                </p>
+            </div>
+            
+            <div class="algorithm-box">
+                <h4>📐 EPA 算法简介</h4>
+                <p>
+                    EPA（Expanding Polytope Algorithm）算法在 GJK 检测到碰撞后，
+                    通过扩展单纯形来计算精确的穿透深度和碰撞法线方向。
+                </p>
+                <p style="margin-top: 10px;">
+                    这对于物理模拟和碰撞响应至关重要，可以用来计算物体应该如何分离。
+                </p>
+            </div>
+            
+            <div class="method">
+                <h3>启用 GJK 碰撞检测</h3>
+                
+                <div class="example">
+                    <code>
+// 创建元素<br>
+Element* box = newElement("box", "./box.png", 200, 200);<br>
+<br>
+// 启用 GJK 碰撞检测<br>
+box->useGJK();<br>
+<br>
+// 定义矩形碰撞框（相对于图像中心）<br>
+vector&lt;Position&gt; rect = {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{-50, -50}, {50, -50}, {50, 50}, {-50, 50}<br>
+};<br>
+box->addPolygon(rect);<br>
+<br>
+// 现在可以使用高效的碰撞检测<br>
+if (box->isTouchedBy(otherBox)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 获取碰撞信息<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PenetrationInfo info = getLastInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "穿透深度: " << info.depth << endl;<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="api-reference">📚 API 参考</h2>
+            
+            <div class="method">
+                <h3>isTouched</h3>
+                <p>检测两个凸多边形是否发生碰撞。</p>
+                
+                <div class="method-signature">
+bool isTouched(const vector&lt;Position&gt;& shapeA, const vector&lt;Position&gt;& shapeB);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shapeA</span> - 第一个多边形的顶点集合<br>
+                    <span class="param-name">shapeB</span> - 第二个多边形的顶点集合<br>
+                    <span class="param-name">返回值</span> - 是否发生碰撞
+                </div>
+                
+                <div class="note">
+                    <strong>注意：</strong>如果发生碰撞，可以通过 <code>getLastInfo()</code> 获取详细的碰撞信息。
+                </div>
+                
+                <div class="example">
+                    <code>
+vector&lt;Position&gt; boxA = {{0,0}, {100,0}, {100,100}, {0,100}};<br>
+vector&lt;Position&gt; boxB = {{50,50}, {150,50}, {150,150}, {50,150}};<br>
+<br>
+if (isTouched(boxA, boxB)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "两个方块发生碰撞！" << endl;<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getLastInfo</h3>
+                <p>获取最后一次碰撞检测的详细信息。</p>
+                
+                <div class="method-signature">
+const PenetrationInfo& getLastInfo();
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">返回值</span> - PenetrationInfo 结构体，包含：
+                    <ul style="margin-left: 20px; margin-top: 5px;">
+                        <li><code>direction</code> - 碰撞法线方向（单位向量）</li>
+                        <li><code>depth</code> - 穿透深度</li>
+                    </ul>
+                </div>
+                
+                <div class="example">
+                    <code>
+if (isTouched(shapeA, shapeB)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PenetrationInfo info = getLastInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 计算分离向量<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Position separation = info.direction * info.depth;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 将物体 A 沿碰撞法线移出<br>
+&nbsp;&nbsp;&nbsp;&nbsp;elementA->moveTo(elementA->getPosition() + separation);<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getSeparateDistance</h3>
+                <p>计算两个碰撞形状在指定方向上的分离距离。</p>
+                
+                <div class="method-signature">
+double getSeparateDistance(const vector&lt;Position&gt;& shapeA, 
+                          const vector&lt;Position&gt;& shapeB,
+                          const Position& direction);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shapeA, shapeB</span> - 两个碰撞形状<br>
+                    <span class="param-name">direction</span> - 检测方向（单位向量）<br>
+                    <span class="param-name">返回值</span> - 在指定方向上的分离距离
+                </div>
+                
+                <div class="note">
+                    <strong>用途：</strong>此函数常用于物理模拟中的碰撞响应，可以计算物体需要移动多远才能完全分离。
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getSafeDistance</h3>
+                <p>估算两个形状在指定方向上的安全移动距离。</p>
+                
+                <div class="method-signature">
+double getSafeDistance(const vector&lt;Position&gt;& shapeA,
+                      const vector&lt;Position&gt;& shapeB,
+                      const Position& direction);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shapeA, shapeB</span> - 两个形状<br>
+                    <span class="param-name">direction</span> - 移动方向（单位向量）<br>
+                    <span class="param-name">返回值</span> - 可以安全移动的距离估计值
+                </div>
+                
+                <div class="info">
+                    <strong>说明：</strong>
+                    <ul style="margin-left: 20px; margin-top: 5px;">
+                        <li>当形状未接触时，返回正值，表示最小间距的估计</li>
+                        <li>当形状接触或穿透时，返回值可能为 0 或负数</li>
+                        <li>此值不等价于实际穿透深度，如需真实穿透深度请使用 <code>getLastInfo()</code></li>
+                        <li>常用于移动预测中的快速间距估计</li>
+                    </ul>
+                </div>
+                
+                <div class="example">
+                    <code>
+// 预测移动是否安全<br>
+Position moveDir = Position{1, 0};  // 向右移动<br>
+double safeDist = getSafeDistance(playerShape, wallShape, moveDir);<br>
+<br>
+if (safeDist > 5) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->moveRight(5);  // 安全，可以移动<br>
+} else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->moveRight(safeDist);  // 只移动到安全距离<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="transform">🔄 变换函数</h2>
+            
+            <div class="method">
+                <h3>transformShape</h3>
+                <p>对多边形进行缩放和旋转变换。</p>
+                
+                <div class="method-signature">
+vector&lt;Position&gt; transformShape(const vector&lt;Position&gt;& shape, 
+                                 double scale,
+                                 const Position& rotationOrigin,
+                                 double rotationAngle);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shape</span> - 原始多边形顶点集合<br>
+                    <span class="param-name">scale</span> - 缩放比例（1.0 为原始大小）<br>
+                    <span class="param-name">rotationOrigin</span> - 旋转中心点<br>
+                    <span class="param-name">rotationAngle</span> - 旋转角度（弧度制）<br>
+                    <span class="param-name">返回值</span> - 变换后的多边形
+                </div>
+                
+                <div class="note">
+                    <strong>注意：</strong>变换顺序为先缩放后旋转。
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>transformPosition</h3>
+                <p>对多边形进行位置平移变换。</p>
+                
+                <div class="method-signature">
+vector&lt;Position&gt; transformPosition(const vector&lt;Position&gt;& shape,
+                                    const Position& origin,
+                                    const Position& pos);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shape</span> - 原始多边形顶点集合<br>
+                    <span class="param-name">origin</span> - 局部坐标系原点<br>
+                    <span class="param-name">pos</span> - 目标世界坐标<br>
+                    <span class="param-name">返回值</span> - 平移后的多边形
+                </div>
+                
+                <div class="info">
+                    <strong>工作流程：</strong>
+                    <ol style="margin-left: 20px; margin-top: 5px;">
+                        <li>将多边形顶点转换为相对于 origin 的局部坐标</li>
+                        <li>将局部坐标平移到目标 pos 位置</li>
+                        <li>保持多边形的形状和方向不变</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <h2 id="utils">🛠️ 实用工具</h2>
+            
+            <div class="method">
+                <h3>isPointInConvexPolygon</h3>
+                <p>判断点是否在凸多边形内。</p>
+                
+                <div class="method-signature">
+bool isPointInConvexPolygon(const vector&lt;Position&gt;& polygon, const Position& point);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">polygon</span> - 凸多边形顶点集合（按顺时针或逆时针排列）<br>
+                    <span class="param-name">point</span> - 要检测的点坐标<br>
+                    <span class="param-name">返回值</span> - 点是否在多边形内或边上
+                </div>
+                
+                <div class="example">
+                    <code>
+// 检测鼠标是否在多边形按钮内<br>
+vector&lt;Position&gt; buttonShape = {{100,100}, {200,100}, {200,150}, {100,150}};<br>
+Position mousePos = getMousePos();<br>
+<br>
+if (isPointInConvexPolygon(buttonShape, mousePos)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "鼠标在按钮上！" << endl;<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>readPolygonFromJSON</h3>
+                <p>从 JSON 文件读取多边形数据。</p>
+                
+                <div class="method-signature">
+vector&lt;Position&gt; readPolygonFromJSON(const string& file, const string& id);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">file</span> - JSON 文件路径<br>
+                    <span class="param-name">id</span> - 多边形 ID 标识<br>
+                    <span class="param-name">返回值</span> - 多边形顶点集合
+                </div>
+                
+                <div class="example">
+                    <code>
+// JSON 文件格式示例 (shapes.json):<br>
+{<br>
+&nbsp;&nbsp;"FeEGE": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"point": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"player": [[0, 0], [50, 0], [50, 80], [0, 80]],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"enemy": [[0, 0], [40, 20], [40, 60], [0, 40]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}<br>
+<br>
+// 读取多边形<br>
+auto playerShape = readPolygonFromJSON("./shapes.json", "player");<br>
+element->addPolygon(playerShape);
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="examples">📋 完整示例</h2>
+            
+            <h3>示例 1：基础碰撞检测</h3>
+            <div class="example">
+                <code>
+#include "FeEGELib.h"<br>
+using namespace FeEGE;<br>
+<br>
+int main() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;init(800, 600);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 创建玩家<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Element* player = newElement("player", "./player.png", 100, 300);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->useGJK();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;vector&lt;Position&gt; playerBox = {{-25,-25}, {25,-25}, {25,25}, {-25,25}};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->addPolygon(playerBox);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 创建墙<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Element* wall = newElement("wall", "./wall.png", 400, 300);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wall->useGJK();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;vector&lt;Position&gt; wallBox = {{-50,-100}, {50,-100}, {50,100}, {-50,100}};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wall->addPolygon(wallBox);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 移动控制<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->listen(EventType.frame, "move", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('D')) self->moveRight(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('A')) self->moveLeft(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 碰撞检测<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Element* wall = getElementById("wall");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (self->isTouchedBy(wall)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->cancelMove();  // 取消移动<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;start();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br>
+}
+                </code>
+            </div>
+            
+            <h3>示例 2：物理碰撞响应</h3>
+            <div class="example">
+                <code>
+// 创建两个可碰撞的物体<br>
+Element* boxA = newElement("boxA", "./box.png", 200, 200);<br>
+Element* boxB = newElement("boxB", "./box.png", 250, 200);<br>
+<br>
+// 配置碰撞形状<br>
+vector&lt;Position&gt; shape = {{-30,-30}, {30,-30}, {30,30}, {-30,30}};<br>
+boxA->useGJK();<br>
+boxA->addPolygon(shape);<br>
+boxB->useGJK();<br>
+boxB->addPolygon(shape);<br>
+<br>
+// 碰撞响应<br>
+boxA->listen(EventType.frame, "collision_response", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Element* other = getElementById("boxB");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (self->isTouchedBy(other)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 获取碰撞信息<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PenetrationInfo info = getLastInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 计算分离向量<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Position separation = info.direction * info.depth;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 两个物体各移动一半距离<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->moveTo(self->getPosition() + separation * 0.5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;other->moveTo(other->getPosition() - separation * 0.5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+});
+                </code>
+            </div>
+            
+            <h3>示例 3：安全移动</h3>
+            <div class="example">
+                <code>
+// 使用 moveSafely 实现自动避障<br>
+Element* player = newElement("player", "./player.png", 100, 100);<br>
+player->useGJK();<br>
+player->addPolygon({{-20,-20}, {20,-20}, {20,20}, {-20,20}});<br>
+<br>
+// 创建障碍物列表<br>
+vector&lt;Element*&gt; obstacles;<br>
+obstacles.push_back(wall1);<br>
+obstacles.push_back(wall2);<br>
+obstacles.push_back(wall3);<br>
+<br>
+// 安全移动<br>
+player->listen(EventType.frame, "safe_move", [&obstacles](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Position moveDir = {0, 0};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('W')) moveDir.y -= 5;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('S')) moveDir.y += 5;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('A')) moveDir.x -= 5;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('D')) moveDir.x += 5;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (moveDir.length() > 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 自动处理碰撞，返回实际移动距离<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double actualDist = self->moveSafely(moveDir, obstacles);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+});
+                </code>
+            </div>
+            
+            <h2 id="algorithm">🧮 算法原理详解</h2>
+            
+            <div class="section">
+                <h3>GJK 算法原理</h3>
+                <p>
+                    GJK 算法的核心思想是构建两个形状的 Minkowski 差集。
+                    如果这个差集包含原点，则两个形状必然相交。
+                </p>
+                
+                <h4>关键概念：</h4>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Support 函数</strong>：在给定方向上找到形状最远的点</li>
+                    <li><strong>Minkowski 差</strong>：形状 A 和形状 B 的差集</li>
+                    <li><strong>Simplex</strong>：用于逼近差集的简单多边形</li>
+                </ol>
+                
+                <h4>算法步骤：</h4>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>选择一个初始方向，计算 support 点</li>
+                    <li>使用 simplex 包围原点</li>
+                    <li>如果 simplex 包含原点，返回碰撞</li>
+                    <li>否则，更新搜索方向，继续迭代</li>
+                </ol>
+            </div>
+            
+            <div class="section">
+                <h3>EPA 算法原理</h3>
+                <p>
+                    EPA 算法在 GJK 检测到碰撞后运行，用于计算精确的穿透深度和方向。
+                </p>
+                
+                <h4>算法步骤：</h4>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>从 GJK 的 simplex 开始</li>
+                    <li>找到距离原点最近的边</li>
+                    <li>在该边的法线方向上添加新的 support 点</li>
+                    <li>重复直到找到最小穿透深度</li>
+                </ol>
+                
+                <h4>输出信息：</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>direction</strong>：碰撞法线方向（指向形状 A）</li>
+                    <li><strong>depth</strong>：穿透深度（需要移动的距离）</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h3>性能优化建议</h3>
+                <ul style="margin-left: 20px;">
+                    <li>使用简单的多边形（顶点数 ≤ 8）以获得最佳性能</li>
+                    <li>对于复杂形状，将其分解为多个凸多边形</li>
+                    <li>使用空间分割（如四叉树）减少碰撞检测次数</li>
+                    <li>只对需要精确碰撞的对象启用 GJK</li>
+                    <li>静态对象的碰撞形状可以预计算和缓存</li>
+                </ul>
+            </div>
+            
+            <div class="warning">
+                <h3>⚠️ 常见问题</h3>
+                <ul style="margin-left: 20px;">
+                    <li><strong>多边形必须是凸的</strong>：凹多边形需要分解为多个凸多边形</li>
+                    <li><strong>顶点顺序</strong>：顺时针或逆时针都可以，但要保持一致</li>
+                    <li><strong>坐标系</strong>：多边形坐标是相对于元素中心的局部坐标</li>
+                    <li><strong>性能</strong>：避免在单帧内进行大量碰撞检测</li>
+                </ul>
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center;">
+                <a href="element.html" class="back-link">← Element 类文档</a>
+                <a href="index.html" class="back-link" style="margin-left: 10px;">返回首页</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

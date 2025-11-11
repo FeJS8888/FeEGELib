@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element 类 - FeEGELib API 文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .back-link:hover {
+            background: #764ba2;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        h3 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .method {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .method-signature {
+            font-family: "Consolas", "Monaco", monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .param {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .param-name {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .example {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .example code {
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .toc ul {
+            list-style-position: inside;
+            line-height: 2;
+        }
+        
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 Element 类</h1>
+            <p>FeEGELib 核心元素类 API 参考</p>
+        </header>
+        
+        <div class="content">
+            <a href="index.html" class="back-link">← 返回首页</a>
+            
+            <div class="section">
+                <h2>📖 概述</h2>
+                <p>
+                    <code>Element</code> 类是 FeEGELib 的核心组件，代表图形界面中的可显示、可交互元素。
+                    它提供了丰富的功能，包括位置控制、旋转缩放、事件监听、动画效果、碰撞检测等。
+                </p>
+                <p style="margin-top: 10px;">
+                    每个 Element 可以包含一个或多个图像，支持透明度控制、图层管理、克隆等高级特性。
+                    Element 是构建复杂图形应用的基础。
+                </p>
+            </div>
+            
+            <div class="toc">
+                <h3>目录</h3>
+                <ul>
+                    <li><a href="#creation">创建与初始化</a></li>
+                    <li><a href="#position">位置与移动</a></li>
+                    <li><a href="#transform">变换操作</a></li>
+                    <li><a href="#display">显示控制</a></li>
+                    <li><a href="#events">事件系统</a></li>
+                    <li><a href="#animation">动画系统</a></li>
+                    <li><a href="#collision">碰撞检测</a></li>
+                    <li><a href="#clone">克隆功能</a></li>
+                    <li><a href="#variables">私有变量</a></li>
+                    <li><a href="#images">图像管理</a></li>
+                </ul>
+            </div>
+            
+            <h2 id="creation">🔧 创建与初始化</h2>
+            
+            <div class="method">
+                <h3>newElement</h3>
+                <p>创建新的 Element 对象。</p>
+                
+                <div class="method-signature">
+Element* newElement(string id, string imagePath, double x = 0, double y = 0);
+Element* newElement(string id, PIMAGE image, double x = 0, double y = 0);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">id</span> - 元素的唯一标识符<br>
+                    <span class="param-name">imagePath</span> - 图像文件路径（支持相对路径）<br>
+                    <span class="param-name">image</span> - 已加载的图像指针<br>
+                    <span class="param-name">x, y</span> - 元素的初始坐标位置
+                </div>
+                
+                <div class="example">
+                    <code>
+// 从文件创建元素<br>
+Element* player = newElement("player", "./images/player.png", 100, 100);<br>
+<br>
+// 从已加载图像创建<br>
+PIMAGE img = getImage("./images/enemy.png");<br>
+Element* enemy = newElement("enemy", img, 200, 150);
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getElementById</h3>
+                <p>通过 ID 获取已注册的元素。</p>
+                
+                <div class="method-signature">
+Element* getElementById(string id);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">id</span> - 元素的唯一标识符<br>
+                    <span class="param-name">返回值</span> - 元素指针，如果不存在则返回 nullptr
+                </div>
+                
+                <div class="example">
+                    <code>
+Element* player = getElementById("player");<br>
+if (player != nullptr) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->moveTo(300, 200);<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="position">🎯 位置与移动</h2>
+            
+            <div class="method">
+                <h3>moveTo</h3>
+                <p>移动元素到指定坐标。</p>
+                
+                <div class="method-signature">
+void moveTo(double x, double y);
+void moveTo(Position position);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">x, y</span> - 目标坐标<br>
+                    <span class="param-name">position</span> - Position 对象
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>moveLeft / moveRight / moveUp / moveDown</h3>
+                <p>沿特定方向移动元素。</p>
+                
+                <div class="method-signature">
+void moveLeft(double pixels = 0);
+void moveRight(double pixels = 0);
+void moveUp(double pixels = 0);
+void moveDown(double pixels = 0);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">pixels</span> - 移动的像素数
+                </div>
+                
+                <div class="example">
+                    <code>
+element->moveRight(5);  // 向右移动 5 像素<br>
+element->moveUp(10);    // 向上移动 10 像素
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>moveForward</h3>
+                <p>沿元素当前朝向移动（基于旋转角度）。</p>
+                
+                <div class="method-signature">
+void moveForward(double pixels = 0);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">pixels</span> - 移动的像素数
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getPosition</h3>
+                <p>获取元素当前位置。</p>
+                
+                <div class="method-signature">
+Position getPosition();
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">返回值</span> - 包含 x 和 y 坐标的 Position 对象
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>moveSafely</h3>
+                <p>安全移动（带碰撞检测）。</p>
+                
+                <div class="method-signature">
+double moveSafely(Position pixelsDir, const vector&lt;Element*&gt;& limit);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">pixelsDir</span> - 移动方向和距离<br>
+                    <span class="param-name">limit</span> - 碰撞检测的限制对象列表<br>
+                    <span class="param-name">返回值</span> - 实际移动的距离
+                </div>
+                
+                <div class="note">
+                    <strong>注意：</strong>使用 moveSafely 需要先通过 useGJK() 启用碰撞检测，并使用 addPolygon() 添加碰撞多边形。
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>cancelX / cancelY / cancelMove</h3>
+                <p>取消本帧的移动（恢复到上一帧位置）。</p>
+                
+                <div class="method-signature">
+void cancelX();      // 取消 X 轴移动
+void cancelY();      // 取消 Y 轴移动
+void cancelMove();   // 取消所有移动
+                </div>
+                
+                <div class="example">
+                    <code>
+// 在碰撞时取消移动<br>
+element->listen(EventType.frame, "collision_check", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (self->isTouchedBy(wall)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->cancelMove();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+});
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="transform">🔄 变换操作</h2>
+            
+            <div class="method">
+                <h3>旋转控制</h3>
+                <p>控制元素的旋转角度。</p>
+                
+                <div class="method-signature">
+void turnLeft(double angle);   // 向左旋转
+void turnRight(double angle);  // 向右旋转
+void turnTo(double angle);     // 旋转到指定角度
+double getAngle();             // 获取当前角度
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">angle</span> - 旋转角度（度数）
+                </div>
+                
+                <div class="example">
+                    <code>
+element->turnRight(45);  // 顺时针旋转 45 度<br>
+element->turnTo(90);     // 旋转到 90 度（水平向右）
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>faceTo</h3>
+                <p>使元素朝向目标元素或坐标。</p>
+                
+                <div class="method-signature">
+bool faceTo(Element* that);
+bool faceTo(const Position& pos);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">that</span> - 目标元素指针<br>
+                    <span class="param-name">pos</span> - 目标坐标<br>
+                    <span class="param-name">返回值</span> - 是否成功
+                </div>
+                
+                <div class="example">
+                    <code>
+// 敌人朝向玩家<br>
+enemy->faceTo(player);<br>
+<br>
+// 炮塔朝向鼠标<br>
+turret->faceTo(getMousePos());
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>缩放控制</h3>
+                <p>控制元素的缩放比例。</p>
+                
+                <div class="method-signature">
+void setScale(double scale);      // 设置缩放比例 (100 = 原始大小)
+void increaseScale(double scale); // 增加缩放
+void decreaseScale(double scale); // 减小缩放
+double getScale();                // 获取当前缩放
+                </div>
+                
+                <div class="example">
+                    <code>
+element->setScale(150);      // 放大到 150%<br>
+element->increaseScale(10);  // 增加 10% 缩放
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="display">👁️ 显示控制</h2>
+            
+            <div class="method">
+                <h3>show / hide</h3>
+                <p>显示或隐藏元素。</p>
+                
+                <div class="method-signature">
+void show();           // 显示元素
+void hide();           // 隐藏元素
+bool getIsShow();      // 获取显示状态
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>透明度控制</h3>
+                <p>控制元素的透明度。</p>
+                
+                <div class="method-signature">
+void setAlpha(short alpha);      // 设置透明度 (0-255)
+void increaseAlpha(short alpha); // 增加透明度
+void decreaseAlpha(short alpha); // 减少透明度
+short getAlpha();                // 获取当前透明度
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">alpha</span> - 透明度值，0 = 完全透明，255 = 完全不透明
+                </div>
+                
+                <div class="example">
+                    <code>
+element->setAlpha(128);  // 设置为半透明<br>
+<br>
+// 淡入效果<br>
+element->listen(EventType.frame, "fade_in", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (self->getAlpha() < 255) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->increaseAlpha(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+});
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>图层顺序</h3>
+                <p>控制元素的绘制顺序（Z-index）。</p>
+                
+                <div class="method-signature">
+void setOrder(int count);      // 设置绘制顺序
+void increaseOrder(int count); // 增加顺序
+void decreaseOrder(int count); // 减少顺序
+int getOrder();                // 获取当前顺序
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">count</span> - 顺序值，数值越大越后绘制（显示在上层）
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>removeColor</h3>
+                <p>移除特定颜色（用于实现颜色透明）。</p>
+                
+                <div class="method-signature">
+void removeColor(color_t color);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">color</span> - 要移除的颜色值
+                </div>
+                
+                <div class="example">
+                    <code>
+element->removeColor(BLACK);  // 使黑色变为透明
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="events">⚡ 事件系统</h2>
+            
+            <div class="section">
+                <p>Element 提供了完整的事件监听系统，支持多种事件类型。</p>
+            </div>
+            
+            <div class="method">
+                <h3>事件类型</h3>
+                <table>
+                    <tr>
+                        <th>事件类型</th>
+                        <th>说明</th>
+                        <th>触发条件</th>
+                    </tr>
+                    <tr>
+                        <td>EventType.frame</td>
+                        <td>帧事件</td>
+                        <td>每帧都会触发</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_mouse_put_on</td>
+                        <td>鼠标悬停事件</td>
+                        <td>鼠标进入元素区域时触发</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_mouse_hitting</td>
+                        <td>鼠标按下事件</td>
+                        <td>鼠标在元素上按下时触发</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_mouse_move_away</td>
+                        <td>鼠标移开事件</td>
+                        <td>鼠标离开元素区域时触发</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_click</td>
+                        <td>点击事件</td>
+                        <td>在元素上完成点击（按下后松开）</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_mouse_hit_but_move_away</td>
+                        <td>拖拽离开事件</td>
+                        <td>按下后拖出元素区域</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.on_clone</td>
+                        <td>克隆事件</td>
+                        <td>元素被克隆时触发（在原元素上）</td>
+                    </tr>
+                    <tr>
+                        <td>EventType.clones.on_clone</td>
+                        <td>克隆体事件</td>
+                        <td>克隆完成时触发（在克隆体上）</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="method">
+                <h3>listen</h3>
+                <p>添加事件监听器。</p>
+                
+                <div class="method-signature">
+void listen(int listenMode, string identifier, function&lt;void(Element*)&gt; callback);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">listenMode</span> - 事件类型<br>
+                    <span class="param-name">identifier</span> - 监听器标识符（用于后续移除）<br>
+                    <span class="param-name">callback</span> - 回调函数，接收 Element* 参数
+                </div>
+                
+                <div class="example">
+                    <code>
+// 帧更新事件<br>
+element->listen(EventType.frame, "update", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self->moveRight(2);<br>
+});<br>
+<br>
+// 点击事件<br>
+button->listen(EventType.on_click, "click_handler", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "按钮被点击！" << endl;<br>
+});
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>unlisten</h3>
+                <p>移除事件监听器。</p>
+                
+                <div class="method-signature">
+void unlisten(int listenMode, string identifier);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">listenMode</span> - 事件类型<br>
+                    <span class="param-name">identifier</span> - 要移除的监听器标识符
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>stop / begin</h3>
+                <p>暂停或恢复事件监听器。</p>
+                
+                <div class="method-signature">
+void stop(int listenMode, string identifier);   // 暂停监听器
+void begin(int listenMode, string identifier);  // 恢复监听器
+                </div>
+                
+                <div class="example">
+                    <code>
+// 暂时停止移动<br>
+element->stop(EventType.frame, "movement");<br>
+<br>
+// 恢复移动<br>
+element->begin(EventType.frame, "movement");
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>isMouseIn / isHit</h3>
+                <p>检测鼠标状态。</p>
+                
+                <div class="method-signature">
+bool isMouseIn();  // 鼠标是否在元素内
+bool isHit();      // 元素是否被点击
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">返回值</span> - true 表示满足条件
+                </div>
+            </div>
+            
+            <h2 id="animation">🎬 动画系统</h2>
+            
+            <div class="method">
+                <h3>moveWithAnimation</h3>
+                <p>使用缓动动画移动元素。</p>
+                
+                <div class="method-signature">
+void moveWithAnimation(double xPixel, double yPixel, const Animate& animate, 
+                       function&lt;void(Element*)&gt; callback = nullptr);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">xPixel, yPixel</span> - X 和 Y 方向的移动距离<br>
+                    <span class="param-name">animate</span> - 动画对象（缓动函数）<br>
+                    <span class="param-name">callback</span> - 动画完成时的回调函数
+                </div>
+                
+                <div class="example">
+                    <code>
+// 使用缓动动画移动<br>
+element->moveWithAnimation(100, 0, Ease::easeOutQuadX, [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "动画完成！" << endl;<br>
+});
+                    </code>
+                </div>
+                
+                <h3>内置缓动动画</h3>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>Ease::easeInOutCubicX</code> - X 轴三次缓入缓出</li>
+                    <li><code>Ease::easeInOutCubicY</code> - Y 轴三次缓入缓出</li>
+                    <li><code>Ease::easeOutQuadX</code> - X 轴二次缓出</li>
+                    <li><code>Ease::easeOutQuadY</code> - Y 轴二次缓出</li>
+                </ul>
+            </div>
+            
+            <h2 id="collision">💥 碰撞检测</h2>
+            
+            <div class="section">
+                <p>Element 支持两种碰撞检测模式：</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>像素碰撞</strong>：检测图像像素是否重叠（默认模式）</li>
+                    <li><strong>GJK/EPA 碰撞</strong>：使用多边形进行精确碰撞检测</li>
+                </ol>
+            </div>
+            
+            <div class="method">
+                <h3>isTouchedBy</h3>
+                <p>检测是否与另一个元素发生碰撞。</p>
+                
+                <div class="method-signature">
+bool isTouchedBy(Element* that);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">that</span> - 要检测的目标元素<br>
+                    <span class="param-name">返回值</span> - 是否发生碰撞
+                </div>
+                
+                <div class="example">
+                    <code>
+// 检测玩家是否碰到敌人<br>
+if (player->isTouchedBy(enemy)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 处理碰撞<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->decreaseVariable(0, 10);  // 减少生命值<br>
+}
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>useGJK / unlistenGJK</h3>
+                <p>启用或禁用 GJK/EPA 碰撞检测。</p>
+                
+                <div class="method-signature">
+void useGJK();        // 启用多边形碰撞检测
+void unlistenGJK();   // 禁用多边形碰撞检测
+                </div>
+                
+                <div class="note">
+                    <strong>注意：</strong>启用 GJK 后，需要使用 addPolygon() 添加碰撞多边形。同时会自动禁用私有图像绘制以提高性能。
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>addPolygon</h3>
+                <p>添加碰撞检测多边形。</p>
+                
+                <div class="method-signature">
+void addPolygon(const FeEGE::Polygon& shape);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">shape</span> - 多边形顶点集合（vector&lt;Position&gt;）
+                </div>
+                
+                <div class="example">
+                    <code>
+// 添加矩形碰撞框<br>
+vector&lt;Position&gt; rect = {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{0, 0}, {100, 0}, {100, 100}, {0, 100}<br>
+};<br>
+element->useGJK();<br>
+element->addPolygon(rect);<br>
+<br>
+// 从 JSON 文件读取多边形<br>
+auto polygon = readPolygonFromJSON("./shapes.json", "player");<br>
+element->addPolygon(polygon);
+                    </code>
+                </div>
+            </div>
+            
+            <h2 id="clone">🧬 克隆功能</h2>
+            
+            <div class="method">
+                <h3>clone</h3>
+                <p>克隆元素创建副本。</p>
+                
+                <div class="method-signature">
+Element* clone();
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">返回值</span> - 新克隆的元素指针
+                </div>
+                
+                <div class="example">
+                    <code>
+// 创建子弹克隆<br>
+Element* bulletTemplate = newElement("bullet", "./bullet.png");<br>
+bulletTemplate->listen(EventType.on_clone, "spawn", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 在原元素上触发<br>
+&nbsp;&nbsp;&nbsp;&nbsp;cout << "创建了一个克隆！" << endl;<br>
+});<br>
+<br>
+// 克隆子弹<br>
+Element* bullet1 = bulletTemplate->clone();<br>
+Element* bullet2 = bulletTemplate->clone();
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>getClones</h3>
+                <p>获取所有克隆体列表。</p>
+                
+                <div class="method-signature">
+vector&lt;Element*&gt; getClones();
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">返回值</span> - 克隆体指针的向量
+                </div>
+            </div>
+            
+            <h2 id="variables">💾 私有变量</h2>
+            
+            <div class="method">
+                <h3>变量管理</h3>
+                <p>每个元素都有 10 个私有变量槽（索引 0-9），可用于存储自定义数据。</p>
+                
+                <div class="method-signature">
+void setVariable(unsigned int which, long long value);
+long long& getVariable(unsigned int which);
+void increaseVariable(unsigned int which, long long value);
+void decreaseVariable(unsigned int which, long long value);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">which</span> - 变量索引 (0-9)<br>
+                    <span class="param-name">value</span> - 变量值
+                </div>
+                
+                <div class="example">
+                    <code>
+// 使用变量 0 存储生命值<br>
+player->setVariable(0, 100);<br>
+<br>
+// 受到伤害<br>
+player->decreaseVariable(0, 10);<br>
+<br>
+// 检查生命值<br>
+if (player->getVariable(0) <= 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 游戏结束<br>
+}
+                    </code>
+                </div>
+                
+                <div class="note">
+                    <strong>提示：</strong>变量 0 通常被事件系统用于鼠标状态管理，变量 1 用于存储克隆体的父元素指针。建议从索引 2 开始使用。
+                </div>
+            </div>
+            
+            <h2 id="images">🖼️ 图像管理</h2>
+            
+            <div class="method">
+                <h3>addImage</h3>
+                <p>添加图像到元素。</p>
+                
+                <div class="method-signature">
+void addImage(PIMAGE image);
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">image</span> - 图像指针
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>setImage</h3>
+                <p>切换到指定索引的图像。</p>
+                
+                <div class="method-signature">
+bool setImage(int order);
+int getImageOrder();
+PIMAGE getImage();
+                </div>
+                
+                <div class="param">
+                    <span class="param-name">order</span> - 图像索引<br>
+                    <span class="param-name">返回值</span> - setImage 返回是否成功
+                </div>
+                
+                <div class="example">
+                    <code>
+// 添加多个图像实现帧动画<br>
+element->addImage(getImage("./frame1.png"));<br>
+element->addImage(getImage("./frame2.png"));<br>
+element->addImage(getImage("./frame3.png"));<br>
+<br>
+// 切换图像<br>
+element->listen(EventType.frame, "animate", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;static int frame = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (++frame % 10 == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->nextImage();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+});
+                    </code>
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>nextImage</h3>
+                <p>切换到下一张图像（循环）。</p>
+                
+                <div class="method-signature">
+void nextImage();
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>cloneImage</h3>
+                <p>克隆所有图像（创建独立副本）。</p>
+                
+                <div class="method-signature">
+void cloneImage();
+                </div>
+                
+                <div class="note">
+                    <strong>注意：</strong>默认情况下克隆的元素会共享原元素的图像。如果需要独立修改图像，需要调用此方法。
+                </div>
+            </div>
+            
+            <h2>🗑️ 删除元素</h2>
+            
+            <div class="method">
+                <h3>deleteElement / deleteThis</h3>
+                <p>删除元素并释放资源。</p>
+                
+                <div class="method-signature">
+Element* deleteElement();  // 立即删除
+Element* deleteThis();     // 标记为待删除（下一帧删除）
+                </div>
+                
+                <div class="example">
+                    <code>
+// 安全删除（推荐）<br>
+element->deleteThis();<br>
+<br>
+// 立即删除<br>
+element->deleteElement();
+                    </code>
+                </div>
+                
+                <div class="warning">
+                    <strong>警告：</strong>deleteElement() 会立即释放内存，如果在回调函数中使用可能导致问题。推荐使用 deleteThis()。
+                </div>
+            </div>
+            
+            <h2>📝 完整示例</h2>
+            
+            <div class="example">
+                <code>
+#include "FeEGELib.h"<br>
+using namespace FeEGE;<br>
+<br>
+int main() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;init(800, 600);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 创建玩家元素<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Element* player = newElement("player", "./player.png", 400, 300);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->setScale(150);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->setVariable(2, 100);  // 生命值<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 键盘控制<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->listen(EventType.frame, "control", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('W')) self->moveUp(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('S')) self->moveDown(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('A')) self->moveLeft(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getkey('D')) self->moveRight(5);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 创建敌人<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Element* enemy = newElement("enemy", "./enemy.png", 200, 200);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;enemy->listen(EventType.frame, "chase", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Element* player = getElementById("player");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (player) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->faceTo(player);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->moveForward(2);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;// 碰撞检测<br>
+&nbsp;&nbsp;&nbsp;&nbsp;player->listen(EventType.frame, "collision", [](Element* self) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Element* enemy = getElementById("enemy");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (enemy && self->isTouchedBy(enemy)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self->decreaseVariable(2, 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (self->getVariable(2) <= 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cout << "游戏结束！" << endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;start();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br>
+}
+                </code>
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center;">
+                <a href="index.html" class="back-link">← 返回首页</a>
+                <a href="collision.html" class="back-link" style="margin-left: 10px;">碰撞系统文档 →</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
