@@ -2129,7 +2129,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
 
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
-        float w,h;
+        float w = 0, h = 0;
         measuretext(lines[i].c_str(),&w,&h,dst);
         double lineW = w;
 
