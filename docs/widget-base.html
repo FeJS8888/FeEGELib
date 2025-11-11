@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget 基类 - FeEGELib API 文档</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        nav {
+            background: #2c3e50;
+            padding: 15px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 20px;
+            transition: opacity 0.3s;
+        }
+        
+        nav a:hover {
+            opacity: 0.7;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        h3 {
+            color: #555;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        h4 {
+            color: #666;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .method {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .method-signature {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .param {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .param-name {
+            color: #667eea;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .return {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        pre {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .back-link:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Widget 基类</h1>
+            <p>所有可绘制控件的抽象基类</p>
+        </header>
+        
+        <nav>
+            <a href="index.html">📚 返回首页</a>
+            <a href="#overview">概述</a>
+            <a href="#methods">方法</a>
+            <a href="#members">成员变量</a>
+            <a href="#usage">使用说明</a>
+        </nav>
+        
+        <div class="content">
+            <h2 id="overview">📖 概述</h2>
+            <p>
+                <code>Widget</code> 类是 FeEGELib 中所有可绘制 UI 控件的抽象基类。它定义了控件的基本接口和通用属性，
+                包括事件处理、绘制和位置管理等核心功能。
+            </p>
+            
+            <div class="info">
+                <strong>📌 提示：</strong> Widget 是一个抽象类，不能直接实例化。所有具体的控件类（如 Button、Panel、InputBox 等）
+                都继承自 Widget 类。
+            </div>
+            
+            <h3>类定义</h3>
+            <pre><code class="language-cpp">class Widget {
+public:
+    virtual ~Widget();
+    virtual void handleEvent(const mouse_msg& msg) = 0;
+    virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
+    virtual void draw() = 0;
+    virtual void setPosition(int x, int y) = 0;
+    virtual void setScale(double s) = 0;
+    
+    double getWidth();
+    double getHeight();
+    
+    bool is_global = true;
+    
+protected:
+    int cx = 0, cy = 0;
+    double width = 0, height = 0;
+    double scale = 1;
+};</code></pre>
+            
+            <h2 id="methods">🔧 公共方法</h2>
+            
+            <div class="method">
+                <h3>虚析构函数</h3>
+                <div class="method-signature">
+                    virtual ~Widget();
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>虚析构函数确保派生类对象能够被正确析构。自动从全局 Widget 集合和 ID 映射表中移除当前对象。</p>
+                
+                <div class="warning">
+                    <strong>⚠️ 重要：</strong> Widget 的析构会自动清理全局注册表中的引用，确保不会出现悬空指针。
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>handleEvent</h3>
+                <div class="method-signature">
+                    virtual void handleEvent(const mouse_msg& msg) = 0;
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>处理鼠标事件的纯虚函数，所有派生类必须实现此方法。</p>
+                
+                <h4>参数：</h4>
+                <div class="param">
+                    <span class="param-name">msg</span> - 鼠标消息结构体，包含鼠标位置和按键状态
+                </div>
+                
+                <h4>示例：</h4>
+                <pre><code class="language-cpp">// 在派生类中实现
+void MyWidget::handleEvent(const mouse_msg& msg) {
+    if (msg.is_left() && msg.is_down()) {
+        // 处理鼠标左键按下事件
+    }
+}</code></pre>
+            </div>
+            
+            <div class="method">
+                <h3>draw (带参数)</h3>
+                <div class="method-signature">
+                    virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>将控件绘制到指定的图像上，在指定的偏移位置。这是一个纯虚函数。</p>
+                
+                <h4>参数：</h4>
+                <div class="param">
+                    <span class="param-name">dst</span> - 目标图像指针，nullptr 表示绘制到默认窗口
+                </div>
+                <div class="param">
+                    <span class="param-name">offsetX</span> - 控件中心的 x 坐标（相对于 dst）
+                </div>
+                <div class="param">
+                    <span class="param-name">offsetY</span> - 控件中心的 y 坐标（相对于 dst）
+                </div>
+            </div>
+            
+            <div class="method">
+                <h3>draw (无参数)</h3>
+                <div class="method-signature">
+                    virtual void draw() = 0;
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>将控件绘制到默认窗口的当前位置。这是一个纯虚函数。</p>
+                
+                <h4>示例：</h4>
+                <pre><code class="language-cpp">// 在主循环中调用
+widget->draw();  // 绘制控件到窗口</code></pre>
+            </div>
+            
+            <div class="method">
+                <h3>setPosition</h3>
+                <div class="method-signature">
+                    virtual void setPosition(int x, int y) = 0;
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>设置控件的位置。这是一个纯虚函数。</p>
+                
+                <h4>参数：</h4>
+                <div class="param">
+                    <span class="param-name">x</span> - 控件中心的 x 坐标
+                </div>
+                <div class="param">
+                    <span class="param-name">y</span> - 控件中心的 y 坐标
+                </div>
+                
+                <h4>示例：</h4>
+                <pre><code class="language-cpp">widget->setPosition(400, 300);  // 将控件移动到 (400, 300)</code></pre>
+            </div>
+            
+            <div class="method">
+                <h3>setScale</h3>
+                <div class="method-signature">
+                    virtual void setScale(double s) = 0;
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>设置控件的缩放比例。这是一个纯虚函数。</p>
+                
+                <h4>参数：</h4>
+                <div class="param">
+                    <span class="param-name">s</span> - 缩放比例，1.0 表示原始大小，2.0 表示放大两倍，0.5 表示缩小一半
+                </div>
+                
+                <h4>示例：</h4>
+                <pre><code class="language-cpp">widget->setScale(1.5);  // 将控件放大 1.5 倍</code></pre>
+            </div>
+            
+            <div class="method">
+                <h3>getWidth</h3>
+                <div class="method-signature">
+                    double getWidth();
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>获取控件当前的宽度（已应用缩放）。</p>
+                
+                <div class="return">
+                    <strong>返回值：</strong> 控件的宽度（像素）
+                </div>
+                
+                <h4>示例：</h4>
+                <pre><code class="language-cpp">double w = widget->getWidth();
+std::cout << "控件宽度: " << w << std::endl;</code></pre>
+            </div>
+            
+            <div class="method">
+                <h3>getHeight</h3>
+                <div class="method-signature">
+                    double getHeight();
+                </div>
+                <p><strong>说明：</strong></p>
+                <p>获取控件当前的高度（已应用缩放）。</p>
+                
+                <div class="return">
+                    <strong>返回值：</strong> 控件的高度（像素）
+                </div>
+            </div>
+            
+            <h2 id="members">📦 公共成员变量</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>is_global</code></td>
+                        <td>bool</td>
+                        <td>指示控件是否为全局控件。默认为 true。当控件被添加到 Panel 等容器时，会被设置为 false。</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>受保护成员变量</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>cx, cy</code></td>
+                        <td>int</td>
+                        <td>控件中心的 x 和 y 坐标</td>
+                    </tr>
+                    <tr>
+                        <td><code>width, height</code></td>
+                        <td>double</td>
+                        <td>控件的宽度和高度（已应用缩放）</td>
+                    </tr>
+                    <tr>
+                        <td><code>scale</code></td>
+                        <td>double</td>
+                        <td>控件的缩放比例，默认为 1.0</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2 id="usage">💡 使用说明</h2>
+            
+            <h3>全局 Widget 管理</h3>
+            <p>FeEGELib 提供了全局的 Widget 管理机制：</p>
+            
+            <pre><code class="language-cpp">// 全局 Widget 集合
+extern std::set<Widget*> widgets;
+
+// ID 到 Widget 的映射
+extern std::map<std::wstring, Widget*> IdToWidget;
+
+// 通过 ID 获取 Widget
+Widget* getWidgetById(const std::wstring& identifier);</code></pre>
+            
+            <h4>示例：</h4>
+            <pre><code class="language-cpp">// 通过 ID 获取 Widget
+Widget* btn = getWidgetById(L"myButton");
+if (btn != nullptr) {
+    btn->setPosition(100, 100);
+}
+
+// 遍历所有 Widget
+for (Widget* widget : widgets) {
+    widget->draw();
+}</code></pre>
+            
+            <div class="warning">
+                <strong>⚠️ 注意：</strong> <code>getWidgetById</code> 可能返回 nullptr，使用前请务必检查。
+            </div>
+            
+            <h3>生命周期管理</h3>
+            <p>Widget 的生命周期管理遵循以下规则：</p>
+            
+            <ul style="margin-left: 30px; margin-top: 10px;">
+                <li>使用 Builder 类创建的 Widget 会自动注册到全局集合</li>
+                <li>Widget 析构时会自动从全局集合中移除</li>
+                <li>容器类（如 Panel）不拥有子 Widget 的所有权</li>
+                <li>程序员需要负责 delete Widget 对象</li>
+            </ul>
+            
+            <div class="note">
+                <strong>💡 最佳实践：</strong> 建议使用 Builder 模式创建 Widget，并在程序退出时统一清理。
+            </div>
+            
+            <h3>继承 Widget 类</h3>
+            <p>如果需要创建自定义控件，可以继承 Widget 类并实现所有纯虚函数：</p>
+            
+            <pre><code class="language-cpp">class MyCustomWidget : public Widget {
+public:
+    MyCustomWidget(int x, int y, double w, double h) {
+        cx = x;
+        cy = y;
+        width = w;
+        height = h;
+    }
+    
+    void handleEvent(const mouse_msg& msg) override {
+        // 实现事件处理逻辑
+    }
+    
+    void draw(PIMAGE dst, int x, int y) override {
+        // 实现绘制逻辑
+    }
+    
+    void draw() override {
+        draw(nullptr, cx, cy);
+    }
+    
+    void setPosition(int x, int y) override {
+        cx = x;
+        cy = y;
+    }
+    
+    void setScale(double s) override {
+        scale = s;
+        width = originalWidth * s;
+        height = originalHeight * s;
+    }
+    
+private:
+    double originalWidth, originalHeight;
+};</code></pre>
+            
+            <h2>相关链接</h2>
+            <ul style="margin-left: 30px; margin-top: 10px;">
+                <li><a href="panel.html">Panel - 面板容器</a></li>
+                <li><a href="button.html">Button - 按钮控件</a></li>
+                <li><a href="builders.html">Builder 类 - 构建器模式</a></li>
+            </ul>
+            
+            <a href="index.html" class="back-link">← 返回首页</a>
+        </div>
+    </div>
+    
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+</html>

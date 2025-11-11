@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button 按钮 - FeEGELib API 文档</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; min-height: 100vh; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 40px; }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        nav { background: #2c3e50; padding: 15px 40px; position: sticky; top: 0; z-index: 100; }
+        nav a { color: white; text-decoration: none; margin-right: 20px; }
+        .content { padding: 40px; }
+        h2 { color: #667eea; font-size: 2em; margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #555; font-size: 1.5em; margin-top: 30px; margin-bottom: 15px; }
+        .method { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+        .method-signature { background: #e9ecef; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 10px 0; }
+        .param { margin: 10px 0; padding-left: 20px; }
+        .param-name { color: #667eea; font-weight: bold; font-family: 'Courier New', monospace; }
+        pre { background: #f8f8f8; padding: 20px; border-radius: 5px; overflow-x: auto; margin: 20px 0; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .back-link { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Button 按钮</h1>
+            <p>带波纹动画效果的按钮控件</p>
+        </header>
+        
+        <nav>
+            <a href="index.html">📚 返回首页</a>
+            <a href="#constructor">构造函数</a>
+            <a href="#methods">方法</a>
+            <a href="#example">示例</a>
+        </nav>
+        
+        <div class="content">
+            <h2>📖 概述</h2>
+            <p>Button 是一个功能丰富的按钮控件，支持：</p>
+            <ul style="margin-left: 30px; margin-top: 10px;">
+                <li>Material Design 风格的波纹点击效果</li>
+                <li>自定义文本内容</li>
+                <li>图标显示</li>
+                <li>点击事件回调</li>
+                <li>自定义颜色和圆角半径</li>
+                <li>缩放和位置控制</li>
+            </ul>
+            
+            <h2 id="constructor">🔧 构造函数</h2>
+            <div class="method">
+                <div class="method-signature">
+Button(int cx, int cy, double w, double h, double r);
+                </div>
+                <p><strong>参数：</strong></p>
+                <div class="param"><span class="param-name">cx</span> - 按钮中心 x 坐标</div>
+                <div class="param"><span class="param-name">cy</span> - 按钮中心 y 坐标</div>
+                <div class="param"><span class="param-name">w</span> - 按钮宽度</div>
+                <div class="param"><span class="param-name">h</span> - 按钮高度</div>
+                <div class="param"><span class="param-name">r</span> - 圆角半径</div>
+            </div>
+            
+            <h2 id="methods">📋 主要方法</h2>
+            
+            <div class="method">
+                <h3>setContent</h3>
+                <div class="method-signature">void setContent(const std::wstring& str);</div>
+                <p>设置按钮显示的文本内容。</p>
+            </div>
+            
+            <div class="method">
+                <h3>setOnClickEvent</h3>
+                <div class="method-signature">void setOnClickEvent(std::function<void(void)> func);</div>
+                <p>设置按钮点击事件的回调函数。</p>
+            </div>
+            
+            <div class="method">
+                <h3>setColor</h3>
+                <div class="method-signature">void setColor(color_t col);</div>
+                <p>设置按钮的背景颜色。</p>
+            </div>
+            
+            <div class="method">
+                <h3>setIcon</h3>
+                <div class="method-signature">void setIcon(PIMAGE img);</div>
+                <p>设置按钮的图标图像。</p>
+            </div>
+            
+            <div class="method">
+                <h3>setIconSize</h3>
+                <div class="method-signature">void setIconSize(int is);</div>
+                <p>设置图标的显示尺寸（百分比，默认 100）。</p>
+            </div>
+            
+            <div class="method">
+                <h3>isInside</h3>
+                <div class="method-signature">bool isInside(int x, int y) const;</div>
+                <p>检查给定坐标是否在按钮内部（考虑圆角）。</p>
+            </div>
+            
+            <h2 id="example">💡 使用示例</h2>
+            
+            <h3>基本用法</h3>
+            <pre><code class="language-cpp">#include "FeEGELib.h"
+using namespace FeEGE;
+
+int main() {
+    init(800, 600);
+    
+    // 创建按钮
+    Button* btn = new Button(400, 300, 150, 50, 10);
+    btn->setContent(L"点击我");
+    btn->setColor(EGERGB(100, 180, 255));
+    btn->setOnClickEvent([]() {
+        std::wcout << L"按钮被点击了！" << std::endl;
+    });
+    
+    start();
+    delete btn;
+    return 0;
+}</code></pre>
+            
+            <h3>使用 ButtonBuilder</h3>
+            <pre><code class="language-cpp">Button* btn = ButtonBuilder()
+    .setIdentifier(L"submitBtn")
+    .setCenter(400, 300)
+    .setSize(150, 50)
+    .setRadius(10)
+    .setContent(L"提交")
+    .setColor(EGERGB(76, 175, 80))
+    .setScale(1.2)
+    .setOnClick([]() {
+        // 处理提交逻辑
+    })
+    .build();</code></pre>
+            
+            <div class="note">
+                <strong>💡 提示：</strong> 推荐使用 ButtonBuilder 创建按钮，它提供了更加清晰和灵活的 API。
+            </div>
+            
+            <a href="index.html" class="back-link">← 返回首页</a>
+        </div>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

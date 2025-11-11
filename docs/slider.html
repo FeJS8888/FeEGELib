@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Slider 滑动条 - FeEGELib API</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        body{font-family:"Microsoft YaHei",Arial,sans-serif;line-height:1.6;background:#f5f5f5;margin:0;padding:0}
+        .container{max-width:1000px;margin:0 auto;background:white;min-height:100vh}
+        header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:30px 40px}
+        header h1{font-size:2.5em;margin:0}
+        nav{background:#2c3e50;padding:15px 40px}
+        nav a{color:white;text-decoration:none;margin-right:20px}
+        .content{padding:40px}
+        h2{color:#667eea;margin:30px 0 20px;border-bottom:2px solid #667eea;padding-bottom:10px}
+        .method{background:#f8f9fa;padding:20px;margin:20px 0;border-radius:8px}
+        pre{background:#f8f8f8;padding:20px;border-radius:5px;overflow-x:auto}
+        .back-link{display:inline-block;margin-top:30px;padding:10px 20px;background:#667eea;color:white;text-decoration:none;border-radius:5px}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>Slider 滑动条</h1><p>可拖动的滑动条控件</p></header>
+        <nav><a href="index.html">返回首页</a></nav>
+        <div class="content">
+            <h2>特性</h2>
+            <ul style="margin-left:30px">
+                <li>水平和垂直方向支持</li>
+                <li>步进值设置</li>
+                <li>值改变回调</li>
+                <li>平滑动画</li>
+            </ul>
+            <h2>主要方法</h2>
+            <div class="method">
+                <strong>setProgress(double v)</strong> - 设置进度值 (0.0-1.0)<br>
+                <strong>getProgress()</strong> - 获取当前进度<br>
+                <strong>setStep(double s)</strong> - 设置步进值<br>
+                <strong>setOrientation(Orientation ori)</strong> - 设置方向 (Row/Column)<br>
+                <strong>setOnChange(callback)</strong> - 设置值改变回调
+            </div>
+            <h2>示例</h2>
+            <pre><code class="language-cpp">Slider* slider = SliderBuilder()
+    .setCenter(400, 300)
+    .setSize(300, 20)
+    .setProgress(0.5)
+    .setStep(0.1)
+    .setColor(EGERGB(200,200,200), EGERGB(100,180,255))
+    .setOnChange([](double val) {
+        std::cout << "进度: " << val << std::endl;
+    })
+    .build();</code></pre>
+            <a href="index.html" class="back-link">← 返回首页</a>
+        </div>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
