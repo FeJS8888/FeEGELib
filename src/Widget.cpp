@@ -1134,7 +1134,7 @@ PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offse
     return *this;
 }
 
-PanelBuilder& PanelBuilder::addChild(std::vector<Widget*> child, std::vector<double> offsetX, std::vector<double> offsetY) {
+PanelBuilder& PanelBuilder::addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX, const std::vector<double>& offsetY) {
     for(int i = 0;i < child.size();++ i){
         children.push_back(child[i]);
         if(offsetX.size() > i && offsetY.size() > i){
