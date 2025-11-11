@@ -285,7 +285,7 @@ bool FontManager::LoadFont(const std::string& ttfFileName) {
     // 查找TTF文件
     std::wstring filePath = FindTTFFile(ttfFileName);
     if (filePath.empty()) {
-        std::cout << "TTF file not found: " << ttfFileName << std::endl;
+        std::wcout << L"TTF file not found: " << std::wstring(ttfFileName.begin(),ttfFileName.end()) << std::endl;
         return false;
     }
     

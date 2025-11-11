@@ -522,6 +522,7 @@ public:
     PanelBuilder& setBackground(color_t color);
     PanelBuilder& setScale(double s);
     PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
+    PanelBuilder& addChild(std::vector<Widget*> child, std::vector<double> offsetX = {}, std::vector<double> offsetY = {});
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
     Panel* build();
 

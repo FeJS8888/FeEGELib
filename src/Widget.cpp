@@ -1134,6 +1134,19 @@ PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offse
     return *this;
 }
 
+PanelBuilder& PanelBuilder::addChild(std::vector<Widget*> child, std::vector<double> offsetX, std::vector<double> offsetY) {
+    for(int i = 0;i < child.size();++ i){
+        children.push_back(child[i]);
+        if(offsetX.size() > i && offsetY.size() > i){
+            childOffsets.push_back(Position{ offsetX[i], offsetY[i] });
+        }
+        else{
+            childOffsets.push_back(Position{ 0, 0 });
+        }
+    }
+    return *this;
+}
+
 PanelBuilder& PanelBuilder::setLayout(std::shared_ptr<Layout> l) {
     layout = std::move(l);
     return *this;
@@ -2099,6 +2112,9 @@ void Text::updateLayout() {
         textWidth = std::max(textWidth, textwidth(l.c_str()));
 
     textHeight = lines.size() * textheight("A");
+
+    height = textHeight;
+    width = textWidth;
 }
 
 // 默认绘制
@@ -2108,19 +2124,21 @@ void Text::draw() {
 
 // 绘制到目标图像
 void Text::draw(PIMAGE dst, int x, int y) {
-    setfont((int)(fontSize * scale), 0, fontName.c_str(),dst);
+    setfont(fixed(fontSize * scale), 0, fontName.c_str(),dst);
     settextcolor(color,dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {
-        int x_draw = x;
-        int lineW = textwidth(lines[i].c_str(),dst);
+        double x_draw = x;
+        float w,h;
+        measuretext(lines[i].c_str(),&w,&h,dst);
+        double lineW = w;
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
-        int y_draw = y + (int)(i * (textheight("A",dst) + lineSpacing));
+        double y_draw = y + (int)(i * (h + lineSpacing));
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
 }

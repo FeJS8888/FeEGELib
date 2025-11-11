@@ -18,7 +18,7 @@ add_executable(FeEGEApp
 target_include_directories(FeEGEApp PRIVATE include)
 
 # target_compile_definitions(FeEGEApp PRIVATE FPS)
-set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
+# set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
 
 # 链接静态库（graphics.a）
 target_link_libraries(FeEGEApp PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgraphics.a)
