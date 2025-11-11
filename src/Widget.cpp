@@ -2138,7 +2138,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
-        double y_draw = y + (int)(i * (h + lineSpacing));
+        double y_draw = y + i * (h + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
 }
