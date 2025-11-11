@@ -2131,7 +2131,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
         double x_draw = x;
         float w = 0, h = 0;
         measuretext(lines[i].c_str(),&w,&h,dst);
-        double lineW = w;
+        float lineW = w;
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
