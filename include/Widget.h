@@ -197,6 +197,7 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    bool needRedraw = true;  ///< 脏标记，避免不必要的重绘
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -244,7 +245,6 @@ struct Ripple{
 
 /**
  * @brief 按钮控件类
- */
 class Button : public Widget {
 private:
     double radius;                              ///< 圆角半径
@@ -263,6 +263,7 @@ private:
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
+    double lastFontScale = -1;                  ///< 缓存上次字体缩放比例
 
 public:
     /**
@@ -406,6 +407,9 @@ private:
     const float padding = 14;
 
     LOGFONT m_font; // 输入框字体
+    double lastFontScale = -1;  ///< 缓存上次字体缩放比例
+    std::wstring lastMeasuredContent;  ///< 缓存上次测量的内容
+    float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
 
 public:
     /**
