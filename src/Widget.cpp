@@ -268,9 +268,8 @@ void Button::draw(PIMAGE dst,int x,int y){
         r.update();
         r.draw(btnLayer,scale);
     }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
+    // 优化：使用C++20 std::erase_if替代erase-remove惯用法
+    std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
     // 优化：仅在缩放改变时设置字体
     double currentFontScale = 23 * scale;
@@ -498,9 +497,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         r.update();
         r.draw(btnLayer, scale);
     }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
+    // 优化：使用C++20 std::erase_if替代erase-remove惯用法
+    std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
     // 优化：仅在缩放改变时设置字体
     double currentFontScale = scale * text_height;
@@ -1496,9 +1494,12 @@ void Dropdown::draw(PIMAGE dst, int x, int y) {
             }
         }
 
-        // 设置透明度并绘制下拉面板
+        // 优化：只在透明度改变时调用setAlpha
         int actualAlpha = static_cast<int>(fadeAlpha * 255);
-        dropdownPanel->setAlpha(actualAlpha);
+        if (lastAppliedAlpha != actualAlpha) {
+            dropdownPanel->setAlpha(actualAlpha);
+            lastAppliedAlpha = actualAlpha;
+        }
         dropdownPanel->draw(dst, cx, cy + height / 2 + height * options.size() / 2 + 4);
     }
 }

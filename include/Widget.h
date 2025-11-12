@@ -862,6 +862,7 @@ private:
     double width, height, radius;
     double scale = 1.0;
     double fadeAlpha = 0.0;
+    int lastAppliedAlpha = -1;  ///< 缓存上次应用的透明度值
     bool fadingIn = false;
     bool fadingOut = false;
 
