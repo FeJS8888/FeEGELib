@@ -197,7 +197,6 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
-    bool needRedraw = true;  ///< 脏标记，避免不必要的重绘
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）

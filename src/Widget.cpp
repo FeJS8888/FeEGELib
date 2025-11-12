@@ -48,7 +48,6 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     children.push_back(child);
     childOffsets.push_back(Position{ offsetX, offsetY });
     child->is_global = false;
-    needRedraw = true;  // 标记需要重绘
 }
 
 void Panel::draw() {
@@ -58,30 +57,26 @@ void Panel::draw() {
 void Panel::draw(PIMAGE dst, int x, int y) {
     if (layout) layout->apply(*this);  // 自动计算子控件位置
     
-    // 优化：仅在需要时重绘
-    if (needRedraw) {
-        double left = x - width / 2;
-        double top = y - height / 2;
-        setbkcolor_f(EGEACOLOR(0,bgColor), layer);
-        cleardevice(layer);
-
-        // 绘制自身背景（圆角矩形）
-        setfillcolor(bgColor, layer);
-        ege_fillrect(0, 0, width, height, layer);
-
-        // 绘制子控件（优化：移除冗余的setPosition调用）
-        for (size_t i = 0; i < children.size(); ++i) {
-            int childX = width / 2 + childOffsets[i].x * scale;
-            int childY = height / 2 + childOffsets[i].y * scale;
-            children[i]->draw(layer, childX, childY);
-        }
-        
-        needRedraw = false;
-    }
-
-    // 始终粘贴到主窗口
     double left = x - width / 2;
     double top = y - height / 2;
+    
+    // 总是清空并重绘（子控件可能有动态内容）
+    // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
+    setbkcolor_f(EGEACOLOR(0,bgColor), layer);
+    cleardevice(layer);
+
+    // 绘制自身背景（圆角矩形）
+    setfillcolor(bgColor, layer);
+    ege_fillrect(0, 0, width, height, layer);
+
+    // 绘制子控件
+    for (size_t i = 0; i < children.size(); ++i) {
+        int childX = width / 2 + childOffsets[i].x * scale;
+        int childY = height / 2 + childOffsets[i].y * scale;
+        children[i]->draw(layer, childX, childY);
+    }
+
+    // 粘贴到主窗口
     putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
 }
 
@@ -113,7 +108,6 @@ void Panel::setScale(double s){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;  // 标记需要重绘
 }
 
 double Panel::getScale(){
@@ -138,13 +132,11 @@ void Panel::setSize(double w,double h){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;  // 标记需要重绘
 }
 
 void Panel::clearChildren(){
     children.clear();
     childOffsets.clear();
-    needRedraw = true;  // 标记需要重绘
 }
 
 void Panel::setAlpha(double a) {
@@ -153,7 +145,6 @@ void Panel::setAlpha(double a) {
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;  // 标记需要重绘
 }
 
 std::vector<Widget*>& Panel::getChildren() { 
@@ -163,7 +154,6 @@ std::vector<Widget*>& Panel::getChildren() {
 void Panel::setChildrenOffset(int index,Position pos){
     if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
         childOffsets[index] = pos;
-        needRedraw = true;  // 标记需要重绘
     }
 }
 

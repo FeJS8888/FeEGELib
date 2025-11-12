@@ -8,18 +8,14 @@
 
 ## 优化详情
 
-### 1. Panel类 - 脏标记优化
-**问题**: Panel每帧都调用cleardevice()和重绘，即使内容未改变
-**优化方案**:
-- 添加`needRedraw`标记，仅在内容改变时重绘
-- 在addChild()、setScale()、setSize()、setAlpha()、clearChildren()等修改状态的方法中设置标记
-- 缓存渲染好的layer，避免不必要的重绘
-
-**性能提升**: 静态Panel减少约50%的cleardevice调用
+### 1. Panel类 - 简化重绘逻辑（优化已撤销）
+**原问题**: Panel每帧都调用cleardevice()和重绘，即使内容未改变
+**尝试方案**: 添加needRedraw标记来跳过重绘
+**发现的问题**: Panel的needRedraw标记无法追踪子控件的状态变化（如Button的波纹动画、InputBox的光标闪烁等），导致子控件动态内容无法正确显示
+**最终方案**: 移除Panel的needRedraw优化，保持每帧重绘。子控件（Button、InputBox等）内部有自己的缓存机制来避免不必要的工作
 
 **代码位置**:
-- `include/Widget.h:199` - 添加needRedraw成员
-- `src/Widget.cpp:57-82` - 优化draw()方法
+- `src/Widget.cpp:58-81` - Panel::draw()方法
 
 ### 2. Button类 - 字体缓存与重复绘制优化
 **问题1**: 每帧都调用setfont()，即使字体大小未改变
