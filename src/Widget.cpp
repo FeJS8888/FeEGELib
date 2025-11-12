@@ -165,7 +165,6 @@ void Panel::setChildrenOffset(int index,Position pos){
         childOffsets[index] = pos;
         needRedraw = true;  // 标记需要重绘
     }
-    }
 }
 
 // Ripple 结构体实现
