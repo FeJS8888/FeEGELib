@@ -524,16 +524,17 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             measuretext(cursor_before_text.c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
             measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
             
+            // 缓存所有测量值
             cachedCursorPosWidth = cursor_pos_width;
+            cachedCursorWithImeWidth = cursor_with_ime_width;
+            cachedCursorWithFullImeWidth = cursor_with_full_ime_width;
             lastMeasuredContent = displayContent;
         } else {
-            // 使用缓存的值
+            // 使用所有缓存的值
             cursor_pos_width = cachedCursorPosWidth;
+            cursor_with_ime_width = cachedCursorWithImeWidth;
+            cursor_with_full_ime_width = cachedCursorWithFullImeWidth;
             measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
-            std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
-            std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
-            measuretext(cursor_before_cursor.c_str(), &cursor_with_ime_width, &tmp, btnLayer);
-            measuretext(cursor_before_text.c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
         }
         
         float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
@@ -2176,12 +2177,9 @@ void Text::draw() {
 
 // 绘制到目标图像
 void Text::draw(PIMAGE dst, int x, int y) {
-    // 优化：仅在缩放改变时设置字体
-    double currentFontScale = fontSize * scale;
-    if (lastFontScale != currentFontScale) {
-        setfont(fixed(currentFontScale), 0, fontName.c_str(), dst);
-        lastFontScale = currentFontScale;
-    }
+    // 重要：每次都设置字体，因为dst可能是不同的图像上下文
+    // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
+    setfont(fixed(fontSize * scale), 0, fontName.c_str(), dst);
     settextcolor(color, dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {

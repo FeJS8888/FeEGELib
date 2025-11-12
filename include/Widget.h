@@ -411,6 +411,8 @@ private:
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例
     std::wstring lastMeasuredContent;  ///< 缓存上次测量的内容
     float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
+    float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
+    float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
 
 public:
     /**
