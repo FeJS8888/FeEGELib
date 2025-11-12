@@ -245,6 +245,7 @@ struct Ripple{
 
 /**
  * @brief 按钮控件类
+ */
 class Button : public Widget {
 private:
     double radius;                              ///< 圆角半径
