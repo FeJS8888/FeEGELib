@@ -1113,6 +1113,8 @@ private:
     int textHeight = 0;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0; // 额外行距
+    double lastFontScale = -1;  ///< 缓存上次字体缩放比例
+    std::vector<float> cachedLineWidths;  ///< 缓存每行的宽度
 };
 
 class TextBuilder {

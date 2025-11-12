@@ -2128,10 +2128,12 @@ int Text::getMaxWidth() const {
 // 布局计算
 void Text::updateLayout() {
     lines.clear();
+    cachedLineWidths.clear();
     textWidth = 0;
     textHeight = 0;
 
     setfont((int)(fontSize * scale), 0, fontName.c_str());
+    lastFontScale = fontSize * scale;
 
     std::wstring line;
     for (wchar_t ch : contentW) {
@@ -2153,8 +2155,13 @@ void Text::updateLayout() {
     if (!line.empty())
         lines.push_back(line);
 
-    for (const auto& l : lines)
-        textWidth = std::max(textWidth, textwidth(l.c_str()));
+    // 优化：缓存每行的宽度
+    cachedLineWidths.reserve(lines.size());
+    for (const auto& l : lines) {
+        float w = textwidth(l.c_str());
+        cachedLineWidths.push_back(w);
+        textWidth = std::max(textWidth, (int)w);
+    }
 
     textHeight = lines.size() * textheight("A");
 
@@ -2169,21 +2176,35 @@ void Text::draw() {
 
 // 绘制到目标图像
 void Text::draw(PIMAGE dst, int x, int y) {
-    setfont(fixed(fontSize * scale), 0, fontName.c_str(),dst);
-    settextcolor(color,dst);
+    // 优化：仅在缩放改变时设置字体
+    double currentFontScale = fontSize * scale;
+    if (lastFontScale != currentFontScale) {
+        setfont(fixed(currentFontScale), 0, fontName.c_str(), dst);
+        lastFontScale = currentFontScale;
+    }
+    settextcolor(color, dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
-        float w = 0, h = 0;
-        measuretext(lines[i].c_str(),&w,&h,dst);
-        float lineW = w;
+        
+        // 优化：使用缓存的行宽度，避免重复测量
+        float lineW = (i < cachedLineWidths.size()) ? cachedLineWidths[i] : 0;
+        if (lineW == 0) {
+            // 如果缓存失效，重新测量
+            float w = 0, h = 0;
+            measuretext(lines[i].c_str(), &w, &h, dst);
+            lineW = w;
+        }
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
-        double y_draw = y + i * (h + lineSpacing);
+        // 使用缓存的行高
+        double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
+            (textHeight / lines.size()) : textheight("A", dst);
+        double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
 }
