@@ -2,6 +2,7 @@
 
 using namespace FeEGE;
 set<Widget*> widgets;
+double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 
 double Widget::getWidth(){
     return width;
@@ -73,7 +74,11 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
+        absolutPosDeltaX = left;
+        absolutPosDeltaY = top;
         children[i]->draw(layer, childX, childY);
+        absolutPosDeltaX = 0;
+        absolutPosDeltaY = 0;
     }
 
     // 粘贴到主窗口
@@ -564,8 +569,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             }
             
             // 更新IME位置
-            InputPositionX = left + cursor_draw_x;
-            InputPositionY = top + height - 20;
+            InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
+            InputPositionY = top + height + absolutPosDeltaY;
         }
     }
     
