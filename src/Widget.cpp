@@ -502,9 +502,9 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     if(sgn(currentFontScale - 1) >= 0){
         const float padding = 14;
         
-        // 优化：仅在内容、光标位置或IME光标位置改变时重新计算文本宽度
+        // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
-        if (lastMeasuredContent != displayContent || lastMeasuredCursorPos != cursor_pos || lastMeasuredIMECursorPos != IMECursorPos) {
+        if (lastMeasuredContent != displayContent) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             
@@ -517,16 +517,13 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             cachedCursorPosWidth = cursor_pos_width;
             cachedCursorWithImeWidth = cursor_with_ime_width;
             cachedCursorWithFullImeWidth = cursor_with_full_ime_width;
-            cachedFullTextWidth = full_text_width;
             lastMeasuredContent = displayContent;
-            lastMeasuredCursorPos = cursor_pos;
-            lastMeasuredIMECursorPos = IMECursorPos;
         } else {
             // 使用所有缓存的值
             cursor_pos_width = cachedCursorPosWidth;
             cursor_with_ime_width = cachedCursorWithImeWidth;
             cursor_with_full_ime_width = cachedCursorWithFullImeWidth;
-            full_text_width = cachedFullTextWidth;
+            measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
         }
         
         float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
@@ -2126,6 +2123,7 @@ void Text::updateLayout() {
     textHeight = 0;
 
     setfont((int)(fontSize * scale), 0, fontName.c_str());
+    lastFontScale = fontSize * scale;
 
     std::wstring line;
     for (wchar_t ch : contentW) {
@@ -2168,17 +2166,10 @@ void Text::draw() {
 
 // 绘制到目标图像
 void Text::draw(PIMAGE dst, int x, int y) {
-    // 重要：每次都设置字体，因为dst可能是不同的图像上下文。
-    // EGE库的字体设置是针对每个图像上下文（PIMAGE）单独维护的，
-    // 因此不能像Button/InputBox那样全局缓存字体设置。
-    // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上，
-    // 所以每次绘制前都必须为目标dst设置正确的字体。
+    // 重要：每次都设置字体，因为dst可能是不同的图像上下文
+    // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
     setfont(fixed(fontSize * scale), 0, fontName.c_str(), dst);
     settextcolor(color, dst);
-
-    // 优化：在循环外计算行高，所有行使用相同的行高
-    double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
-        (textHeight / lines.size()) : textheight("A", dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
@@ -2197,6 +2188,9 @@ void Text::draw(PIMAGE dst, int x, int y) {
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
+        // 使用缓存的行高
+        double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
+            (textHeight / lines.size()) : textheight("A", dst);
         double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }

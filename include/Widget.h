@@ -409,12 +409,9 @@ private:
     LOGFONT m_font; // 输入框字体
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例
     std::wstring lastMeasuredContent;  ///< 缓存上次测量的内容
-    int lastMeasuredCursorPos = -1;  ///< 缓存上次测量的光标位置
-    int lastMeasuredIMECursorPos = -1;  ///< 缓存上次测量的IME光标位置
     float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
     float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
     float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
-    float cachedFullTextWidth = 0;  ///< 缓存的完整文本宽度
 
 public:
     /**
@@ -1118,6 +1115,7 @@ private:
     int textHeight = 0;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0; // 额外行距
+    double lastFontScale = -1;  ///< 缓存上次字体缩放比例
     std::vector<float> cachedLineWidths;  ///< 缓存每行的宽度
 };
 
