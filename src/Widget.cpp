@@ -504,7 +504,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
-        if (lastMeasuredContent != displayContent) {
+        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             
@@ -518,6 +518,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             cachedCursorWithImeWidth = cursor_with_ime_width;
             cachedCursorWithFullImeWidth = cursor_with_full_ime_width;
             lastMeasuredContent = displayContent;
+            lastCursorPos = cursor_pos;
+            reflushCursorTick();
         } else {
             // 使用所有缓存的值
             cursor_pos_width = cachedCursorPosWidth;
