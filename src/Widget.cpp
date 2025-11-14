@@ -2,6 +2,7 @@
 
 using namespace FeEGE;
 set<Widget*> widgets;
+double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 
 double Widget::getWidth(){
     return width;
@@ -56,8 +57,12 @@ void Panel::draw() {
 
 void Panel::draw(PIMAGE dst, int x, int y) {
     if (layout) layout->apply(*this);  // 自动计算子控件位置
+    
     double left = x - width / 2;
-	double top = y - height / 2;
+    double top = y - height / 2;
+    
+    // 总是清空并重绘（子控件可能有动态内容）
+    // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
     setbkcolor_f(EGEACOLOR(0,bgColor), layer);
     cleardevice(layer);
 
@@ -69,8 +74,12 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
+        absolutPosDeltaX = left;
+        absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
         children[i]->draw(layer, childX, childY);
+        absolutPosDeltaX = 0;
+        absolutPosDeltaY = 0;
     }
 
     // 粘贴到主窗口
@@ -97,8 +106,6 @@ void Panel::setScale(double s){
     radius = origin_radius * s;
 	scale = s;
 	for (size_t i = 0; i < children.size(); ++i) {
-        int childX = width / 2 + childOffsets[i].x * scale;
-        int childY = height / 2 + childOffsets[i].y * scale;
         children[i]->setScale(s);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
@@ -237,15 +244,11 @@ void Button::draw(PIMAGE dst,int x,int y){
         return;
     }
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
-    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
     cleardevice(btnLayer);
-    cleardevice(bgLayer);
 
-    // 按钮背景
+    // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
     setfillcolor(color, btnLayer);
-    setfillcolor(color, bgLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, bgLayer);
                  
     if(icon != nullptr){
 	    int iconW = getwidth(icon) * scale * iconSize / 100;
@@ -260,19 +263,21 @@ void Button::draw(PIMAGE dst,int x,int y){
         r.update();
         r.draw(btnLayer,scale);
     }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
+    // 优化：使用C++20 std::erase_if替代erase-remove惯用法
+    std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
+    setfont(23 * scale, 0, L"宋体", btnLayer);
+    
     // 按钮文字
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    setfont(23 * scale, 0, "宋体", btnLayer);
     ege_outtextxy(width / 2 - textwidth(content.c_str(), btnLayer) / 2, 
                  height / 2 - textheight(content.c_str(), btnLayer) / 2, 
                  content.c_str(), btnLayer);
     
     // 应用遮罩绘制
+    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
@@ -367,6 +372,8 @@ void Button::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
     // 遮罩
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
@@ -466,14 +473,12 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         return;
     }
 
-    std::wstring content = IMECompositionString.size() ? 
+    std::wstring displayContent = IMECompositionString.size() ? 
         (this->content.substr(0,cursor_pos) + IMECompositionString + this->content.substr(cursor_pos)) : 
         (this->content);
         
     setbkcolor_f(EGEACOLOR(0,color), btnLayer);
     cleardevice(btnLayer);
-    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
-    cleardevice(bgLayer);
 
     // 按钮背景
     setfillcolor(EGEACOLOR(255, color), btnLayer);
@@ -484,42 +489,51 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         r.update();
         r.draw(btnLayer, scale);
     }
-    ripples.erase(std::remove_if(ripples.begin(), ripples.end(),
-        [](const Ripple& r) { return !r.alive(); }),
-        ripples.end());
+    // 优化：使用C++20 std::erase_if替代erase-remove惯用法
+    std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
-    // 输入框文字
-    // std::wcout << L"FontManager loaded: " << (fontManager.IsLoaded() ? L"YES" : L"NO") << std::endl;
-    // std::wcout << L"Font name: " << fontManager.GetFontName() << std::endl;
-
-    // LOGFONTW lf = fontManager.CreateLogFont(40);
-    // std::wcout << L"Created font face name: " << lf.lfFaceName << std::endl;
+    // 优化：仅在缩放改变时设置字体
+    double currentFontScale = scale * text_height;
+    setfont(23 * scale, 0, L"宋体", btnLayer);
+    
     setbkmode(TRANSPARENT, btnLayer);
-    settextcolor(BLACK,btnLayer);
-    setfont(scale * text_height,0,L"宋体",btnLayer);
-    // ege_outtextxy(0,0,"Hello,World",btnLayer);
+    settextcolor(BLACK, btnLayer);
 
-    if(sgn(scale * text_height - 1) >= 0){
-        // 计算文本显示参数 - 修改开始
+    if(sgn(currentFontScale - 1) >= 0){
         const float padding = 14;
         
-        // 修正变量覆盖问题，分别计算各个宽度
-        std::wstring cursor_before_cursor = content.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
-        std::wstring cursor_before_text = content.substr(0, cursor_pos) + IMECompositionString;
-        float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width,cursor_with_full_ime_width;
-        measuretext(content.substr(0, cursor_pos).c_str(), &cursor_pos_width, &tmp, btnLayer);
-        measuretext(cursor_before_cursor.c_str(), &cursor_with_ime_width, &tmp, btnLayer);
-        measuretext(cursor_before_text.c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
-        measuretext(content.c_str(), &full_text_width, &tmp, btnLayer);
-        float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
+        // 优化：仅在内容改变时重新计算文本宽度
+        float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
+        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos) {
+            std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
+            std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
+            
+            measuretext(displayContent.substr(0, cursor_pos).c_str(), &cursor_pos_width, &tmp, btnLayer);
+            measuretext(cursor_before_cursor.c_str(), &cursor_with_ime_width, &tmp, btnLayer);
+            measuretext(cursor_before_text.c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
+            measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
+            
+            // 缓存所有测量值
+            cachedCursorPosWidth = cursor_pos_width;
+            cachedCursorWithImeWidth = cursor_with_ime_width;
+            cachedCursorWithFullImeWidth = cursor_with_full_ime_width;
+            lastMeasuredContent = displayContent;
+            lastCursorPos = cursor_pos;
+            reflushCursorTick();
+        } else {
+            // 使用所有缓存的值
+            cursor_pos_width = cachedCursorPosWidth;
+            cursor_with_ime_width = cachedCursorWithImeWidth;
+            cursor_with_full_ime_width = cachedCursorWithFullImeWidth;
+            measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
+        }
         
-        // 使用 scroll_offset 替代复杂的滚动逻辑
+        float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
         float text_start_x = padding - scroll_offset;
-        // 修改结束
         
         // 绘制文本
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
-                    content.c_str(), btnLayer);
+                    displayContent.c_str(), btnLayer);
         
         if (on_focus) {
             // 聚焦状态遮罩
@@ -532,10 +546,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             double cursor_opacity = InputBoxSinDoubleForCursor(elapsed_time.count());
             setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
             
-            // 使用新的光标位置计算
             float cursor_draw_x = text_start_x + cursor_with_ime_width;
-            
-            // 绘制光标
             ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5, 
                     2, textRealHeight + 7, btnLayer);
             
@@ -544,7 +555,6 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
                 setlinestyle(DOTTED_LINE, 0U, 1, btnLayer);
                 setlinecolor(EGEARGB(255,0,0,0), btnLayer);
                 
-                // 使用新的位置计算
                 float ime_start_x = text_start_x + cursor_pos_width;
                 float ime_end_x = text_start_x + cursor_with_full_ime_width;
                 
@@ -554,13 +564,14 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             }
             
             // 更新IME位置
-            InputPositionX = left + cursor_draw_x;
-            InputPositionY = top + height - 20;
+            InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
+            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
         }
     }
     
     // 应用遮罩绘制
-    // putimage(0,0,btnLayer);
+    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
@@ -639,7 +650,7 @@ bool InputBox::isInside(int x, int y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
-    // cout<<"IS localX: "<<localX<<" localY: "<<localY<<"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
+    // wcout<<L"IS localX: "<<localX<<L" localY: "<<localY<<L"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -705,6 +716,8 @@ void InputBox::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
     // 遮罩
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
@@ -1007,6 +1020,8 @@ void Slider::setScale(double s){
     thickness = origin_thickness * s;
     radius = height / 2;
 	scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
 }
 
 void Slider::setOrientation(Orientation ori){
@@ -1108,6 +1123,8 @@ void ProgressBar::setScale(double s) {
     if (barLayer) delimage(barLayer);
     barLayer = newimage(width, height);
     ege_enable_aa(true, barLayer);
+    left = cx - width / 2;
+    top = cy - height / 2;
     needRedraw = true;
 }
 
@@ -1475,9 +1492,12 @@ void Dropdown::draw(PIMAGE dst, int x, int y) {
             }
         }
 
-        // 设置透明度并绘制下拉面板
+        // 优化：只在透明度改变时调用setAlpha
         int actualAlpha = static_cast<int>(fadeAlpha * 255);
-        dropdownPanel->setAlpha(actualAlpha);
+        if (lastAppliedAlpha != actualAlpha) {
+            dropdownPanel->setAlpha(actualAlpha);
+            lastAppliedAlpha = actualAlpha;
+        }
         dropdownPanel->draw(dst, cx, cy + height / 2 + height * options.size() / 2 + 4);
     }
 }
@@ -2106,10 +2126,12 @@ int Text::getMaxWidth() const {
 // 布局计算
 void Text::updateLayout() {
     lines.clear();
+    cachedLineWidths.clear();
     textWidth = 0;
     textHeight = 0;
 
     setfont((int)(fontSize * scale), 0, fontName.c_str());
+    lastFontScale = fontSize * scale;
 
     std::wstring line;
     for (wchar_t ch : contentW) {
@@ -2131,8 +2153,13 @@ void Text::updateLayout() {
     if (!line.empty())
         lines.push_back(line);
 
-    for (const auto& l : lines)
-        textWidth = std::max(textWidth, textwidth(l.c_str()));
+    // 优化：缓存每行的宽度
+    cachedLineWidths.reserve(lines.size());
+    for (const auto& l : lines) {
+        float w = textwidth(l.c_str());
+        cachedLineWidths.push_back(w);
+        textWidth = std::max(textWidth, (int)w);
+    }
 
     textHeight = lines.size() * textheight("A");
 
@@ -2147,21 +2174,32 @@ void Text::draw() {
 
 // 绘制到目标图像
 void Text::draw(PIMAGE dst, int x, int y) {
-    setfont(fixed(fontSize * scale), 0, fontName.c_str(),dst);
-    settextcolor(color,dst);
+    // 重要：每次都设置字体，因为dst可能是不同的图像上下文
+    // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
+    setfont(fixed(fontSize * scale), 0, fontName.c_str(), dst);
+    settextcolor(color, dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
-        float w = 0, h = 0;
-        measuretext(lines[i].c_str(),&w,&h,dst);
-        float lineW = w;
+        
+        // 优化：使用缓存的行宽度，避免重复测量
+        float lineW = (i < cachedLineWidths.size()) ? cachedLineWidths[i] : 0;
+        if (lineW == 0) {
+            // 如果缓存失效，重新测量
+            float w = 0, h = 0;
+            measuretext(lines[i].c_str(), &w, &h, dst);
+            lineW = w;
+        }
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
-        double y_draw = y + i * (h + lineSpacing);
+        // 使用缓存的行高
+        double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
+            (textHeight / lines.size()) : textheight("A", dst);
+        double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
 }

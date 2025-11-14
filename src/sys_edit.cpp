@@ -13,6 +13,39 @@ void PrintStringAsInts(const std::wstring& str) {
     std::wcout << std::endl;
 }
 
+/**
+ * @brief 获取窗口默认 DC 中当前字体的上行高度 (tmAscent)。
+ *
+ * @param hWnd 目标窗口的句柄。
+ * @return 字体在当前 DC 中的上行高度（像素），失败返回 0。
+ */
+int GetTextAscent(HWND hWnd) {
+    if (hWnd == NULL) {
+        return 0;
+    }
+
+    HDC hDC = GetDC(hWnd);
+    if (hDC == NULL) {
+        // 无法获取设备上下文
+        return 0;
+    }
+
+    TEXTMETRIC tm;
+    
+    // 获取当前 DC 中所选字体的 TEXTMETRIC
+    BOOL bResult = GetTextMetrics(hDC, &tm); 
+
+    // 释放 DC
+    ReleaseDC(hWnd, hDC);
+    
+    if (bResult) {
+        // tm.tmAscent 就是上行高度
+        return tm.tmAscent; 
+    } else {
+        // GetTextMetrics 失败
+        return 0;
+    }
+}
 
 LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
     switch (message) {

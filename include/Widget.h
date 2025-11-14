@@ -406,6 +406,12 @@ private:
     const float padding = 14;
 
     LOGFONT m_font; // 输入框字体
+    double lastFontScale = -1;  ///< 缓存上次字体缩放比例
+    int lastCursorPos = -1;
+    std::wstring lastMeasuredContent;  ///< 缓存上次测量的内容
+    float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
+    float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
+    float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
 
 public:
     /**
@@ -858,6 +864,7 @@ private:
     double width, height, radius;
     double scale = 1.0;
     double fadeAlpha = 0.0;
+    int lastAppliedAlpha = -1;  ///< 缓存上次应用的透明度值
     bool fadingIn = false;
     bool fadingOut = false;
 
@@ -1108,6 +1115,8 @@ private:
     int textHeight = 0;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0; // 额外行距
+    double lastFontScale = -1;  ///< 缓存上次字体缩放比例
+    std::vector<float> cachedLineWidths;  ///< 缓存每行的宽度
 };
 
 class TextBuilder {

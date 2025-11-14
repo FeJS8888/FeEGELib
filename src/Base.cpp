@@ -94,28 +94,30 @@ int fixed(double x){
 
 void SetIMEPosition(HWND hwnd, int x, int y)
 {
-    // 获取当前窗口输入法上下文
     HIMC hIMC = ImmGetContext(hwnd);
-    if (hIMC) {
-        COMPOSITIONFORM cf = {0};
-        cf.dwStyle = CFS_POINT;   // 使用位置样式
-        cf.ptCurrentPos.x = x;
-        cf.ptCurrentPos.y = y;
+    if (!hIMC) return;
 
-        ImmSetCompositionWindow(hIMC, &cf);
+    COMPOSITIONFORM cf = {0};
+    cf.dwStyle = CFS_FORCE_POSITION;
+    cf.ptCurrentPos.x = x;
+    cf.ptCurrentPos.y = y;
+    ImmSetCompositionWindow(hIMC, &cf);
 
-        ImmReleaseContext(hwnd, hIMC);  // 释放输入法上下文
-    }
+    CANDIDATEFORM cfCand = {0};
+    cfCand.dwIndex = 0;
+    cfCand.dwStyle = CFS_FORCE_POSITION;
+    cfCand.ptCurrentPos.x = x;
+    cfCand.ptCurrentPos.y = y;
+    ImmSetCandidateWindow(hIMC, &cfCand);
+
+    ImmReleaseContext(hwnd, hIMC);
 }
+
+
 
 LRESULT CALLBACK FeEGEProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if(message == WM_SETCURSOR){
         SetCursor(LoadCursor(NULL, current_cursor));
-        return TRUE;
-    }
-    if(message == WM_IME_STARTCOMPOSITION){
-        cout<<InputPositionX<<" "<<InputPositionY<<"\n";
-        SetIMEPosition(getHWnd(),InputPositionX,InputPositionY);
         return TRUE;
     }
     return CallWindowProcW(g_oldWndProc, hWnd, message, wParam, lParam);
