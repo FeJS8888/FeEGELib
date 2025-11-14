@@ -570,7 +570,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             
             // 更新IME位置
             InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
-            InputPositionY = top + height + absolutPosDeltaY;
+            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
         }
     }
     

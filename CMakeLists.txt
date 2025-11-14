@@ -28,5 +28,5 @@ target_link_libraries(FeEGEApp PRIVATE gdi32)
 target_link_libraries(FeEGEApp PRIVATE gdiplus)
 target_link_libraries(FeEGEApp PRIVATE imm32)
 
-target_compile_options(FeEGEApp PRIVATE -static-libgcc -static-libstdc++)
-target_link_options(FeEGEApp PRIVATE -static-libgcc -static-libstdc++)
+target_compile_options(FeEGEApp PRIVATE -static)
+target_link_options(FeEGEApp PRIVATE -static)
