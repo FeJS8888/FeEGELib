@@ -372,6 +372,8 @@ void Button::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
     // 遮罩
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
