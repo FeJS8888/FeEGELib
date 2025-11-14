@@ -263,7 +263,6 @@ private:
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
-    double lastFontScale = -1;                  ///< 缓存上次字体缩放比例
 
 public:
     /**

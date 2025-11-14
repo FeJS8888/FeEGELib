@@ -76,6 +76,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         int childY = height / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
+        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
         children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
@@ -265,12 +266,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
-    // 优化：仅在缩放改变时设置字体
-    double currentFontScale = 23 * scale;
-    if (lastFontScale != currentFontScale) {
-        setfont(currentFontScale, 0, "宋体", btnLayer);
-        lastFontScale = currentFontScale;
-    }
+    setfont(23 * scale, 0, L"宋体", btnLayer);
     
     // 按钮文字
     setbkmode(TRANSPARENT, btnLayer);
@@ -496,10 +492,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
 
     // 优化：仅在缩放改变时设置字体
     double currentFontScale = scale * text_height;
-    if (lastFontScale != currentFontScale) {
-        setfont(currentFontScale, 0, L"宋体", btnLayer);
-        lastFontScale = currentFontScale;
-    }
+    setfont(23 * scale, 0, L"宋体", btnLayer);
     
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
@@ -655,7 +648,7 @@ bool InputBox::isInside(int x, int y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
-    // cout<<"IS localX: "<<localX<<" localY: "<<localY<<"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
+    // wcout<<L"IS localX: "<<localX<<L" localY: "<<localY<<L"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -721,6 +714,8 @@ void InputBox::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
     // 遮罩
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
@@ -1023,6 +1018,8 @@ void Slider::setScale(double s){
     thickness = origin_thickness * s;
     radius = height / 2;
 	scale = s;
+    left = cx - width / 2;
+    top = cy - height / 2;
 }
 
 void Slider::setOrientation(Orientation ori){
@@ -1124,6 +1121,8 @@ void ProgressBar::setScale(double s) {
     if (barLayer) delimage(barLayer);
     barLayer = newimage(width, height);
     ege_enable_aa(true, barLayer);
+    left = cx - width / 2;
+    top = cy - height / 2;
     needRedraw = true;
 }
 
