@@ -1,4 +1,4 @@
-# FeEGELib V2.10.0.1
+# FeEGELib V2.12.0.0
 
 [![Page Views Count](https://badges.toozhao.com/badges/01JH01V78N1S0P0A9RVFJ5SWXZ/blue.svg)](https://badges.toozhao.com/stats/01JH01V78N1S0P0A9RVFJ5SWXZ "Get your own page views count badge on badges.toozhao.com")
 
@@ -144,28 +144,6 @@ FeEGELib/
 ├── README.md                # 项目说明文档
 ├── main.cpp                 # 主程序入口（用户编写）
 ├── docs/                    # 文档目录
-│   ├── README.md
-│   ├── index.html
-│   ├── builders.html
-│   ├── button.html
-│   ├── collision.html
-│   ├── dropdown.html
-│   ├── element.html
-│   ├── examples.html
-│   ├── inputbox.html
-│   ├── knob.html
-│   ├── panel.html
-│   ├── progressbar.html
-│   ├── radio-controller.html
-│   ├── radio.html
-│   ├── sidebar.html
-│   ├── slider.html
-│   ├── template.html
-│   ├── text.html
-│   ├── toggle.html
-│   ├── widget-base.html
-│   ├── 第一个 FeEGELib 程序.html
-│   └── 第一个 FeEGELib 程序.md
 ├── include/                 # 头文件目录
 │   ├── FeEGELib.h          # 主头文件（包含所有其他头文件）
 │   ├── Base.h              # 基础类和工具函数
@@ -180,14 +158,6 @@ FeEGELib/
 │   ├── sys_edit.h          # 系统编辑控件
 │   ├── json.hpp            # JSON 解析库
 │   └── ege/                # EGE 扩展头文件
-│       ├── button.h
-│       ├── camera_capture.h
-│       ├── egecontrolbase.h
-│       ├── fps.h
-│       ├── label.h
-│       ├── stdint.h
-│       ├── sys_edit.h
-│       └── types.h
 ├── lib/                     # 库文件目录
 │   └── libgraphics.a       # EGE 图形库静态库
 └── src/                     # 源代码实现目录
