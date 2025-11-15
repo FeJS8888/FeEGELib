@@ -2440,21 +2440,19 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     // 圆弧粗细
     double arcThickness = r * 0.15;
     
-    // === 绘制背景轨道（完整圆弧）===
+    // === 绘制背景轨道（完整360度圆）===
     setlinecolor(currentBgColor, dst);
     setlinewidth((int)arcThickness, dst);
     
-    double startAngle = -140.0 + offsetAngle;
-    double sweepAngle = 280.0;  // 总共280度
-    
-    // ege_arc 参数：矩形左上角x, y, 宽度, 高度, 起始角度, 扫过角度
+    // 绘制完整的圆形轨道
     ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
-            (float)startAngle, (float)sweepAngle, dst);
+            0.0f, 360.0f, dst);
     
     // === 绘制前景进度弧（当前值）===
     setlinecolor(currentFgColor, dst);
     setlinewidth((int)arcThickness, dst);
     
+    double startAngle = -140.0 + offsetAngle;
     double currentAngle = valueToAngle(value);
     double progressSweep = currentAngle - startAngle;
     
@@ -2523,22 +2521,41 @@ void Knob::handleEvent(const mouse_msg& msg) {
     }
     // 拖动中
     else if (msg.is_move() && dragging) {
-        // 根据鼠标移动改变值
-        // 使用垂直移动来改变值（向上增加，向下减少）
-        int deltaY = lastMouseY - msg.y;  // 向上为正
+        // 计算鼠标相对于中心的角度
+        double dx = msg.x - cx;
+        double dy = msg.y - cy;
+        double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
         
-        // 根据移动距离计算值的变化
-        // 移动 100 像素改变整个范围
-        double sensitivity = (maxValue - minValue) / 100.0;
-        double deltaValue = deltaY * sensitivity;
+        // 将角度映射到值
+        // 调整角度使其从底部开始（-90度为底部）
+        // 转换到 -140 到 +140 的范围
+        double adjustedAngle = angle - 90.0;  // 将0度从右边转到底部
         
-        double newValue = value + deltaValue;
+        // 标准化到 [-180, 180]
+        while (adjustedAngle > 180) adjustedAngle -= 360;
+        while (adjustedAngle < -180) adjustedAngle += 360;
+        
+        // 应用偏移
+        adjustedAngle -= offsetAngle;
+        
+        // 限制在有效范围内 [-140, 140]
+        double startAngle = -140.0;
+        double endAngle = 140.0;
+        
+        if (adjustedAngle < startAngle) adjustedAngle = startAngle;
+        if (adjustedAngle > endAngle) adjustedAngle = endAngle;
+        
+        // 转换为值
+        double ratio = (adjustedAngle - startAngle) / (endAngle - startAngle);
+        double newValue = minValue + ratio * (maxValue - minValue);
+        
+        // 限制和应用步进
         newValue = clamp(newValue);
-        
         if (step > 0) {
             newValue = applyStep(newValue);
         }
         
+        // 更新值并触发回调
         if (newValue != value) {
             value = newValue;
             if (onChange) {
