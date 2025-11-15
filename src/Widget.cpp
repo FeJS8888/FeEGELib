@@ -2456,9 +2456,16 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     double currentAngle = valueToAngle(value);
     double progressSweep = currentAngle - startAngle;
     
-    if (progressSweep > 0) {
+    // 绘制进度弧
+    // 添加小的epsilon以确保完整绘制到边界
+    if (progressSweep > 0.01) {
+        // 当接近最大值时，确保完整绘制280度
+        double drawSweep = progressSweep;
+        if (progressSweep > 279.5 && progressSweep < 280.5) {
+            drawSweep = 280.0;  // 确保完整的280度弧
+        }
         ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
-                (float)startAngle, (float)progressSweep, dst);
+                (float)startAngle, (float)drawSweep, dst);
     }
     
     // === 绘制中心填充圆 ===
