@@ -2524,29 +2524,49 @@ void Knob::handleEvent(const mouse_msg& msg) {
         // 计算鼠标相对于中心的角度
         double dx = msg.x - cx;
         double dy = msg.y - cy;
+        
+        // 使用 atan2 计算角度 (屏幕坐标系：Y向下为正)
+        // 在屏幕坐标系中：
+        // 0° = 右侧 (3点钟方向)
+        // 90° = 下方 (6点钟方向) 
+        // -90° = 上方 (12点钟方向)
+        // ±180° = 左侧 (9点钟方向)
         double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
         
-        // 将角度映射到值
-        // 调整角度使其从底部开始（-90度为底部）
-        // 转换到 -140 到 +140 的范围
-        double adjustedAngle = angle - 90.0;  // 将0度从右边转到底部
+        // Knob 的有效范围是 -140° 到 +140° (以ege_arc的坐标系为准)
+        // 底部中心是 180° 或 -180°
+        // -140° 在左下方，+140° 在右下方
+        
+        // 应用偏移角度
+        angle -= offsetAngle;
         
         // 标准化到 [-180, 180]
-        while (adjustedAngle > 180) adjustedAngle -= 360;
-        while (adjustedAngle < -180) adjustedAngle += 360;
-        
-        // 应用偏移
-        adjustedAngle -= offsetAngle;
+        while (angle > 180) angle -= 360;
+        while (angle < -180) angle += 360;
         
         // 限制在有效范围内 [-140, 140]
         double startAngle = -140.0;
         double endAngle = 140.0;
         
-        if (adjustedAngle < startAngle) adjustedAngle = startAngle;
-        if (adjustedAngle > endAngle) adjustedAngle = endAngle;
+        // 如果角度在死区（上半圆），钳制到最近的边界
+        if (angle > endAngle) {
+            // 在右上方，决定是钳制到 +140 还是 -140
+            if (angle < 180 - (180 - endAngle) / 2) {
+                angle = endAngle;  // 更接近右边
+            } else {
+                angle = startAngle;  // 更接近左边
+            }
+        } else if (angle < startAngle) {
+            // 在左上方，决定是钳制到 +140 还是 -140
+            if (angle > -180 + (180 + startAngle) / 2) {
+                angle = startAngle;  // 更接近左边
+            } else {
+                angle = endAngle;  // 更接近右边
+            }
+        }
         
         // 转换为值
-        double ratio = (adjustedAngle - startAngle) / (endAngle - startAngle);
+        double ratio = (angle - startAngle) / (endAngle - startAngle);
         double newValue = minValue + ratio * (maxValue - minValue);
         
         // 限制和应用步进
