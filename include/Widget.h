@@ -1145,16 +1145,93 @@ private:
     int lineSpacing = 0;
 };
 
+/**
+ * @brief Knob 旋钮控件类（基于 Quasar QKnob 风格）
+ * @details 通过圆形进度弧显示当前值，支持鼠标拖拽交互改变数值
+ */
 class Knob : public Widget {
 public:
+    /**
+     * @brief 构造函数
+     * @param cx 中心x坐标
+     * @param cy 中心y坐标
+     * @param r 旋钮半径
+     */
     Knob(int cx, int cy, double r);
 
+    /**
+     * @brief 设置值范围
+     * @param minVal 最小值
+     * @param maxVal 最大值
+     */
     void setRange(double minVal, double maxVal);
-    void setStep(double step);
+
+    /**
+     * @brief 设置步进值
+     * @param s 步进值（0表示无步进）
+     */
+    void setStep(double s);
+
+    /**
+     * @brief 设置当前值
+     * @param val 要设置的值
+     */
     void setValue(double val);
+
+    /**
+     * @brief 设置颜色
+     * @param fg 前景色（进度弧颜色）
+     * @param bg 背景色（轨道颜色）
+     */
     void setColor(color_t fg, color_t bg);
+
+    /**
+     * @brief 设置值改变回调
+     * @param cb 回调函数
+     */
     void setOnChange(std::function<void(double)> cb);
 
+    /**
+     * @brief 设置偏移角度（圆弧起始角度偏移）
+     * @param angle 偏移角度（度）
+     */
+    void setOffsetAngle(double angle);
+
+    /**
+     * @brief 设置内部值范围限制
+     * @param innerMin 内部最小值（用于限制显示范围）
+     * @param innerMax 内部最大值（用于限制显示范围）
+     */
+    void setInnerRange(double innerMin, double innerMax);
+
+    /**
+     * @brief 设置是否显示值
+     * @param show 是否在中心显示当前值
+     */
+    void setShowValue(bool show);
+
+    /**
+     * @brief 设置字体大小
+     * @param size 字体大小
+     */
+    void setFontSize(int size);
+
+    /**
+     * @brief 设置禁用状态
+     * @param disabled 是否禁用
+     */
+    void setDisabled(bool disabled);
+
+    /**
+     * @brief 设置只读状态
+     * @param readonly 是否只读
+     */
+    void setReadonly(bool readonly);
+
+    /**
+     * @brief 获取当前值
+     * @return 当前值
+     */
     double getValue() const;
 
     void setScale(double s) override;
@@ -1164,25 +1241,221 @@ public:
     void handleEvent(const mouse_msg& msg) override;
 
 private:
-    int cx, cy;
-    double radius;
-    double scale = 1.0;
+    int cx, cy;                      ///< 中心坐标
+    double radius;                   ///< 半径
+    double origin_radius;            ///< 原始半径（用于缩放）
+    double scale = 1.0;              ///< 缩放比例
 
+    double minValue = 0.0;           ///< 最小值
+    double maxValue = 100.0;         ///< 最大值
+    double step = 1.0;               ///< 步进值
+    double value = 50.0;             ///< 当前值
+
+    double offsetAngle = 0.0;        ///< 偏移角度（度）
+    double innerMin = 0.0;           ///< 内部最小值
+    double innerMax = 100.0;         ///< 内部最大值
+
+    bool showValue = true;           ///< 是否显示值
+    int fontSize = 0;                ///< 字体大小（0表示自动）
+    bool disabled = false;           ///< 是否禁用
+    bool readonly = false;           ///< 是否只读
+
+    color_t fgColor = EGERGB(33, 150, 243);    ///< 前景色
+    color_t bgColor = EGERGB(230, 230, 230);   ///< 背景色
+    color_t trackColor = EGERGB(200, 200, 200); ///< 轨道颜色
+
+    bool dragging = false;           ///< 是否正在拖动
+    int lastMouseX = 0;              ///< 上次鼠标X坐标
+    int lastMouseY = 0;              ///< 上次鼠标Y坐标
+    bool hovered = false;            ///< 是否鼠标悬停
+
+    std::function<void(double)> onChange;  ///< 值改变回调
+
+    /**
+     * @brief 将值限制在范围内
+     * @param v 输入值
+     * @return 限制后的值
+     */
+    double clamp(double v) const;
+
+    /**
+     * @brief 将值转换为角度
+     * @param v 值
+     * @return 对应的角度（度）
+     */
+    double valueToAngle(double v) const;
+
+    /**
+     * @brief 将角度转换为值
+     * @param angle 角度（度）
+     * @return 对应的值
+     */
+    double angleToValue(double angle) const;
+
+    /**
+     * @brief 根据步进修正值
+     * @param v 输入值
+     * @return 修正后的值
+     */
+    double applyStep(double v) const;
+
+    /**
+     * @brief 检查点是否在旋钮内
+     * @param x x坐标
+     * @param y y坐标
+     * @return 是否在旋钮内
+     */
+    bool isInside(int x, int y) const;
+
+    /**
+     * @brief 计算鼠标位置对应的角度
+     * @param x x坐标
+     * @param y y坐标
+     * @return 角度（度）
+     */
+    double calculateAngle(int x, int y) const;
+};
+
+/**
+ * @brief KnobBuilder 构建器类
+ * @details 用于链式配置和构建 Knob 对象
+ */
+class KnobBuilder {
+public:
+    /**
+     * @brief 设置标识符
+     * @param identifier 控件标识符
+     * @return 构建器引用
+     */
+    KnobBuilder& setIdentifier(const std::wstring& identifier);
+
+    /**
+     * @brief 设置中心位置
+     * @param x x坐标
+     * @param y y坐标
+     * @return 构建器引用
+     */
+    KnobBuilder& setCenter(int x, int y);
+
+    /**
+     * @brief 设置半径
+     * @param r 半径
+     * @return 构建器引用
+     */
+    KnobBuilder& setRadius(double r);
+
+    /**
+     * @brief 设置值范围
+     * @param minVal 最小值
+     * @param maxVal 最大值
+     * @return 构建器引用
+     */
+    KnobBuilder& setRange(double minVal, double maxVal);
+
+    /**
+     * @brief 设置步进值
+     * @param s 步进值
+     * @return 构建器引用
+     */
+    KnobBuilder& setStep(double s);
+
+    /**
+     * @brief 设置初始值
+     * @param val 初始值
+     * @return 构建器引用
+     */
+    KnobBuilder& setValue(double val);
+
+    /**
+     * @brief 设置颜色
+     * @param fg 前景色
+     * @param bg 背景色
+     * @return 构建器引用
+     */
+    KnobBuilder& setColor(color_t fg, color_t bg);
+
+    /**
+     * @brief 设置偏移角度
+     * @param angle 偏移角度（度）
+     * @return 构建器引用
+     */
+    KnobBuilder& setOffsetAngle(double angle);
+
+    /**
+     * @brief 设置内部范围
+     * @param innerMin 内部最小值
+     * @param innerMax 内部最大值
+     * @return 构建器引用
+     */
+    KnobBuilder& setInnerRange(double innerMin, double innerMax);
+
+    /**
+     * @brief 设置是否显示值
+     * @param show 是否显示
+     * @return 构建器引用
+     */
+    KnobBuilder& setShowValue(bool show);
+
+    /**
+     * @brief 设置字体大小
+     * @param size 字体大小
+     * @return 构建器引用
+     */
+    KnobBuilder& setFontSize(int size);
+
+    /**
+     * @brief 设置禁用状态
+     * @param disabled 是否禁用
+     * @return 构建器引用
+     */
+    KnobBuilder& setDisabled(bool disabled);
+
+    /**
+     * @brief 设置只读状态
+     * @param readonly 是否只读
+     * @return 构建器引用
+     */
+    KnobBuilder& setReadonly(bool readonly);
+
+    /**
+     * @brief 设置缩放比例
+     * @param s 缩放比例
+     * @return 构建器引用
+     */
+    KnobBuilder& setScale(double s);
+
+    /**
+     * @brief 设置值改变回调
+     * @param callback 回调函数
+     * @return 构建器引用
+     */
+    KnobBuilder& setOnChange(std::function<void(double)> callback);
+
+    /**
+     * @brief 构建 Knob 对象
+     * @return Knob 指针
+     */
+    Knob* build();
+
+private:
+    std::wstring identifier;
+    int cx = 0, cy = 0;
+    double radius = 60;
     double minValue = 0.0;
     double maxValue = 100.0;
     double step = 1.0;
-    double value = 0.0;
-
+    double value = 50.0;
     color_t fgColor = EGERGB(33, 150, 243);
     color_t bgColor = EGERGB(230, 230, 230);
-
-    bool dragging = false;
-    int lastY = 0;
-
-    std::function<void(double)> onChange;
-
-    double clamp(double v);
-    double valueToAngle(double v) const;
+    double offsetAngle = 0.0;
+    double innerMin = 0.0;
+    double innerMax = 100.0;
+    bool showValue = true;
+    int fontSize = 0;
+    bool disabled = false;
+    bool readonly = false;
+    double scale = 1.0;
+    std::function<void(double)> onChange = nullptr;
 };
 
 /**

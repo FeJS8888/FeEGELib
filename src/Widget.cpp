@@ -2283,12 +2283,23 @@ Text* TextBuilder::build() {
     return txt;
 }
 
+// ===================== Knob Implementation =====================
+
 Knob::Knob(int cx, int cy, double r)
-    : cx(cx), cy(cy), radius(r) {}
+    : cx(cx), cy(cy), radius(r), origin_radius(r) {
+    // 初始化内部范围为外部范围
+    innerMin = minValue;
+    innerMax = maxValue;
+}
 
 void Knob::setRange(double minVal, double maxVal) {
     minValue = minVal;
     maxValue = maxVal;
+    // 同步更新内部范围（如果未单独设置）
+    if (innerMin == minValue && innerMax == maxValue) {
+        innerMin = minVal;
+        innerMax = maxVal;
+    }
 }
 
 void Knob::setStep(double s) {
@@ -2296,7 +2307,15 @@ void Knob::setStep(double s) {
 }
 
 void Knob::setValue(double val) {
+    double oldValue = value;
     value = clamp(val);
+    if (step > 0) {
+        value = applyStep(value);
+    }
+    // 如果值改变且有回调，触发回调
+    if (oldValue != value && onChange) {
+        onChange(value);
+    }
 }
 
 double Knob::getValue() const {
@@ -2308,8 +2327,38 @@ void Knob::setColor(color_t fg, color_t bg) {
     bgColor = bg;
 }
 
+void Knob::setOnChange(std::function<void(double)> cb) {
+    onChange = cb;
+}
+
+void Knob::setOffsetAngle(double angle) {
+    offsetAngle = angle;
+}
+
+void Knob::setInnerRange(double innerMinVal, double innerMaxVal) {
+    innerMin = innerMinVal;
+    innerMax = innerMaxVal;
+}
+
+void Knob::setShowValue(bool show) {
+    showValue = show;
+}
+
+void Knob::setFontSize(int size) {
+    fontSize = size;
+}
+
+void Knob::setDisabled(bool dis) {
+    disabled = dis;
+}
+
+void Knob::setReadonly(bool ro) {
+    readonly = ro;
+}
+
 void Knob::setScale(double s) {
     scale = s;
+    radius = origin_radius * s;
 }
 
 void Knob::setPosition(int x, int y) {
@@ -2317,46 +2366,140 @@ void Knob::setPosition(int x, int y) {
     cy = y;
 }
 
-void Knob::setOnChange(std::function<void(double)> cb) {
-    onChange = cb;
-}
-
-double Knob::clamp(double v) {
+double Knob::clamp(double v) const {
     if (v < minValue) return minValue;
     if (v > maxValue) return maxValue;
     return v;
 }
 
-// 从值计算角度 (起始为 135°, 终止为 405°)
+double Knob::applyStep(double v) const {
+    if (step <= 0) return v;
+    // 将值对齐到最近的步进点
+    double steps = std::round((v - minValue) / step);
+    return minValue + steps * step;
+}
+
 double Knob::valueToAngle(double v) const {
-    double ratio = (v - minValue) / (maxValue - minValue);
-    return 135.0 + ratio * 270.0;
+    // 将值映射到角度范围
+    // 默认范围：从 -140° 到 +140° (总共 280°)
+    // 加上偏移角度
+    double range = maxValue - minValue;
+    if (range <= 0) return offsetAngle;
+    
+    double ratio = (v - minValue) / range;
+    // Quasar QKnob 默认从底部开始，顺时针旋转
+    // 起始角度为 -140° (在正下方偏左)，终止角度为 +140° (在正下方偏右)
+    double startAngle = -140.0 + offsetAngle;
+    double endAngle = 140.0 + offsetAngle;
+    double totalSweep = endAngle - startAngle;
+    
+    return startAngle + ratio * totalSweep;
+}
+
+double Knob::angleToValue(double angle) const {
+    // 将角度映射回值
+    double startAngle = -140.0 + offsetAngle;
+    double endAngle = 140.0 + offsetAngle;
+    double totalSweep = endAngle - startAngle;
+    
+    // 标准化角度到 [-180, 180] 范围
+    while (angle > 180) angle -= 360;
+    while (angle < -180) angle += 360;
+    
+    double ratio = (angle - startAngle) / totalSweep;
+    ratio = std::max(0.0, std::min(1.0, ratio));
+    
+    return minValue + ratio * (maxValue - minValue);
+}
+
+double Knob::calculateAngle(int x, int y) const {
+    // 计算鼠标相对于中心的角度
+    double dx = x - cx;
+    double dy = y - cy;
+    
+    // atan2 返回 [-PI, PI]，转换为度数
+    double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
+    
+    return angle;
+}
+
+bool Knob::isInside(int x, int y) const {
+    double dx = x - cx;
+    double dy = y - cy;
+    double dist = std::sqrt(dx * dx + dy * dy);
+    return dist <= radius;
 }
 
 void Knob::draw(PIMAGE dst, int x, int y) {
-    double r = radius * scale;
-    double cx = x, cy = y;
-
-    // === 背景圆环 ===
-    setlinecolor(bgColor, dst);
-    setlinewidth((int)(r * 0.2), dst);
-    ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, 270.0f, dst);
-
-
-    // === 前景圆环（值）===
-    setlinecolor(fgColor, dst);
-    setlinewidth((int)(r * 0.2), dst);
-    double angle = valueToAngle(value);
-    ege_arc((float)(cx - r), (float)(cy - r), (float)(2 * r), (float)(2 * r), 135.0f, angle - 135.0f, dst);
-
-    // === 内部圆 ===
-    setfillcolor(WHITE, dst);
-    setlinecolor(TRANSPARENT, dst);
-    fillellipse((int)(cx), (int)(cy), (int)(r * 1.2), (int)(r * 1.2), dst);
-
-    // === 当前值显示 ===
-
-    setfont((int)(r * 0.6), 0, L"Consolas");
+    double r = radius;
+    
+    // 如果禁用，使用灰色
+    color_t currentFgColor = disabled ? EGERGB(180, 180, 180) : fgColor;
+    color_t currentBgColor = disabled ? EGERGB(240, 240, 240) : bgColor;
+    
+    // 圆弧粗细
+    double arcThickness = r * 0.15;
+    
+    // === 绘制背景轨道（完整圆弧）===
+    setlinecolor(currentBgColor, dst);
+    setlinewidth((int)arcThickness, dst);
+    
+    double startAngle = -140.0 + offsetAngle;
+    double sweepAngle = 280.0;  // 总共280度
+    
+    // ege_arc 参数：矩形左上角x, y, 宽度, 高度, 起始角度, 扫过角度
+    ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
+            (float)startAngle, (float)sweepAngle, dst);
+    
+    // === 绘制前景进度弧（当前值）===
+    setlinecolor(currentFgColor, dst);
+    setlinewidth((int)arcThickness, dst);
+    
+    double currentAngle = valueToAngle(value);
+    double progressSweep = currentAngle - startAngle;
+    
+    if (progressSweep > 0) {
+        ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
+                (float)startAngle, (float)progressSweep, dst);
+    }
+    
+    // === 绘制中心填充圆 ===
+    color_t centerColor = WHITE;
+    if (hovered && !disabled && !readonly) {
+        centerColor = EGERGB(250, 250, 250);
+    }
+    
+    setfillcolor(centerColor, dst);
+    setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
+    setlinewidth(2, dst);
+    fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
+    
+    // === 显示当前值 ===
+    if (showValue) {
+        // 计算字体大小
+        int actualFontSize = fontSize > 0 ? fontSize : (int)(r * 0.35);
+        
+        // 格式化显示值
+        wchar_t valueText[64];
+        if (step >= 1.0) {
+            swprintf(valueText, 64, L"%.0f", value);
+        } else if (step >= 0.1) {
+            swprintf(valueText, 64, L"%.1f", value);
+        } else {
+            swprintf(valueText, 64, L"%.2f", value);
+        }
+        
+        // 设置字体和颜色
+        setfont(actualFontSize, 0, L"Consolas", dst);
+        setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
+        setbkmode(TRANSPARENT, dst);
+        
+        // 计算文本宽度和高度以居中显示
+        int textWidth = textwidth(valueText, dst);
+        int textHeight = textheight(valueText, dst);
+        
+        outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
+    }
 }
 
 void Knob::draw() {
@@ -2364,7 +2507,164 @@ void Knob::draw() {
 }
 
 void Knob::handleEvent(const mouse_msg& msg) {
-    // 拖动逻辑将在下一步实现
+    // 检查是否在旋钮内
+    hovered = isInside(msg.x, msg.y);
+    
+    // 如果禁用或只读，不响应交互
+    if (disabled || readonly) {
+        return;
+    }
+    
+    // 按下鼠标左键开始拖动
+    if (msg.is_left() && msg.is_down() && hovered) {
+        dragging = true;
+        lastMouseX = msg.x;
+        lastMouseY = msg.y;
+    }
+    // 拖动中
+    else if (msg.is_move() && dragging) {
+        // 根据鼠标移动改变值
+        // 使用垂直移动来改变值（向上增加，向下减少）
+        int deltaY = lastMouseY - msg.y;  // 向上为正
+        
+        // 根据移动距离计算值的变化
+        // 移动 100 像素改变整个范围
+        double sensitivity = (maxValue - minValue) / 100.0;
+        double deltaValue = deltaY * sensitivity;
+        
+        double newValue = value + deltaValue;
+        newValue = clamp(newValue);
+        
+        if (step > 0) {
+            newValue = applyStep(newValue);
+        }
+        
+        if (newValue != value) {
+            value = newValue;
+            if (onChange) {
+                onChange(value);
+            }
+        }
+        
+        lastMouseX = msg.x;
+        lastMouseY = msg.y;
+    }
+    // 释放鼠标左键停止拖动
+    else if (msg.is_left() && msg.is_up()) {
+        dragging = false;
+    }
+}
+
+// ===================== KnobBuilder Implementation =====================
+
+KnobBuilder& KnobBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setCenter(int x, int y) {
+    cx = x;
+    cy = y;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setRange(double minVal, double maxVal) {
+    minValue = minVal;
+    maxValue = maxVal;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setStep(double s) {
+    step = s;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setValue(double val) {
+    value = val;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setColor(color_t fg, color_t bg) {
+    fgColor = fg;
+    bgColor = bg;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setOffsetAngle(double angle) {
+    offsetAngle = angle;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setInnerRange(double innerMinVal, double innerMaxVal) {
+    innerMin = innerMinVal;
+    innerMax = innerMaxVal;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setShowValue(bool show) {
+    showValue = show;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setFontSize(int size) {
+    fontSize = size;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setDisabled(bool dis) {
+    disabled = dis;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setReadonly(bool ro) {
+    readonly = ro;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+KnobBuilder& KnobBuilder::setOnChange(std::function<void(double)> callback) {
+    onChange = callback;
+    return *this;
+}
+
+Knob* KnobBuilder::build() {
+    Knob* knob = new Knob(cx, cy, radius);
+    
+    // 应用所有配置
+    knob->setRange(minValue, maxValue);
+    knob->setStep(step);
+    knob->setValue(value);
+    knob->setColor(fgColor, bgColor);
+    knob->setOffsetAngle(offsetAngle);
+    knob->setInnerRange(innerMin, innerMax);
+    knob->setShowValue(showValue);
+    knob->setFontSize(fontSize);
+    knob->setDisabled(disabled);
+    knob->setReadonly(readonly);
+    knob->setScale(scale);
+    
+    if (onChange) {
+        knob->setOnChange(onChange);
+    }
+    
+    // 注册到全局控件集合
+    widgets.insert(knob);
+    
+    // 如果有标识符，注册到ID映射
+    if (!identifier.empty()) {
+        IdToWidget[identifier] = knob;
+    }
+    
+    return knob;
 }
 
 
