@@ -2533,9 +2533,10 @@ void Knob::handleEvent(const mouse_msg& msg) {
         // ±180° = 左侧 (9点钟方向)
         double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
         
-        // Knob 的有效范围是 -140° 到 +140° (以ege_arc的坐标系为准)
-        // 底部中心是 180° 或 -180°
-        // -140° 在左下方，+140° 在右下方
+        // Knob 的值范围映射到 -140° 到 +140° (280度)
+        // 但是整个360度圆都可以交互
+        // 底部中心是 180° 或 -180° (对应 minValue)
+        // -140° 在左下方，+140° 在右下方 (对应 maxValue)
         
         // 应用偏移角度
         angle -= offsetAngle;
@@ -2544,29 +2545,30 @@ void Knob::handleEvent(const mouse_msg& msg) {
         while (angle > 180) angle -= 360;
         while (angle < -180) angle += 360;
         
-        // 限制在有效范围内 [-140, 140]
-        double startAngle = -140.0;
-        double endAngle = 140.0;
+        // 定义值范围对应的角度
+        double startAngle = -140.0;  // 对应 minValue
+        double endAngle = 140.0;     // 对应 maxValue
+        double totalSweep = endAngle - startAngle;  // 280度
         
-        // 如果角度在死区（上半圆），钳制到最近的边界
-        if (angle > endAngle) {
-            // 在右上方，决定是钳制到 +140 还是 -140
-            if (angle < 180 - (180 - endAngle) / 2) {
-                angle = endAngle;  // 更接近右边
-            } else {
-                angle = startAngle;  // 更接近左边
-            }
-        } else if (angle < startAngle) {
-            // 在左上方，决定是钳制到 +140 还是 -140
-            if (angle > -180 + (180 + startAngle) / 2) {
-                angle = startAngle;  // 更接近左边
-            } else {
-                angle = endAngle;  // 更接近右边
-            }
+        // 将整个360度圆映射到值范围
+        // 分两个区域：
+        // 1. 有效区域 [-140, 140]: 直接线性映射
+        // 2. 死区 (140, 180] 和 [-180, -140): 映射到边界值
+        
+        double ratio;
+        if (angle >= startAngle && angle <= endAngle) {
+            // 在有效范围内，线性映射
+            ratio = (angle - startAngle) / totalSweep;
+        } else if (angle > endAngle) {
+            // 右上方死区 (140, 180]
+            // 映射到 maxValue
+            ratio = 1.0;
+        } else {
+            // 左上方死区 [-180, -140)
+            // 映射到 minValue
+            ratio = 0.0;
         }
         
-        // 转换为值
-        double ratio = (angle - startAngle) / (endAngle - startAngle);
         double newValue = minValue + ratio * (maxValue - minValue);
         
         // 限制和应用步进
