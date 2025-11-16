@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file Widget.h
  * @brief 包含各种UI控件的声明（按钮、输入框、滑动条、文本等）
  * @author FeJS8888
@@ -77,6 +77,7 @@ protected:
 /**
  * @brief 圆角面板控件类，支持嵌套子控件
  */
+
 class Panel : public Widget {
 public:
     /**
@@ -203,6 +204,33 @@ private:
     std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象}
 };
 
+
+class PanelBuilder {
+public:
+    PanelBuilder& setIdentifier(const std::wstring& identifier);
+    PanelBuilder& setCenter(int x, int y);
+    PanelBuilder& setSize(double w, double h);
+    PanelBuilder& setRadius(double r);
+    PanelBuilder& setBackground(color_t color);
+    PanelBuilder& setScale(double s);
+    PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
+    PanelBuilder& addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX = {}, const std::vector<double>& offsetY = {});
+    PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
+    Panel* build();
+
+private:
+    std::wstring identifier;
+    int cx = 0, cy = 0;
+    double width = 100, height = 50;
+    double radius = 5;
+    color_t bg = EGERGB(240, 240, 240);
+    double scale = 1.0;
+    std::vector<Widget*> children;
+    std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
+    std::shared_ptr<Layout> layout = nullptr;
+};
+
+
 /**
  * @brief 波纹动画效果结构体
  */
@@ -245,6 +273,7 @@ struct Ripple{
 /**
  * @brief 按钮控件类
  */
+
 class Button : public Widget {
 private:
     double radius;                              ///< 圆角半径
@@ -370,6 +399,36 @@ public:
 };
 
 /**
+ * @brief 用于构建 Button 对象的构建器类
+ */
+class ButtonBuilder {
+public:
+    ButtonBuilder& setIdentifier(const std::wstring& identifier);
+    ButtonBuilder& setCenter(int x, int y);
+    ButtonBuilder& setSize(double w, double h);
+    ButtonBuilder& setRadius(double r);
+    ButtonBuilder& setContent(const std::wstring& text);
+    ButtonBuilder& setScale(double s);
+    ButtonBuilder& setOnClick(std::function<void()> func);
+    ButtonBuilder& setColor(color_t col);
+    ButtonBuilder& setIcon(PIMAGE img);
+    ButtonBuilder& setIconSize(int size);
+    Button* build();
+
+private:
+    std::wstring identifier;
+    int cx = 0, cy = 0;
+    double width = 100, height = 50;
+    double radius = 8;
+    std::wstring content = L"Button";
+    double scale = 1.0;
+    color_t color = EGERGB(245, 245, 235);
+    std::function<void()> onClick = nullptr;
+    PIMAGE icon = nullptr;
+    int iconSize = 100;
+};
+
+/**
  * @brief 输入框控件类
  */
 class InputBox : public Widget {
@@ -482,6 +541,31 @@ public:
     int getMCounter();
 };
 
+
+class InputBoxBuilder {
+public:
+    InputBoxBuilder& setIdentifier(const std::wstring& identifier);
+    InputBoxBuilder& setCenter(int x, int y);
+    InputBoxBuilder& setSize(double w, double h);
+    InputBoxBuilder& setRadius(double r);
+    InputBoxBuilder& setContent(const std::wstring& text);
+    InputBoxBuilder& setMaxLength(int maxLen);
+    InputBoxBuilder& setTextHeight(double height);
+    InputBoxBuilder& setScale(double s);
+    InputBox* build();
+
+private:
+    std::wstring identifier;
+    int cx = 0, cy = 0;
+    double width = 160, height = 40;
+    double radius = 6;
+    std::wstring content = L"";
+    int maxLength = 100;
+    double scale = 1.0;
+    double text_height = 23;
+};
+
+
 enum class Orientation {
     Row,    // 行方向（水平）
     Column  // 列方向（垂直）
@@ -490,6 +574,7 @@ enum class Orientation {
 /**
  * @brief 滑动条控件类
  */
+
 class Slider : public Widget {
 private:
     double left, top;
@@ -620,124 +705,7 @@ public:
     double fixProgress();
 };
 
-class ProgressBar : public Widget {
-private:
-    double origin_width, origin_height;
-    double radius = 6;
-    double left, top;
 
-    color_t bgColor = EGERGB(230, 230, 230);
-    color_t fgColor = EGERGB(100, 180, 255);
-
-    double currentProgress = 0.0;  // 当前绘制进度
-    double targetProgress = 0.0;   // 实际设置目标
-    bool needRedraw = true;
-
-    PIMAGE barLayer = nullptr;
-
-public:
-    ProgressBar(int cx, int cy, double w, double h);
-    ~ProgressBar();
-
-    void setProgress(double p);      // 目标进度（0~1）
-    double getProgress() const;      // 返回 target 值
-    void setColor(color_t fg);       // 设置前景颜色
-    void setBackground(color_t bg);  // 设置背景颜色
-
-    void draw(PIMAGE dst, int x, int y) override;
-    void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
-    void setPosition(int x, int y) override;
-    void setScale(double s) override;
-};
-
- /**
-  * @brief 用于构建 Panel 对象的构建器类
-  */
-class PanelBuilder {
-public:
-    PanelBuilder& setIdentifier(const std::wstring& identifier);
-    PanelBuilder& setCenter(int x, int y);
-    PanelBuilder& setSize(double w, double h);
-    PanelBuilder& setRadius(double r);
-    PanelBuilder& setBackground(color_t color);
-    PanelBuilder& setScale(double s);
-    PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
-    PanelBuilder& addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX = {}, const std::vector<double>& offsetY = {});
-    PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
-    Panel* build();
-
-private:
-    std::wstring identifier;
-    int cx = 0, cy = 0;
-    double width = 100, height = 50;
-    double radius = 5;
-    color_t bg = EGERGB(240, 240, 240);
-    double scale = 1.0;
-    std::vector<Widget*> children;
-    std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
-    std::shared_ptr<Layout> layout = nullptr;
-};
-
-/**
- * @brief 用于构建 Button 对象的构建器类
- */
-class ButtonBuilder {
-public:
-    ButtonBuilder& setIdentifier(const std::wstring& identifier);
-    ButtonBuilder& setCenter(int x, int y);
-    ButtonBuilder& setSize(double w, double h);
-    ButtonBuilder& setRadius(double r);
-    ButtonBuilder& setContent(const std::wstring& text);
-    ButtonBuilder& setScale(double s);
-    ButtonBuilder& setOnClick(std::function<void()> func);
-    ButtonBuilder& setColor(color_t col);
-    ButtonBuilder& setIcon(PIMAGE img);
-    ButtonBuilder& setIconSize(int size);
-    Button* build();
-
-private:
-    std::wstring identifier;
-    int cx = 0, cy = 0;
-    double width = 100, height = 50;
-    double radius = 8;
-    std::wstring content = L"Button";
-    double scale = 1.0;
-    color_t color = EGERGB(245, 245, 235);
-    std::function<void()> onClick = nullptr;
-    PIMAGE icon = nullptr;
-    int iconSize = 100;
-};
-
-/**
- * @brief 用于构建 InputBox 对象的构建器类
- */
-class InputBoxBuilder {
-public:
-    InputBoxBuilder& setIdentifier(const std::wstring& identifier);
-    InputBoxBuilder& setCenter(int x, int y);
-    InputBoxBuilder& setSize(double w, double h);
-    InputBoxBuilder& setRadius(double r);
-    InputBoxBuilder& setContent(const std::wstring& text);
-    InputBoxBuilder& setMaxLength(int maxLen);
-    InputBoxBuilder& setTextHeight(double height);
-    InputBoxBuilder& setScale(double s);
-    InputBox* build();
-
-private:
-    std::wstring identifier;
-    int cx = 0, cy = 0;
-    double width = 160, height = 40;
-    double radius = 6;
-    std::wstring content = L"";
-    int maxLength = 100;
-    double scale = 1.0;
-    double text_height = 23;
-};
-
-/**
- * @brief 用于构建 Slider 对象的构建器类
- */
 class SliderBuilder {
 public:
     SliderBuilder& setIdentifier(const std::wstring& identifier);
@@ -817,6 +785,39 @@ private:
     Orientation orientation = Orientation::Row;
 };
 
+
+class ProgressBar : public Widget {
+private:
+    double origin_width, origin_height;
+    double radius = 6;
+    double left, top;
+
+    color_t bgColor = EGERGB(230, 230, 230);
+    color_t fgColor = EGERGB(100, 180, 255);
+
+    double currentProgress = 0.0;  // 当前绘制进度
+    double targetProgress = 0.0;   // 实际设置目标
+    bool needRedraw = true;
+
+    PIMAGE barLayer = nullptr;
+
+public:
+    ProgressBar(int cx, int cy, double w, double h);
+    ~ProgressBar();
+
+    void setProgress(double p);      // 目标进度（0~1）
+    double getProgress() const;      // 返回 target 值
+    void setColor(color_t fg);       // 设置前景颜色
+    void setBackground(color_t bg);  // 设置背景颜色
+
+    void draw(PIMAGE dst, int x, int y) override;
+    void draw() override;
+    void handleEvent(const mouse_msg& msg) override;
+    void setPosition(int x, int y) override;
+    void setScale(double s) override;
+};
+
+
 class ProgressBarBuilder {
 public:
     ProgressBarBuilder& setIdentifier(const std::wstring& identifier);
@@ -837,6 +838,7 @@ private:
     color_t fgColor = EGERGB(100, 180, 255);
     color_t bgColor = EGERGB(230, 230, 230);
 };
+
 
 class Dropdown : public Widget {
 public:
@@ -874,6 +876,7 @@ private:
     void updateDropdownLayout();
 };
 
+
 class DropdownBuilder {
 public:
     DropdownBuilder& setIdentifier(const std::wstring& identifier);
@@ -898,10 +901,12 @@ private:
     std::vector<std::pair<std::wstring, std::function<void()>>> optionList;
 };
 
+
 enum class RadioStyle {
     Filled,  // 实心背景
     Outline  // 空心圆
 };
+
 
 class Radio : public Widget {
 public:
@@ -941,6 +946,7 @@ private:
     RadioStyle style = RadioStyle::Filled;
 };
 
+
 class RadioBuilder {
 public:
     RadioBuilder& setIdentifier(const std::wstring& identifier);
@@ -965,6 +971,7 @@ private:
     RadioStyle style = RadioStyle::Filled;
 };
 
+
 class RadioController {
 public:
     RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style);
@@ -984,6 +991,7 @@ private:
     std::wstring currentValue;
     std::function<void(const std::wstring&)> onChange;
 };
+
 
 class RadioControllerBuilder {
 public:
@@ -1009,6 +1017,7 @@ private:
     std::wstring defaultValue = L"";
     std::function<void(const std::wstring&)> onChange = nullptr;
 };
+
 
 class Toggle : public Widget {
 public:
@@ -1048,6 +1057,7 @@ private:
     std::function<void(bool)> onToggle;
 };
 
+
 class ToggleBuilder {
 public:
     ToggleBuilder& setIdentifier(const std::wstring& identifier);
@@ -1070,11 +1080,13 @@ private:
     color_t baseColor = EGERGB(33, 150, 243);
 };
 
+
 enum class TextAlign {
     Left,
     Center,
     Right
 };
+
 
 class Text : public Widget {
 public:
@@ -1119,6 +1131,7 @@ private:
     std::vector<float> cachedLineWidths;  ///< 缓存每行的宽度
 };
 
+
 class TextBuilder {
 public:
     TextBuilder& setIdentifier(const std::wstring& identifier);
@@ -1144,6 +1157,7 @@ private:
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0;
 };
+
 
 /**
  * @brief Knob 旋钮控件类（基于 Quasar QKnob 风格）
@@ -1317,6 +1331,7 @@ private:
     double calculateAngle(int x, int y) const;
 };
 
+
 /**
  * @brief KnobBuilder 构建器类
  * @details 用于链式配置和构建 Knob 对象
@@ -1459,6 +1474,7 @@ private:
     std::function<void(double)> onChange = nullptr;
 };
 
+
 /**
  * @class Sidebar
  * @brief 侧边栏控件类
@@ -1548,6 +1564,7 @@ private:
     double collapsedWidth = 50;          ///< 收起时的宽度
 };
 
+
 /**
  * @class SidebarBuilder
  * @brief 侧边栏构建器类
@@ -1604,6 +1621,7 @@ private:
     color_t bg = EGERGB(240, 240, 240);  ///< 背景颜色
     std::vector<Widget*> items;          ///< 子项列表
 };
+
 
 extern std::set<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
 extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
