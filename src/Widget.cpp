@@ -2381,16 +2381,16 @@ double Knob::applyStep(double v) const {
 
 double Knob::valueToAngle(double v) const {
     // 将值映射到角度范围
-    // 默认范围：从 -140° 到 +140° (总共 280°)
+    // 完整范围：从 -180° 到 +180° (总共 360°)
     // 加上偏移角度
     double range = maxValue - minValue;
     if (range <= 0) return offsetAngle;
     
     double ratio = (v - minValue) / range;
-    // Quasar QKnob 默认从底部开始，顺时针旋转
-    // 起始角度为 -140° (在正下方偏左)，终止角度为 +140° (在正下方偏右)
-    double startAngle = -140.0 + offsetAngle;
-    double endAngle = 140.0 + offsetAngle;
+    // 从左侧开始，顺时针旋转完整360度
+    // 起始角度为 -180° (左侧)，终止角度为 +180° (左侧)
+    double startAngle = -180.0 + offsetAngle;
+    double endAngle = 180.0 + offsetAngle;
     double totalSweep = endAngle - startAngle;
     
     return startAngle + ratio * totalSweep;
@@ -2398,8 +2398,8 @@ double Knob::valueToAngle(double v) const {
 
 double Knob::angleToValue(double angle) const {
     // 将角度映射回值
-    double startAngle = -140.0 + offsetAngle;
-    double endAngle = 140.0 + offsetAngle;
+    double startAngle = -180.0 + offsetAngle;
+    double endAngle = 180.0 + offsetAngle;
     double totalSweep = endAngle - startAngle;
     
     // 标准化角度到 [-180, 180] 范围
@@ -2452,17 +2452,17 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     setlinecolor(currentFgColor, dst);
     setlinewidth((int)arcThickness, dst);
     
-    double startAngle = -140.0 + offsetAngle;
+    double startAngle = -180.0 + offsetAngle;
     double currentAngle = valueToAngle(value);
     double progressSweep = currentAngle - startAngle;
     
     // 绘制进度弧
     // 添加小的epsilon以确保完整绘制到边界
     if (progressSweep > 0.01) {
-        // 当接近最大值时，确保完整绘制280度
+        // 当接近最大值时，确保完整绘制360度
         double drawSweep = progressSweep;
-        if (progressSweep > 279.5 && progressSweep < 280.5) {
-            drawSweep = 280.0;  // 确保完整的280度弧
+        if (progressSweep > 359.5 && progressSweep < 360.5) {
+            drawSweep = 360.0;  // 确保完整的360度弧
         }
         ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
                 (float)startAngle, (float)drawSweep, dst);
@@ -2540,10 +2540,8 @@ void Knob::handleEvent(const mouse_msg& msg) {
         // ±180° = 左侧 (9点钟方向)
         double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
         
-        // Knob 的值范围映射到 -140° 到 +140° (280度)
-        // 但是整个360度圆都可以交互
-        // 底部中心是 180° 或 -180° (对应 minValue)
-        // -140° 在左下方，+140° 在右下方 (对应 maxValue)
+        // Knob 的值范围映射到完整的 -180° 到 +180° (360度)
+        // 整个360度圆都可以交互，完整映射到值范围
         
         // 应用偏移角度
         angle -= offsetAngle;
@@ -2553,29 +2551,12 @@ void Knob::handleEvent(const mouse_msg& msg) {
         while (angle < -180) angle += 360;
         
         // 定义值范围对应的角度
-        double startAngle = -140.0;  // 对应 minValue
-        double endAngle = 140.0;     // 对应 maxValue
-        double totalSweep = endAngle - startAngle;  // 280度
+        double startAngle = -180.0;  // 对应 minValue
+        double endAngle = 180.0;     // 对应 maxValue
+        double totalSweep = endAngle - startAngle;  // 360度
         
-        // 将整个360度圆映射到值范围
-        // 分两个区域：
-        // 1. 有效区域 [-140, 140]: 直接线性映射
-        // 2. 死区 (140, 180] 和 [-180, -140): 映射到边界值
-        
-        double ratio;
-        if (angle >= startAngle && angle <= endAngle) {
-            // 在有效范围内，线性映射
-            ratio = (angle - startAngle) / totalSweep;
-        } else if (angle > endAngle) {
-            // 右上方死区 (140, 180]
-            // 映射到 maxValue
-            ratio = 1.0;
-        } else {
-            // 左上方死区 [-180, -140)
-            // 映射到 minValue
-            ratio = 0.0;
-        }
-        
+        // 将整个360度圆线性映射到值范围
+        double ratio = (angle - startAngle) / totalSweep;
         double newValue = minValue + ratio * (maxValue - minValue);
         
         // 限制和应用步进
