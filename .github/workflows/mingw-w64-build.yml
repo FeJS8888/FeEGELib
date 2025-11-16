@@ -1,0 +1,42 @@
+name: MinGW-w64 Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MinGW-w64
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          make
+    
+    - name: Build with CMake
+      shell: msys2 {0}
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+        cmake --build .
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: FeEGEApp-mingw-w64
+        path: build/FeEGEApp.exe
+        if-no-files-found: error
