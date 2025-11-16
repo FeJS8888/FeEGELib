@@ -1,4 +1,4 @@
-﻿#include "Widget.h"
+#include "Widget.h"
 
 using namespace FeEGE;
 set<Widget*> widgets;
@@ -164,6 +164,73 @@ void Panel::setChildrenOffset(int index,Position pos){
 }
 
 // Ripple 结构体实现
+PanelBuilder& PanelBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setBackground(color_t color) {
+    bg = color;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offsetY) {
+    children.push_back(child);
+    childOffsets.push_back(Position{ offsetX, offsetY });
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX, const std::vector<double>& offsetY) {
+    for(size_t i = 0; i < child.size(); ++i){
+        children.push_back(child[i]);
+        if(offsetX.size() > i && offsetY.size() > i){
+            childOffsets.push_back(Position{ offsetX[i], offsetY[i] });
+        }
+        else{
+            childOffsets.push_back(Position{ 0, 0 });
+        }
+    }
+    return *this;
+}
+
+PanelBuilder& PanelBuilder::setLayout(std::shared_ptr<Layout> l) {
+    layout = std::move(l);
+    return *this;
+}
+
+Panel* PanelBuilder::build() {
+    auto panel = new Panel(cx, cy, width, height, radius, bg);
+    panel->setScale(scale);
+    widgets.insert(panel);
+    IdToWidget[identifier] = panel;
+    if (layout) panel->setLayout(layout);
+    for(size_t i = 0;i < children.size();++ i){
+        panel->addChild(children[i],childOffsets[i].x,childOffsets[i].y);
+    }
+    return panel;
+}
+
+// ButtonBuilder 实现
 Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
     : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}
 
@@ -407,6 +474,72 @@ int Button::getMCounter(){
 }
 
 // InputBox 类实现
+ButtonBuilder& ButtonBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setContent(const std::wstring& text) {
+    content = text;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setOnClick(std::function<void()> func) {
+    onClick = [func]() {
+        pushSchedule(func);
+    };
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setColor(color_t col){
+    color = col;
+    return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setIcon(PIMAGE img){
+	icon = img;
+	return *this;
+}
+
+ButtonBuilder& ButtonBuilder::setIconSize(int is){
+	iconSize = is;
+	return *this;
+}
+
+Button* ButtonBuilder::build() {
+    auto btn = new Button(cx, cy, width, height, radius);
+    btn->setContent(content);
+    btn->setScale(scale);
+    btn->setColor(color);
+    if(onClick) btn->setOnClickEvent(onClick);
+    if(icon) btn->setIcon(icon);
+    btn->setIconSize(iconSize);
+    widgets.insert(btn);
+    IdToWidget[identifier] = btn;
+    return btn;
+}
+
+// InputBoxBuilder 实现
 InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     this->cx = cx;
     this->cy = cy;
@@ -809,6 +942,57 @@ int InputBox::getMCounter(){
 }
 
 // Slider 类实现
+InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setCenter(int x, int y) {
+    cx = x; cy = y;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setRadius(double r) {
+    radius = r;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setContent(const std::wstring& text) {
+    content = text;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setMaxLength(int maxLen) {
+    maxLength = maxLen;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setTextHeight(double height){
+    text_height = height;
+    return *this;
+}
+
+InputBoxBuilder& InputBoxBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+InputBox* InputBoxBuilder::build() {
+    auto input = new InputBox(cx, cy, width, height, radius);
+    input->setContent(content);
+    input->setMaxlen(maxLength);
+    input->setScale(scale);
+    input->setTextHeight(text_height);
+    widgets.insert(input);
+    IdToWidget[identifier] = input;
+    return input;
+}
+
 Slider::Slider()
     : left(0), top(0), m_value(0.0), m_dragging(false), m_dragOffset(0),
       m_bgColor(EGERGB(200, 200, 200)), m_fgColor(EGERGB(100, 100, 255)) {
@@ -1028,6 +1212,72 @@ void Slider::setOrientation(Orientation ori){
     m_orientation = ori;
 }
 
+SliderBuilder& SliderBuilder::setCenter(int x_, int y_) {
+    x = x_; y = y_;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setSize(double w, double h) {
+    width = w; height = h;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setColor(color_t bg, color_t fg) {
+    bgColor = bg;
+    fgColor = fg;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setThickness(double t) {
+    thickness = t;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setProgress(double v) {
+    progress = v;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setOnChange(std::function<void(double)> callback) {
+    onChange = callback;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setOrientation(Orientation ori){
+    orientation = ori;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setIdentifier(const wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+SliderBuilder& SliderBuilder::setStep(double s) {
+    step = s;
+    return *this;
+}
+
+Slider* SliderBuilder::build() {
+    auto slider = new Slider();
+    IdToWidget[identifier] = slider;
+    slider->create(x,y, width, height);
+    slider->setColor(bgColor, fgColor);
+    slider->setThickness(thickness);
+    slider->setProgress(progress);
+    slider->setScale(scale);
+    slider->setStep(step);
+    if (onChange) slider->setOnChange(onChange);
+    slider->setOrientation(orientation);
+    widgets.insert(slider);
+    return slider;
+}
+
 ProgressBar::ProgressBar(int cx, int cy, double w, double h):
       origin_width(w), origin_height(h) {
     this->cx = cx;
@@ -1129,256 +1379,6 @@ void ProgressBar::setScale(double s) {
 }
 
 // PanelBuilder 实现
-PanelBuilder& PanelBuilder::setIdentifier(const wstring& id) {
-    identifier = id;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setCenter(int x, int y) {
-    cx = x; cy = y;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setSize(double w, double h) {
-    width = w; height = h;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setRadius(double r) {
-    radius = r;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setBackground(color_t color) {
-    bg = color;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setScale(double s) {
-    scale = s;
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::addChild(Widget* child, double offsetX, double offsetY) {
-    children.push_back(child);
-    childOffsets.push_back(Position{ offsetX, offsetY });
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX, const std::vector<double>& offsetY) {
-    for(size_t i = 0; i < child.size(); ++i){
-        children.push_back(child[i]);
-        if(offsetX.size() > i && offsetY.size() > i){
-            childOffsets.push_back(Position{ offsetX[i], offsetY[i] });
-        }
-        else{
-            childOffsets.push_back(Position{ 0, 0 });
-        }
-    }
-    return *this;
-}
-
-PanelBuilder& PanelBuilder::setLayout(std::shared_ptr<Layout> l) {
-    layout = std::move(l);
-    return *this;
-}
-
-Panel* PanelBuilder::build() {
-    auto panel = new Panel(cx, cy, width, height, radius, bg);
-    panel->setScale(scale);
-    widgets.insert(panel);
-    IdToWidget[identifier] = panel;
-    if (layout) panel->setLayout(layout);
-    for(size_t i = 0;i < children.size();++ i){
-        panel->addChild(children[i],childOffsets[i].x,childOffsets[i].y);
-    }
-    return panel;
-}
-
-// ButtonBuilder 实现
-ButtonBuilder& ButtonBuilder::setIdentifier(const wstring& id) {
-    identifier = id;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setCenter(int x, int y) {
-    cx = x; cy = y;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setSize(double w, double h) {
-    width = w; height = h;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setRadius(double r) {
-    radius = r;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setContent(const std::wstring& text) {
-    content = text;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setScale(double s) {
-    scale = s;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setOnClick(std::function<void()> func) {
-    onClick = [func]() {
-        pushSchedule(func);
-    };
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setColor(color_t col){
-    color = col;
-    return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setIcon(PIMAGE img){
-	icon = img;
-	return *this;
-}
-
-ButtonBuilder& ButtonBuilder::setIconSize(int is){
-	iconSize = is;
-	return *this;
-}
-
-Button* ButtonBuilder::build() {
-    auto btn = new Button(cx, cy, width, height, radius);
-    btn->setContent(content);
-    btn->setScale(scale);
-    btn->setColor(color);
-    if(onClick) btn->setOnClickEvent(onClick);
-    if(icon) btn->setIcon(icon);
-    btn->setIconSize(iconSize);
-    widgets.insert(btn);
-    IdToWidget[identifier] = btn;
-    return btn;
-}
-
-// InputBoxBuilder 实现
-InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
-    identifier = id;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setCenter(int x, int y) {
-    cx = x; cy = y;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setSize(double w, double h) {
-    width = w; height = h;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setRadius(double r) {
-    radius = r;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setContent(const std::wstring& text) {
-    content = text;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setMaxLength(int maxLen) {
-    maxLength = maxLen;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setTextHeight(double height){
-    text_height = height;
-    return *this;
-}
-
-InputBoxBuilder& InputBoxBuilder::setScale(double s) {
-    scale = s;
-    return *this;
-}
-
-InputBox* InputBoxBuilder::build() {
-    auto input = new InputBox(cx, cy, width, height, radius);
-    input->setContent(content);
-    input->setMaxlen(maxLength);
-    input->setScale(scale);
-    input->setTextHeight(text_height);
-    widgets.insert(input);
-    IdToWidget[identifier] = input;
-    return input;
-}
-
-SliderBuilder& SliderBuilder::setCenter(int x_, int y_) {
-    x = x_; y = y_;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setSize(double w, double h) {
-    width = w; height = h;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setColor(color_t bg, color_t fg) {
-    bgColor = bg;
-    fgColor = fg;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setThickness(double t) {
-    thickness = t;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setProgress(double v) {
-    progress = v;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setScale(double s) {
-    scale = s;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setOnChange(std::function<void(double)> callback) {
-    onChange = callback;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setOrientation(Orientation ori){
-    orientation = ori;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setIdentifier(const wstring& id) {
-    identifier = id;
-    return *this;
-}
-
-SliderBuilder& SliderBuilder::setStep(double s) {
-    step = s;
-    return *this;
-}
-
-Slider* SliderBuilder::build() {
-    auto slider = new Slider();
-    IdToWidget[identifier] = slider;
-    slider->create(x,y, width, height);
-    slider->setColor(bgColor, fgColor);
-    slider->setThickness(thickness);
-    slider->setProgress(progress);
-    slider->setScale(scale);
-    slider->setStep(step);
-    if (onChange) slider->setOnChange(onChange);
-    slider->setOrientation(orientation);
-    widgets.insert(slider);
-    return slider;
-}
-
 ProgressBarBuilder& ProgressBarBuilder::setCenter(int x, int y) {
     cx = x; cy = y;
     return *this;
@@ -2282,9 +2282,6 @@ Text* TextBuilder::build() {
     widgets.insert(txt);
     return txt;
 }
-
-// ===================== Knob Implementation =====================
-
 Knob::Knob(int cx, int cy, double r)
     : cx(cx), cy(cy), radius(r), origin_radius(r) {
     // 初始化内部范围为外部范围
