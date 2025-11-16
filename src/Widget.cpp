@@ -2436,8 +2436,8 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     double r = radius;
     
     // 缓动到目标值（类似Slider的实现）
-    displayValue += (value - displayValue) * 0.15;
-    if (fabs(displayValue - value) < 0.005) {
+    displayValue += (value - displayValue) * 0.09;
+    if (fabs(displayValue - value) < 0.01) {
         displayValue = value;
     }
     
@@ -2447,31 +2447,6 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     
     // 圆弧粗细
     double arcThickness = r * 0.15;
-    
-    // === 当悬停或拖动时，绘制阴影效果（图层上移效果）===
-    if ((hovered || dragging) && !disabled && !readonly) {
-        // 保存当前alpha设置
-        // 绘制阴影（半透明黑色圆）
-        ege_enable_aa(true, dst);
-        ege_setalpha(60, dst);  // 设置透明度（0-255，60约为24%）
-        
-        // 阴影偏移和模糊效果（绘制多个圆模拟模糊）
-        setfillcolor(BLACK, dst);
-        setlinecolor(BLACK, dst);
-        
-        // 绘制多层阴影实现模糊效果
-        for (int i = 3; i >= 1; i--) {
-            int alpha = 20 + i * 15;  // 逐渐增加不透明度
-            ege_setalpha(alpha, dst);
-            float shadowOffset = 3.0f + i * 1.5f;  // 阴影偏移
-            float shadowRadius = (float)(r + i * 2);  // 阴影半径递增
-            ege_fillcircle((float)x + shadowOffset, (float)y + shadowOffset, shadowRadius, dst);
-        }
-        
-        // 恢复alpha设置
-        ege_setalpha(255, dst);
-        ege_enable_aa(false, dst);
-    }
     
     // === 绘制背景轨道（完整360度圆）===
     setlinecolor(currentBgColor, dst);
@@ -2510,7 +2485,7 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     setfillcolor(centerColor, dst);
     setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
     setlinewidth(2, dst);
-    ege_fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
+    ege_fillcircle((int)x, (int)y, (int)(r * 0.7), dst);
     
     // === 显示当前值 ===
     if (showValue) {
@@ -2520,11 +2495,11 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         // 格式化显示值（显示displayValue而不是value，实现缓动效果）
         wchar_t valueText[64];
         if (step >= 1.0) {
-            swprintf(valueText, 64, L"%.0f", displayValue);
+            swprintf(valueText, 64, L"%.0f", value);
         } else if (step >= 0.1) {
-            swprintf(valueText, 64, L"%.1f", displayValue);
+            swprintf(valueText, 64, L"%.1f", value);
         } else {
-            swprintf(valueText, 64, L"%.2f", displayValue);
+            swprintf(valueText, 64, L"%.2f", value);
         }
         
         // 设置字体和颜色
