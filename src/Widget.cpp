@@ -2449,16 +2449,16 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     double arcThickness = r * 0.15;
     
     // === 绘制背景轨道（完整360度圆）===
-    ege_setlinecolor(currentBgColor, dst);
-    ege_setlinewidth((int)arcThickness, dst);
+    setlinecolor(currentBgColor, dst);
+    setlinewidth((int)arcThickness, dst);
     
     // 绘制完整的圆形轨道
     ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
             0.0f, 360.0f, dst);
     
     // === 绘制前景进度弧（当前值，使用displayValue实现缓动）===
-    ege_setlinecolor(currentFgColor, dst);
-    ege_setlinewidth((int)arcThickness, dst);
+    setlinecolor(currentFgColor, dst);
+    setlinewidth((int)arcThickness, dst);
     
     double startAngle = -90.0 + offsetAngle;
     double currentAngle = valueToAngle(displayValue);
@@ -2482,9 +2482,9 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         centerColor = EGERGB(250, 250, 250);
     }
     
-    ege_setfillcolor(centerColor, dst);
-    ege_setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
-    ege_setlinewidth(2, dst);
+    setfillcolor(centerColor, dst);
+    setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
+    setlinewidth(2, dst);
     ege_fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
     
     // === 显示当前值 ===
@@ -2503,15 +2503,15 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         }
         
         // 设置字体和颜色
-        ege_setfont(actualFontSize, 0, L"Consolas", dst);
-        ege_setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
-        ege_setbkmode(TRANSPARENT, dst);
+        setfont(actualFontSize, 0, L"Consolas", dst);
+        setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
+        setbkmode(TRANSPARENT, dst);
         
         // 计算文本宽度和高度以居中显示
-        int textWidth = ege_textwidth(valueText, dst);
-        int textHeight = ege_textheight(valueText, dst);
+        int textWidth = textwidth(valueText, dst);
+        int textHeight = textheight(valueText, dst);
         
-        ege_outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
+        outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
     }
 }
         
