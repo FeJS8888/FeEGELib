@@ -2485,7 +2485,7 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     setfillcolor(centerColor, dst);
     setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
     setlinewidth(2, dst);
-    ege_fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
+    ege_fillcircle((int)x, (int)y, (int)(r * 0.7), dst);
     
     // === 显示当前值 ===
     if (showValue) {
@@ -2511,11 +2511,7 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         int textWidth = textwidth(valueText, dst);
         int textHeight = textheight(valueText, dst);
         
-        outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
-    }
-}
-        
-        outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
+        ege_outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
     }
 }
 
