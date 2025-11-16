@@ -2290,6 +2290,8 @@ Knob::Knob(int cx, int cy, double r)
     // 初始化内部范围为外部范围
     innerMin = minValue;
     innerMax = maxValue;
+    // 初始化displayValue与value相同
+    displayValue = value;
 }
 
 void Knob::setRange(double minVal, double maxVal) {
@@ -2381,16 +2383,16 @@ double Knob::applyStep(double v) const {
 
 double Knob::valueToAngle(double v) const {
     // 将值映射到角度范围
-    // 完整范围：从 -180° 到 +180° (总共 360°)
+    // 完整范围：从 -90° (顶部) 到 +270° (总共 360°)
     // 加上偏移角度
     double range = maxValue - minValue;
     if (range <= 0) return offsetAngle;
     
     double ratio = (v - minValue) / range;
-    // 从左侧开始，顺时针旋转完整360度
-    // 起始角度为 -180° (左侧)，终止角度为 +180° (左侧)
-    double startAngle = -180.0 + offsetAngle;
-    double endAngle = 180.0 + offsetAngle;
+    // 从顶部开始，顺时针旋转完整360度
+    // 起始角度为 -90° (顶部)，终止角度为 +270° (顶部)
+    double startAngle = -90.0 + offsetAngle;
+    double endAngle = 270.0 + offsetAngle;
     double totalSweep = endAngle - startAngle;
     
     return startAngle + ratio * totalSweep;
@@ -2398,8 +2400,8 @@ double Knob::valueToAngle(double v) const {
 
 double Knob::angleToValue(double angle) const {
     // 将角度映射回值
-    double startAngle = -180.0 + offsetAngle;
-    double endAngle = 180.0 + offsetAngle;
+    double startAngle = -90.0 + offsetAngle;
+    double endAngle = 270.0 + offsetAngle;
     double totalSweep = endAngle - startAngle;
     
     // 标准化角度到 [-180, 180] 范围
@@ -2433,6 +2435,12 @@ bool Knob::isInside(int x, int y) const {
 void Knob::draw(PIMAGE dst, int x, int y) {
     double r = radius;
     
+    // 缓动到目标值（类似Slider的实现）
+    displayValue += (value - displayValue) * 0.15;
+    if (fabs(displayValue - value) < 0.005) {
+        displayValue = value;
+    }
+    
     // 如果禁用，使用灰色
     color_t currentFgColor = disabled ? EGERGB(180, 180, 180) : fgColor;
     color_t currentBgColor = disabled ? EGERGB(240, 240, 240) : bgColor;
@@ -2441,19 +2449,19 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     double arcThickness = r * 0.15;
     
     // === 绘制背景轨道（完整360度圆）===
-    setlinecolor(currentBgColor, dst);
-    setlinewidth((int)arcThickness, dst);
+    ege_setlinecolor(currentBgColor, dst);
+    ege_setlinewidth((int)arcThickness, dst);
     
     // 绘制完整的圆形轨道
     ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
             0.0f, 360.0f, dst);
     
-    // === 绘制前景进度弧（当前值）===
-    setlinecolor(currentFgColor, dst);
-    setlinewidth((int)arcThickness, dst);
+    // === 绘制前景进度弧（当前值，使用displayValue实现缓动）===
+    ege_setlinecolor(currentFgColor, dst);
+    ege_setlinewidth((int)arcThickness, dst);
     
-    double startAngle = -180.0 + offsetAngle;
-    double currentAngle = valueToAngle(value);
+    double startAngle = -90.0 + offsetAngle;
+    double currentAngle = valueToAngle(displayValue);
     double progressSweep = currentAngle - startAngle;
     
     // 绘制进度弧
@@ -2474,34 +2482,38 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         centerColor = EGERGB(250, 250, 250);
     }
     
-    setfillcolor(centerColor, dst);
-    setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
-    setlinewidth(2, dst);
-    fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
+    ege_setfillcolor(centerColor, dst);
+    ege_setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
+    ege_setlinewidth(2, dst);
+    ege_fillellipse((int)x, (int)y, (int)(r * 0.7), (int)(r * 0.7), dst);
     
     // === 显示当前值 ===
     if (showValue) {
         // 计算字体大小
         int actualFontSize = fontSize > 0 ? fontSize : (int)(r * 0.35);
         
-        // 格式化显示值
+        // 格式化显示值（显示displayValue而不是value，实现缓动效果）
         wchar_t valueText[64];
         if (step >= 1.0) {
-            swprintf(valueText, 64, L"%.0f", value);
+            swprintf(valueText, 64, L"%.0f", displayValue);
         } else if (step >= 0.1) {
-            swprintf(valueText, 64, L"%.1f", value);
+            swprintf(valueText, 64, L"%.1f", displayValue);
         } else {
-            swprintf(valueText, 64, L"%.2f", value);
+            swprintf(valueText, 64, L"%.2f", displayValue);
         }
         
         // 设置字体和颜色
-        setfont(actualFontSize, 0, L"Consolas", dst);
-        setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
-        setbkmode(TRANSPARENT, dst);
+        ege_setfont(actualFontSize, 0, L"Consolas", dst);
+        ege_setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
+        ege_setbkmode(TRANSPARENT, dst);
         
         // 计算文本宽度和高度以居中显示
-        int textWidth = textwidth(valueText, dst);
-        int textHeight = textheight(valueText, dst);
+        int textWidth = ege_textwidth(valueText, dst);
+        int textHeight = ege_textheight(valueText, dst);
+        
+        ege_outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
+    }
+}
         
         outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
     }
@@ -2536,11 +2548,11 @@ void Knob::handleEvent(const mouse_msg& msg) {
         // 在屏幕坐标系中：
         // 0° = 右侧 (3点钟方向)
         // 90° = 下方 (6点钟方向) 
-        // -90° = 上方 (12点钟方向)
+        // -90° = 上方 (12点钟方向，起始位置)
         // ±180° = 左侧 (9点钟方向)
         double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
         
-        // Knob 的值范围映射到完整的 -180° 到 +180° (360度)
+        // Knob 的值范围映射到完整的 -90° 到 +270° (360度，从顶部开始)
         // 整个360度圆都可以交互，完整映射到值范围
         
         // 应用偏移角度
@@ -2550,13 +2562,20 @@ void Knob::handleEvent(const mouse_msg& msg) {
         while (angle > 180) angle -= 360;
         while (angle < -180) angle += 360;
         
-        // 定义值范围对应的角度
-        double startAngle = -180.0;  // 对应 minValue
-        double endAngle = 180.0;     // 对应 maxValue
-        double totalSweep = endAngle - startAngle;  // 360度
+        // 定义值范围对应的角度（从顶部-90°开始）
+        double startAngle = -90.0;   // 对应 minValue (顶部)
+        double endAngle = 270.0;     // 对应 maxValue (顶部)
+        
+        // 处理跨越180°边界的情况
+        double normalizedAngle = angle;
+        if (normalizedAngle < startAngle) {
+            normalizedAngle += 360.0;  // 转换到正值范围
+        }
+        
+        double totalSweep = 360.0;
         
         // 将整个360度圆线性映射到值范围
-        double ratio = (angle - startAngle) / totalSweep;
+        double ratio = (normalizedAngle - startAngle) / totalSweep;
         double newValue = minValue + ratio * (maxValue - minValue);
         
         // 限制和应用步进

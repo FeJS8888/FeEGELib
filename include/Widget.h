@@ -1249,7 +1249,8 @@ private:
     double minValue = 0.0;           ///< 最小值
     double maxValue = 100.0;         ///< 最大值
     double step = 1.0;               ///< 步进值
-    double value = 50.0;             ///< 当前值
+    double value = 50.0;             ///< 当前值（目标值）
+    double displayValue = 50.0;      ///< 显示值（用于缓动）
 
     double offsetAngle = 0.0;        ///< 偏移角度（度）
     double innerMin = 0.0;           ///< 内部最小值
