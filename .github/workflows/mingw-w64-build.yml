@@ -31,12 +31,33 @@ jobs:
     - name: Build with CMake
       shell: msys2 {0}
       run: |
+        # 创建一个简单的main.cpp用于测试主程序编译
+        cat > main.cpp << 'EOF'
+        #include "FeEGELib.h"
+        using namespace FeEGE;
+        
+        int main() {
+            init(800, 600);
+            pen::font(50, "Arial");
+            pen::print(10, 10, "Main App Test");
+            start();
+            return 0;
+        }
+        EOF
+        
         mkdir -p build
         cd build
         cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build .
     
-    - name: Upload build artifacts
+    - name: Upload main executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: FeEGEApp-mingw-w64
+        path: build/FeEGEApp.exe
+        if-no-files-found: warn
+    
+    - name: Upload test artifacts
       uses: actions/upload-artifact@v4
       with:
         name: FeEGELib-Tests-mingw-w64
