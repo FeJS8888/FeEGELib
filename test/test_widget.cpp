@@ -1,14 +1,63 @@
 #include "FeEGELib.h"
 using namespace FeEGE;
 
-// 测试Widget组件
 int main() {
     init(800, 600);
     
-    // 创建一个简单的测试
-    pen::font(20, "Arial");
-    pen::print(10, 10, "Widget Test");
+    // // 创建主面板
+    // Panel* loginPanel = PanelBuilder()
+    //     .setCenter(400, 300)
+    //     .setSize(400, 350)
+    //     .setRadius(15)
+    //     .setBackground(EGERGB(250, 250, 250))
+    //     .build();
+    
+    // 标题文字
+    Text* title = TextBuilder()
+        .setAlign(TextAlign::Center)
+        .setPosition(400, 150)
+        .setContent(L"用户登录")
+        .setFont(32, L"Microsoft YaHei")
+        .setColor(EGERGB(102, 126, 234))
+        .build();
+    
+    // 用户名输入框
+    InputBox* username = InputBoxBuilder()
+        .setCenter(400, 250)
+        .setSize(300, 45)
+        .setRadius(8)
+        .setTextHeight(20)
+        .build();
+    
+    // 密码输入框
+    InputBox* password = InputBoxBuilder()
+        .setCenter(400, 320)
+        .setSize(300, 45)
+        .setRadius(8)
+        .setTextHeight(20)
+        .build();
+    
+    // 登录按钮
+    Button* loginBtn = ButtonBuilder()
+        .setCenter(400, 400)
+        .setSize(200, 50)
+        .setRadius(25)
+        .setContent(L"登录")
+        .setColor(EGERGB(102, 126, 234))
+        .setOnClick([]() {
+            // 处理登录逻辑
+            std::wcout << L"登录按钮被点击" << std::endl;
+        })
+        .build();
     
     start();
+    
+    // 清理资源
+    // delete loginPanel;
+    delete title;
+    delete username;
+    delete password;
+    delete loginBtn;
+    
     return 0;
 }
