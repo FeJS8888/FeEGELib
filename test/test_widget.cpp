@@ -2,20 +2,20 @@
 using namespace FeEGE;
 
 int main() {
+    _setmode(_fileno(stdout), _O_WTEXT);
     init(800, 600);
     
-    // // 创建主面板
-    // Panel* loginPanel = PanelBuilder()
-    //     .setCenter(400, 300)
-    //     .setSize(400, 350)
-    //     .setRadius(15)
-    //     .setBackground(EGERGB(250, 250, 250))
-    //     .build();
-    
+    shared_ptr<Layout> layout = FlexLayoutBuilder()
+        .setDirection(LayoutDirection::Column)
+        .setPadding(30)
+        .setSpacing(30)
+        .setAlign(LayoutAlign::Start)
+        .build();
+
     // 标题文字
     Text* title = TextBuilder()
         .setAlign(TextAlign::Center)
-        .setPosition(400, 150)
+        .setPosition(250, 150)
         .setContent(L"用户登录")
         .setFont(32, L"Microsoft YaHei")
         .setColor(EGERGB(102, 126, 234))
@@ -46,14 +46,24 @@ int main() {
         .setColor(EGERGB(102, 126, 234))
         .setOnClick([]() {
             // 处理登录逻辑
-            std::wcout << L"登录按钮被点击" << std::endl;
+            std::wcout << L"点击了" << std::endl;
         })
         .build();
-    
+
+    // 创建主面板
+    Panel* loginPanel = PanelBuilder()
+        .setCenter(400, 300)
+        .setSize(400, 350)
+        .setRadius(15)
+        .setLayout(layout)
+        .addChild({title,username,password,loginBtn})
+        .setBackground(EGERGB(250, 250, 250))
+        .build();
+
     start();
     
     // 清理资源
-    // delete loginPanel;
+    delete loginPanel;
     delete title;
     delete username;
     delete password;
