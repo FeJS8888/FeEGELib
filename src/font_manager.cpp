@@ -57,12 +57,10 @@ std::wstring FontManager::FindTTFFile(const std::string& fileName) const {
     };
     
     // 检查环境变量FONT_PATH
-    wchar_t* envPath = nullptr;
-    size_t envLen = 0;
-    if (_wdupenv_s(&envPath, &envLen, L"FONT_PATH") == 0 && envPath) {
+    const wchar_t* envPath = _wgetenv(L"FONT_PATH");
+    if (envPath) {
         std::filesystem::path envFontPath = envPath;
         searchPaths.insert(searchPaths.begin(), envFontPath / wFileName);
-        free(envPath);
     }
     
     // 检查每个路径
