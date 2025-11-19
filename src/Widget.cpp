@@ -1,4 +1,4 @@
-#include "Widget.h"
+﻿#include "Widget.h"
 
 using namespace FeEGE;
 Widget* mouseOwningFlag = nullptr;
@@ -136,9 +136,15 @@ bool Panel::handleEvent(const mouse_msg& msg){
         bool state = w->handleEvent(msg);
         if(state) return true;
     }
-    if(msg.is_left() && msg.is_down()) mouseOwningFlag = this;
-    else if(msg.is_left() && msg.is_up()) mouseOwningFlag = nullptr;
-    return true;
+    if(msg.is_left() && msg.is_down()){
+        mouseOwningFlag = this;
+        return true;
+    }
+    else if(msg.is_left() && msg.is_up()){
+        mouseOwningFlag = nullptr;
+        return false;
+    }
+    return false;
 }
 
 void Panel::setSize(double w,double h){
@@ -1175,6 +1181,8 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
+        mouseOwningFlag = this;
+        return true;
     }
     else if (msg.is_left() && msg.is_down() && m_hover) {
         m_dragging = true;
@@ -1189,6 +1197,8 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             knobY = top + height / 2;
             m_dragOffset = msg.x - knobX;
         }
+        mouseOwningFlag = this;
+        return true;
     } 
     else if (msg.is_move() && m_dragging) {
         if (m_orientation == Orientation::Column) {
@@ -1203,13 +1213,17 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
+        mouseOwningFlag = this;
+        return true;
     } 
     else if (msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
         if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
         m_finalprogress = fixProgress();
+        if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     }
+    return false;
 }
 
 void Slider::setProgress(double v) {
@@ -1395,7 +1409,7 @@ void ProgressBar::draw() {
 }
 
 bool ProgressBar::handleEvent(const mouse_msg& msg){
-
+    return false;
 }
 
 void ProgressBar::setPosition(int x, int y) {
@@ -1566,6 +1580,7 @@ bool Dropdown::handleEvent(const mouse_msg& msg) {
             fadingIn = false;
         }
     }
+    return false;
 }
 
 void Dropdown::toggleDropdown() {
@@ -1790,6 +1805,7 @@ bool Radio::handleEvent(const mouse_msg& msg) {
             animOut = false;
             animProgress = 0.0;
             if (onSelect) onSelect();
+            return true;
         } else if (groupValuePtr && *groupValuePtr == value) {
             // cout<<"awa\n";
             // animOut = true;
@@ -1797,6 +1813,7 @@ bool Radio::handleEvent(const mouse_msg& msg) {
             // animProgress = 0.0;
         }
     }
+    return false;
 }
 
 RadioBuilder& RadioBuilder::setCenter(int x, int y) {
@@ -1980,14 +1997,20 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
         if (msg.is_down()) {
             // 记录是否在区域内按下
             pressedIn = hovered;
+            mouseOwningFlag = this;
+            return true;
         } else if (msg.is_up()) {
             // 如果松开时还在区域内且是之前按下的
             if (hovered && pressedIn) {
                 toggle(); // ? 这里才执行切换动画与回调
             }
             pressedIn = false;
+            if(mouseOwningFlag == this){
+                mouseOwningFlag = nullptr;
+            }
         }
     }
+    return false;
 }
 
 color_t removeAlpha(color_t c) {
@@ -2248,6 +2271,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
 
 bool Text::handleEvent(const mouse_msg& msg) {
     // Text 是纯展示控件，不处理事件
+    return false;
 }
 
 void Text::setAlign(TextAlign a) {
@@ -2572,6 +2596,8 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         dragging = true;
         lastMouseX = msg.x;
         lastMouseY = msg.y;
+        mouseOwningFlag = this;
+        return true;
     }
     // 拖动中
     else if (msg.is_move() && dragging) {
@@ -2629,11 +2655,16 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         
         lastMouseX = msg.x;
         lastMouseY = msg.y;
+        return true;
     }
     // 释放鼠标左键停止拖动
     else if (msg.is_left() && msg.is_up()) {
         dragging = false;
+        if(mouseOwningFlag == this){
+            mouseOwningFlag = nullptr;
+        }
     }
+    return false;
 }
 
 // ===================== KnobBuilder Implementation =====================
@@ -2792,7 +2823,7 @@ void Sidebar::draw() {
 }
 
 bool Sidebar::handleEvent(const mouse_msg& msg) {
-    container->handleEvent(msg);
+    return container->handleEvent(msg);
 }
 
 void Sidebar::setPosition(int x, int y) {
