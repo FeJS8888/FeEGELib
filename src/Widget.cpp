@@ -1219,7 +1219,6 @@ bool Slider::handleEvent(const mouse_msg& msg) {
     else if (msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
-        if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
         m_finalprogress = fixProgress();
         if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     }
