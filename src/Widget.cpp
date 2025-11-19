@@ -1212,7 +1212,6 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
-        mouseOwningFlag = this;
         return true;
     } 
     else if (msg.is_left() && msg.is_up()) {
