@@ -1168,7 +1168,6 @@ bool Slider::handleEvent(const mouse_msg& msg) {
     if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
         m_dragging = true;
         m_pressed = true;
-        mouseOwningFlag = this;
         if (m_orientation == Orientation::Column) {
             int my = clamp(msg.y, top, top + height);
             m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
