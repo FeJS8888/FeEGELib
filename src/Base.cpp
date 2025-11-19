@@ -55,6 +55,7 @@ void reflushMouseStatu(mouse_msg msg){
 		} 
 	}
 }
+
 std::wstring autoToWString(const std::string& str) {
     // 优先尝试 UTF-8
     int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str.c_str(), -1, nullptr, 0);

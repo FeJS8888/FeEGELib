@@ -20,6 +20,7 @@ target_include_directories(FeEGELib_core PUBLIC include)
 target_link_libraries(FeEGELib_core PUBLIC ${CMAKE_SOURCE_DIR}/lib/libgraphics.a)
 target_link_libraries(FeEGELib_core PUBLIC gdi32 gdiplus imm32)
 target_compile_options(FeEGELib_core PRIVATE -static)
+target_compile_definitions(FeEGELib_core PRIVATE FPS)
 
 # 如果存在main.cpp，编译主程序
 if(EXISTS "${CMAKE_SOURCE_DIR}/main.cpp")

@@ -13,6 +13,9 @@
 using namespace FeEGE;
 
 class Layout;
+extern Widget* mouseOwningFlag;
+extern Widget* focusingWidget;
+extern std::vector<Widget*> widgetOrder;
 
 /**
  * @brief 所有可绘制控件的基类
@@ -28,7 +31,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    virtual void handleEvent(const mouse_msg& msg) = 0;
+    virtual bool handleEvent(const mouse_msg& msg) = 0;
     bool is_global = true;  ///< 是否全局控件
 
     /**
@@ -68,6 +71,8 @@ public:
      * @return 高度值
      */
     double getHeight();
+
+    virtual void deleteFocus();
 protected:
     int cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
@@ -158,7 +163,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
 
     /**
      * @brief 设置透明度
@@ -326,7 +331,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    virtual void handleEvent(const mouse_msg& msg);
+    virtual bool handleEvent(const mouse_msg& msg);
     
     /**
      * @brief 设置按钮文本
@@ -498,7 +503,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    virtual void handleEvent(const mouse_msg& msg);
+    virtual bool handleEvent(const mouse_msg& msg);
 
     /**
      * @brief 检查点是否在输入框内
@@ -539,6 +544,8 @@ public:
     bool getClickState();
 
     int getMCounter();
+
+    virtual void deleteFocus();
 };
 
 
@@ -641,7 +648,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    virtual void handleEvent(const mouse_msg& msg);
+    virtual bool handleEvent(const mouse_msg& msg);
 
     /**
      * @brief 设置进度值
@@ -812,7 +819,7 @@ public:
 
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
     void setPosition(int x, int y) override;
     void setScale(double s) override;
 };
@@ -853,7 +860,7 @@ public:
 
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
     bool isInside(int x, int y) const;
 
 
@@ -921,7 +928,7 @@ public:
     void setStyle(RadioStyle s);
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
 
 private:
     int cx, cy;
@@ -1036,7 +1043,7 @@ public:
 
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
 
 private:
     int cx, cy;
@@ -1109,7 +1116,7 @@ public:
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
     void setPosition(int x, int y) override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
 
 private:
     void updateLayout();
@@ -1252,7 +1259,7 @@ public:
     void setPosition(int x, int y) override;
     void draw(PIMAGE dst, int x, int y) override;
     void draw() override;
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
 
 private:
     int cx, cy;                      ///< 中心坐标
@@ -1534,7 +1541,7 @@ public:
      * @brief 处理鼠标事件
      * @param msg 鼠标消息
      */
-    void handleEvent(const mouse_msg& msg) override;
+    bool handleEvent(const mouse_msg& msg) override;
     
     /**
      * @brief 设置侧边栏位置
@@ -1623,7 +1630,7 @@ private:
 };
 
 
-extern std::set<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
+extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
 extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
 
 /**
@@ -1633,3 +1640,5 @@ extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Wi
  * @warning 返回的指针可能在任何时候失效，使用前应检查有效性
  */
 Widget* getWidgetById(const std::wstring& identifier);
+
+void assignOrder(std::vector<Widget*> widgetWithOrder);

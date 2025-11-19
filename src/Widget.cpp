@@ -1,7 +1,10 @@
 #include "Widget.h"
 
 using namespace FeEGE;
-set<Widget*> widgets;
+Widget* mouseOwningFlag = nullptr;
+Widget* focusingWidget = nullptr;
+
+vector<Widget*> widgets;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 
 double Widget::getWidth(){
@@ -11,9 +14,12 @@ double Widget::getHeight(){
     return height;
 }
 
+void Widget::deleteFocus(){
+
+}
+
 Widget::~Widget() {
     // 从全局widgets集合中移除
-    widgets.erase(this);
     
     // 从IdToWidget映射中移除所有指向this的条目
     for (auto it = IdToWidget.begin(); it != IdToWidget.end(); ) {
@@ -120,8 +126,19 @@ double Panel::getScale(){
 	return scale;
 }
 
-void Panel::handleEvent(const mouse_msg& msg){
-	
+bool Panel::handleEvent(const mouse_msg& msg){
+    int mx = msg.x,my = msg.y;
+    double left = cx - width / 2;
+    double top = cy - height / 2;
+    bool isin = mx >= left && mx <= left + width && my >= top && my <= top + height;
+    if(!isin) return false;
+	for(Widget* w : children){
+        bool state = w->handleEvent(msg);
+        if(state) return true;
+    }
+    if(msg.is_left() && msg.is_down()) mouseOwningFlag = this;
+    else if(msg.is_left() && msg.is_up()) mouseOwningFlag = nullptr;
+    return true;
 }
 
 void Panel::setSize(double w,double h){
@@ -221,7 +238,7 @@ PanelBuilder& PanelBuilder::setLayout(std::shared_ptr<Layout> l) {
 Panel* PanelBuilder::build() {
     auto panel = new Panel(cx, cy, width, height, radius, bg);
     panel->setScale(scale);
-    widgets.insert(panel);
+    //widgets.insert(panel);
     IdToWidget[identifier] = panel;
     if (layout) panel->setLayout(layout);
     for(size_t i = 0;i < children.size();++ i){
@@ -354,7 +371,7 @@ void Button::draw(){
     draw(nullptr,cx,cy);
 }
 
-void Button::handleEvent(const mouse_msg& msg) {
+bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
@@ -363,11 +380,16 @@ void Button::handleEvent(const mouse_msg& msg) {
         ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70,dynamic_cast<Widget*>(this),m_counter);
         needRedraw = true;
         m_clicking = true;
+        mouseOwningFlag = this;
+        return true;
     }
     else if(msg.is_left() && msg.is_up()){
         if(inside && on_click_event != nullptr) on_click_event();
         m_clicking = false;
+        mouseOwningFlag = nullptr;
+        return false;
     }
+    return false;
 }
 
 bool Button::isInside(int x, int y) const {
@@ -534,7 +556,7 @@ Button* ButtonBuilder::build() {
     if(onClick) btn->setOnClickEvent(onClick);
     if(icon) btn->setIcon(icon);
     btn->setIconSize(iconSize);
-    widgets.insert(btn);
+    //widgets.insert(btn);
     IdToWidget[identifier] = btn;
     return btn;
 }
@@ -714,7 +736,15 @@ void InputBox::draw(){
     draw(nullptr,cx,cy);
 }
 
-void InputBox::handleEvent(const mouse_msg& msg) {
+void InputBox::deleteFocus(){
+    on_focus = false;
+    inv.killfocus();
+    needRedraw = true;
+    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    if(focusingWidget == this) focusingWidget = nullptr;
+}
+
+bool InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
     // 鼠标移入移出处理
     if (inside) {
@@ -770,13 +800,23 @@ void InputBox::handleEvent(const mouse_msg& msg) {
         moveCursor(best_pos);
         inv.movecursor(best_pos, best_pos);
         needRedraw = true;
+        if(focusingWidget != nullptr && focusingWidget != this){
+            focusingWidget->deleteFocus();
+        }
+        focusingWidget = this;
+        mouseOwningFlag = this;
+        return true;
     }
     // 鼠标左键按下且不在输入框内
     else if (msg.is_left() && msg.is_down()) {
-        on_focus = false;
-        inv.killfocus();
-        needRedraw = true;
+        deleteFocus();
     }
+
+    if(msg.is_left() && msg.is_up() && mouseOwningFlag == this){
+        mouseOwningFlag = nullptr;
+    }
+
+    return false;
 }
 
 bool InputBox::isInside(int x, int y) const {
@@ -988,7 +1028,7 @@ InputBox* InputBoxBuilder::build() {
     input->setMaxlen(maxLength);
     input->setScale(scale);
     input->setTextHeight(text_height);
-    widgets.insert(input);
+    //widgets.insert(input);
     IdToWidget[identifier] = input;
     return input;
 }
@@ -1115,13 +1155,14 @@ double Slider::fixProgress() {
     return value;
 }
 
-void Slider::handleEvent(const mouse_msg& msg) {
+bool Slider::handleEvent(const mouse_msg& msg) {
     m_hover = isInside(msg.x, msg.y);
     m_skip = isInsideBar(msg.x, msg.y);
 
     if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
         m_dragging = true;
         m_pressed = true;
+        mouseOwningFlag = this;
         if (m_orientation == Orientation::Column) {
             int my = clamp(msg.y, top, top + height);
             m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
@@ -1166,6 +1207,7 @@ void Slider::handleEvent(const mouse_msg& msg) {
     else if (msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
+        if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
         m_finalprogress = fixProgress();
     }
 }
@@ -1274,7 +1316,7 @@ Slider* SliderBuilder::build() {
     slider->setStep(step);
     if (onChange) slider->setOnChange(onChange);
     slider->setOrientation(orientation);
-    widgets.insert(slider);
+    //widgets.insert(slider);
     return slider;
 }
 
@@ -1352,7 +1394,7 @@ void ProgressBar::draw() {
     draw(nullptr, cx, cy);
 }
 
-void ProgressBar::handleEvent(const mouse_msg& msg){
+bool ProgressBar::handleEvent(const mouse_msg& msg){
 
 }
 
@@ -1421,7 +1463,7 @@ ProgressBar* ProgressBarBuilder::build() {
     bar->setBackground(bgColor);
     bar->setProgress(progress);
     bar->setScale(scale);
-    widgets.insert(bar);
+    //widgets.insert(bar);
     return bar;
 }
 
@@ -1506,7 +1548,7 @@ void Dropdown::draw() {
     draw(nullptr, cx, cy);
 }
 
-void Dropdown::handleEvent(const mouse_msg& msg) {
+bool Dropdown::handleEvent(const mouse_msg& msg) {
     if (expanded) {
         dropdownPanel->handleEvent(msg);
         for (Button* btn : options) {
@@ -1621,7 +1663,7 @@ Dropdown* DropdownBuilder::build() {
     for (const auto& pair : optionList) {
         dropdown->addOption(pair.first, pair.second);
     }
-    widgets.insert(dropdown);
+    //widgets.insert(dropdown);
     return dropdown;
 }
 
@@ -1736,7 +1778,7 @@ void Radio::draw() {
     draw(nullptr, cx, cy);
 }
 
-void Radio::handleEvent(const mouse_msg& msg) {
+bool Radio::handleEvent(const mouse_msg& msg) {
     int dx = msg.x - cx;
     int dy = msg.y - cy;
     hovered = dx * dx + dy * dy <= radius * radius;
@@ -1785,7 +1827,7 @@ Radio* RadioBuilder::build() {
     if (groupPtr) radio->setGroupValueRef(groupPtr);
     if (onSelect) radio->setOnSelect(onSelect);
     radio->setStyle(style); // ? 设置样式
-    widgets.insert(radio);
+    //widgets.insert(radio);
     return radio;
 }
 
@@ -1922,7 +1964,7 @@ bool Toggle::isDisabled() const {
     return disabled;
 }
 
-void Toggle::handleEvent(const mouse_msg& msg) {
+bool Toggle::handleEvent(const mouse_msg& msg) {
     double w = width * scale;
     double h = height * scale;
     double r = h / 2;
@@ -1932,7 +1974,7 @@ void Toggle::handleEvent(const mouse_msg& msg) {
 
     hovered = (std::abs(dx) <= w / 2 && std::abs(dy) <= h / 2);
 
-    if (disabled) return;
+    if (disabled) return false;
 
     if (msg.is_left()) {
         if (msg.is_down()) {
@@ -2071,7 +2113,7 @@ Toggle* ToggleBuilder::build() {
     if (onToggle) toggle->setOnToggle(onToggle);
     toggle->setKeepColor(keepColor);
     toggle->setBaseColor(baseColor);
-    widgets.insert(toggle);
+    //widgets.insert(toggle);
     IdToWidget[identifier] = toggle;
     return toggle;
 }
@@ -2204,7 +2246,7 @@ void Text::draw(PIMAGE dst, int x, int y) {
     }
 }
 
-void Text::handleEvent(const mouse_msg& msg) {
+bool Text::handleEvent(const mouse_msg& msg) {
     // Text 是纯展示控件，不处理事件
 }
 
@@ -2279,7 +2321,7 @@ Text* TextBuilder::build() {
     txt->setAlign(align);
     txt->setLineSpacing(lineSpacing);
     IdToWidget[identifier] = txt;
-    widgets.insert(txt);
+    //widgets.insert(txt);
     return txt;
 }
 Knob::Knob(int cx, int cy, double r)
@@ -2516,13 +2558,13 @@ void Knob::draw() {
     draw(nullptr, cx, cy);
 }
 
-void Knob::handleEvent(const mouse_msg& msg) {
+bool Knob::handleEvent(const mouse_msg& msg) {
     // 检查是否在旋钮内
     hovered = isInside(msg.x, msg.y);
     
     // 如果禁用或只读，不响应交互
     if (disabled || readonly) {
-        return;
+        return false;
     }
     
     // 按下鼠标左键开始拖动
@@ -2696,7 +2738,7 @@ Knob* KnobBuilder::build() {
     }
     
     // 注册到全局控件集合
-    widgets.insert(knob);
+    //widgets.insert(knob);
     
     // 如果有标识符，注册到ID映射
     if (!identifier.empty()) {
@@ -2749,7 +2791,7 @@ void Sidebar::draw() {
     container->draw();
 }
 
-void Sidebar::handleEvent(const mouse_msg& msg) {
+bool Sidebar::handleEvent(const mouse_msg& msg) {
     container->handleEvent(msg);
 }
 
@@ -2799,7 +2841,7 @@ Sidebar* SidebarBuilder::build() {
     for (auto* item : items) {
         sidebar->addItem(item);
     }
-    widgets.insert(sidebar);
+    //widgets.insert(sidebar);
     return sidebar;
 }
 
@@ -2811,4 +2853,8 @@ Widget* getWidgetById(const std::wstring& identifier){
         return it->second;
     }
     return nullptr;
+}
+
+void assignOrder(std::vector<Widget*> widgetWithOrder){
+    swap(widgetWithOrder,widgets);
 }
