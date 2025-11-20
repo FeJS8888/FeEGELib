@@ -141,7 +141,9 @@ bool Panel::handleEvent(const mouse_msg& msg){
         return true;
     }
     else if(msg.is_left() && msg.is_up()){
-        mouseOwningFlag = nullptr;
+        if(mouseOwningFlag == this){
+            mouseOwningFlag = nullptr;
+        }
         return false;
     }
     return false;
