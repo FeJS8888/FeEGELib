@@ -60,6 +60,8 @@ int main() {
         .setBackground(EGERGB(250, 250, 250))
         .build();
 
+    assignOrder({loginPanel});
+
     start();
     
     // 清理资源

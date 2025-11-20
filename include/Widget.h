@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file Widget.h
  * @brief 包含各种UI控件的声明（按钮、输入框、滑动条、文本等）
  * @author FeJS8888
@@ -787,7 +787,7 @@ private:
     double thickness = 4;
     double progress = 0.0;
     double scale = 1.0;
-    double step = 0.0;
+    double step = 0.00001;
     std::function<void(double)> onChange = nullptr;
     Orientation orientation = Orientation::Row;
 };
