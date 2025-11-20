@@ -1226,7 +1226,7 @@ bool Slider::handleEvent(const mouse_msg& msg) {
 }
 
 void Slider::setProgress(double v) {
-    m_progress = clamp(v, 0.0, 1.0);
+    m_finalprogress = m_progress = clamp(v, 0.0, 1.0);
     m_value = m_progress = fixProgress();
 }
 
