@@ -89,13 +89,9 @@ int main() {
         .setSize(300, 100)
         .setRadius(10)
         .setLayout(layout2)
+        .addChild({btn4,btn5,btn6})
         .setBackground(EGERGB(250, 230, 230))
         .build();
-
-    // 必须先添加子控件，再设置 scale
-    panelScaled->addChild(btn4, 0, 0);
-    panelScaled->addChild(btn5, 0, 0);
-    panelScaled->addChild(btn6, 0, 0);
     
     // 设置 scale AFTER 添加 children
     // 这会同时缩放 Panel 和所有子控件
