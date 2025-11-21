@@ -55,6 +55,14 @@ int main() {
         .build();
 
     // ====== 测试 2: 缩放后的 Panel (scale = 1.5) ======
+    // 虽然现在 Layout 不会修改 spacing_ 成员，但为了测试清晰，使用独立的布局实例
+    shared_ptr<Layout> layout2 = FlexLayoutBuilder()
+        .setDirection(LayoutDirection::Row)
+        .setPadding(20)
+        .setSpacing(10)
+        .setAlign(LayoutAlign::Start)
+        .build();
+
     Button* btn4 = ButtonBuilder()
         .setCenter(0, 0)
         .setSize(80, 40)
@@ -80,7 +88,7 @@ int main() {
         .setCenter(400, 400)
         .setSize(300, 100)
         .setRadius(10)
-        .setLayout(layout)  // 可以复用同一个 layout 实例
+        .setLayout(layout2)
         .setBackground(EGERGB(250, 230, 230))
         .build();
 
