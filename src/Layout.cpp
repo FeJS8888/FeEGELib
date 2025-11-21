@@ -32,7 +32,9 @@ void FlexLayout::apply(Panel& parent) {
     double panelScale = parent.getScale();
 
     // 计算所有子项的总长度
-    // 注意：子项的宽高已经是缩放后的值，需要转换到未缩放的坐标系
+    // 注意：子项的宽高已经是缩放后的值（因为子控件调用了setScale），
+    // 而布局需要在未缩放的坐标系中计算（因为childOffsets在Panel::draw中会被乘以scale），
+    // 所以需要除以panelScale来转换到未缩放的坐标系
     double totalChildrenLength = 0;
     for (auto* child : children)
         totalChildrenLength += (direction_ == LayoutDirection::Row
