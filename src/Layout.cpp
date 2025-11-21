@@ -46,6 +46,8 @@ void FlexLayout::apply(Panel& parent) {
 
     // === 横向布局 ===
     if (direction_ == LayoutDirection::Row) {
+        double effectiveSpacing = spacing_;  // 使用局部变量避免修改成员变量
+        
         switch (align_) {
             case LayoutAlign::Start:
                 cursor = -panelWidth / 2 / panelScale + padding_;
@@ -58,7 +60,7 @@ void FlexLayout::apply(Panel& parent) {
                 break;
             case LayoutAlign::SpaceBetween:
                 if (children.size() > 1)
-                    spacing_ = (panelWidth / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
+                    effectiveSpacing = (panelWidth / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
                 cursor = -panelWidth / 2 / panelScale + padding_;
                 break;
         }
@@ -68,12 +70,14 @@ void FlexLayout::apply(Panel& parent) {
             double childWidth = child->getWidth() / panelScale;
             double cx = cursor + childWidth / 2.0;
             parent.setChildrenOffset(i, {cx, 0});
-            cursor += childWidth + spacing_;
+            cursor += childWidth + effectiveSpacing;
         }
     }
 
     // === 纵向布局 ===
     else {
+        double effectiveSpacing = spacing_;  // 使用局部变量避免修改成员变量
+        
         switch (align_) {
             case LayoutAlign::Start:
                 cursor = -panelHeight / 2 / panelScale + padding_;
@@ -86,7 +90,7 @@ void FlexLayout::apply(Panel& parent) {
                 break;
             case LayoutAlign::SpaceBetween:
                 if (children.size() > 1)
-                    spacing_ = (panelHeight / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
+                    effectiveSpacing = (panelHeight / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
                 cursor = -panelHeight / 2 / panelScale + padding_;
                 break;
         }
@@ -96,7 +100,7 @@ void FlexLayout::apply(Panel& parent) {
             double childHeight = child->getHeight() / panelScale;
             double cy = cursor + childHeight / 2.0;
             parent.setChildrenOffset(i, {0, cy});
-            cursor += childHeight + spacing_;
+            cursor += childHeight + effectiveSpacing;
         }
     }
 }
