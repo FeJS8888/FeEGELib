@@ -453,6 +453,7 @@ private:
     int m_counter = 0;
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
+    bool scaleChanged = true;
 
     int cursor_pos = 0;
     double text_height = 23;
