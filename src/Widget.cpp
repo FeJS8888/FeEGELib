@@ -74,7 +74,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
 
     // 绘制自身背景（圆角矩形）
     setfillcolor(bgColor, layer);
-    ege_fillrect(0, 0, width, height, layer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
 
     // 绘制子控件
     for (size_t i = 0; i < children.size(); ++i) {
@@ -116,10 +116,17 @@ void Panel::setScale(double s){
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
+    if(maskLayer) delimage(maskLayer);
+    maskLayer = newimage(width,height);
+    if(layer) delimage(layer);
+    layer = newimage(width,height);
+    ege_enable_aa(true,layer);
+    ege_enable_aa(true,maskLayer);
+
 	setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 double Panel::getScale(){
@@ -472,6 +479,15 @@ void Button::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     // 遮罩
+    if(maskLayer) delimage(maskLayer);
+    maskLayer = newimage(width,height);
+    if(btnLayer) delimage(btnLayer);
+    btnLayer = newimage(width,height);
+    if(bgLayer) delimage(bgLayer);
+    bgLayer = newimage(width,height);
+    ege_enable_aa(true,bgLayer);
+    ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,btnLayer);
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
@@ -662,12 +678,12 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
 
-    if(sgn(currentFontScale - 1) >= 0){
+    if(sgn(currentFontScale - 1) >= 0 || scaleChanged){
         const float padding = 14;
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
-        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos) {
+        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos || scaleChanged) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             
@@ -738,6 +754,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
+    scaleChanged = false;
 }
 
 void InputBox::draw(){
@@ -900,11 +917,21 @@ void InputBox::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     // 遮罩
+    if(maskLayer) delimage(maskLayer);
+    maskLayer = newimage(width,height);
+    if(btnLayer) delimage(btnLayer);
+    btnLayer = newimage(width,height);
+    if(bgLayer) delimage(bgLayer);
+    bgLayer = newimage(width,height);
+    ege_enable_aa(true,bgLayer);
+    ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,btnLayer);
     setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
     needRedraw = true;
+    scaleChanged = true;
 }
 
 void InputBox::setTextHeight(double height){

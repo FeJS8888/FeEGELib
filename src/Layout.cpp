@@ -29,68 +29,78 @@ void FlexLayout::apply(Panel& parent) {
 
     double panelWidth = parent.getWidth();
     double panelHeight = parent.getHeight();
+    double panelScale = parent.getScale();
 
     // 计算所有子项的总长度
+    // 注意：子项的宽高已经是缩放后的值（因为子控件调用了setScale），
+    // 而布局需要在未缩放的坐标系中计算（因为childOffsets在Panel::draw中会被乘以scale），
+    // 所以需要除以panelScale来转换到未缩放的坐标系
     double totalChildrenLength = 0;
     for (auto* child : children)
         totalChildrenLength += (direction_ == LayoutDirection::Row
                                 ? child->getWidth()
-                                : child->getHeight());
+                                : child->getHeight()) / panelScale;
     double totalLength = totalChildrenLength + spacing_ * (children.size() - 1);
 
     double cursor = 0.0;
 
     // === 横向布局 ===
     if (direction_ == LayoutDirection::Row) {
+        double effectiveSpacing = spacing_;  // 使用局部变量避免修改成员变量
+        
         switch (align_) {
             case LayoutAlign::Start:
-                cursor = -panelWidth / 2 + padding_;
+                cursor = -panelWidth / 2 / panelScale + padding_;
                 break;
             case LayoutAlign::Center:
                 cursor = -totalLength / 2.0;
                 break;
             case LayoutAlign::End:
-                cursor = +panelWidth / 2 - totalLength - padding_;
+                cursor = +panelWidth / 2 / panelScale - totalLength - padding_;
                 break;
             case LayoutAlign::SpaceBetween:
                 if (children.size() > 1)
-                    spacing_ = (panelWidth - totalChildrenLength - padding_ * 2) / (children.size() - 1);
-                cursor = -panelWidth / 2 + padding_;
+                    effectiveSpacing = (panelWidth / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
+                cursor = -panelWidth / 2 / panelScale + padding_;
                 break;
         }
 
         for (int i = 0;i < children.size();++ i) {
             Widget* child = children[i];
-            double cx = cursor + child->getWidth() / 2.0;
+            double childWidth = child->getWidth() / panelScale;
+            double cx = cursor + childWidth / 2.0;
             parent.setChildrenOffset(i, {cx, 0});
-            cursor += child->getWidth() + spacing_;
+            cursor += childWidth + effectiveSpacing;
         }
     }
 
     // === 纵向布局 ===
     else {
+        double effectiveSpacing = spacing_;  // 使用局部变量避免修改成员变量
+        
         switch (align_) {
             case LayoutAlign::Start:
-                cursor = -panelHeight / 2 + padding_;
+                cursor = -panelHeight / 2 / panelScale + padding_;
                 break;
             case LayoutAlign::Center:
                 cursor = -totalLength / 2.0;
                 break;
             case LayoutAlign::End:
-                cursor = +panelHeight / 2 - totalLength - padding_;
+                cursor = +panelHeight / 2 / panelScale - totalLength - padding_;
                 break;
             case LayoutAlign::SpaceBetween:
                 if (children.size() > 1)
-                    spacing_ = (panelHeight - totalChildrenLength - padding_ * 2) / (children.size() - 1);
-                cursor = -panelHeight / 2 + padding_;
+                    effectiveSpacing = (panelHeight / panelScale - totalChildrenLength - padding_ * 2) / (children.size() - 1);
+                cursor = -panelHeight / 2 / panelScale + padding_;
                 break;
         }
 
         for (int i = 0;i < children.size();++ i) {
             Widget* child = children[i];
-            double cy = cursor + child->getHeight() / 2.0;
+            double childHeight = child->getHeight() / panelScale;
+            double cy = cursor + childHeight / 2.0;
             parent.setChildrenOffset(i, {0, cy});
-            cursor += child->getHeight() + spacing_;
+            cursor += childHeight + effectiveSpacing;
         }
     }
 }
