@@ -127,7 +127,6 @@ void Panel::setScale(double s){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
-    wcout<<width<<L" "<<height<<L"\n";
 }
 
 double Panel::getScale(){
