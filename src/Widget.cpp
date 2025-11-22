@@ -74,7 +74,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
 
     // 绘制自身背景（圆角矩形）
     setfillcolor(bgColor, layer);
-    ege_fillroundrect(0, 0, width, height, radius, layer);
+    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
 
     // 绘制子控件
     for (size_t i = 0; i < children.size(); ++i) {
