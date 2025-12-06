@@ -166,7 +166,7 @@ void Panel::setSize(double w,double h){
     ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
 	
-	setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+	setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -179,7 +179,7 @@ void Panel::clearChildren(){
 
 void Panel::setAlpha(double a) {
     alpha = clamp(a, 0, 255);
-    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -322,8 +322,8 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     ege_enable_aa(true, maskLayer);
     ege_enable_aa(true, bgLayer);
     
-    // 遮罩
-    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+    // 遮罩 - 使用透明白色背景避免PRGB32模式下的黑边问题
+    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGERGBA(255,255,255,255), maskLayer);
     ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -488,7 +488,8 @@ void Button::setScale(double s){
     ege_enable_aa(true,bgLayer);
     ege_enable_aa(true,maskLayer);
     ege_enable_aa(true,btnLayer);
-    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+    // 使用透明白色背景避免PRGB32模式下的黑边问题
+    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
@@ -600,8 +601,8 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     ege_enable_aa(true, btnLayer);
     ege_enable_aa(true, maskLayer);
     ege_enable_aa(true, bgLayer);
-    // 遮罩
-    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+    // 遮罩 - 使用透明白色背景避免PRGB32模式下的黑边问题
+    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGERGBA(255,255,255,255), maskLayer);
     ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
@@ -926,7 +927,8 @@ void InputBox::setScale(double s){
     ege_enable_aa(true,bgLayer);
     ege_enable_aa(true,maskLayer);
     ege_enable_aa(true,btnLayer);
-    setbkcolor_f(EGERGBA(0,0,0,0), maskLayer);
+    // 使用透明白色背景避免PRGB32模式下的黑边问题
+    setbkcolor_f(EGEARGB(0, 255, 255, 255), maskLayer);
     cleardevice(maskLayer);
     setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
