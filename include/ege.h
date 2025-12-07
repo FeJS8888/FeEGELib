@@ -1,10 +1,9 @@
 /*********************************************************
- * EGE (Easy Graphics Engine)  24.04
+ * EGE (Easy Graphics Engine)  25.11
  * FileName:    ege.h
  * Website:     https://xege.org
  * Community:   https://club.xege.org
- * GitHub:      https://github.com/wysaid/xege
- * GitHub:      https://github.com/Easy-Graphics-Engine
+ * GitHub:      https://github.com/x-ege/xege
  * Gitee:       https://gitee.com/xege/xege
  * Blog:        https://blog.csdn.net/qq_39151563/article/details/125688290
  * E-Mail:      this@xege.org
@@ -20,15 +19,15 @@
 
 // Easy Graphics Engine Version
 // Calendar Versioning, format: YY.0M.PatchNumber (If the PatchNumber equals 0, the YY.0M format is used.)
-#define EGE_VERSION        "24.04"
-#define EGE_VERSION_MAJOR  24
-#define EGE_VERSION_MINOR  4
+#define EGE_VERSION        "25.11"
+#define EGE_VERSION_MAJOR  25
+#define EGE_VERSION_MINOR  11
 #define EGE_VERSION_PATCH  0
 #define EGE_MAKE_VERSION_NUMBER(major, minor, patch)    ((major) * 10000L + (minor) * 100L + (patch))
 #define EGE_VERSION_NUMBER    EGE_MAKE_VERSION_NUMBER(EGE_VERSION_MAJOR, EGE_VERSION_MINOR, EGE_VERSION_PATCH)
 
 #ifndef __cplusplus
-#error You must use a C++ compiler and ensure that your source files is named with the '.cpp' suffix.
+#error You must use a C++ compiler and ensure that your source files are named with the '.cpp' suffix.
 #endif
 
 #if defined(_INC_CONIO) || defined(_CONIO_H_)
@@ -48,9 +47,9 @@
 #if !defined(EGE_GRAPH_LIB_BUILD) && !defined(EGE_GRAPH_NO_LIB)
 #   ifdef _MSC_VER
 #       pragma comment(lib,"gdiplus.lib")
-#       ifdef _WIN64 // 64 bit libs
-#           pragma comment(lib,"graphics.lib")
-#       else   // 32 bit libs
+#       ifdef _DEBUG
+#           pragma comment(lib,"graphicsd.lib")
+#       else
 #           pragma comment(lib,"graphics.lib")
 #       endif
 #   endif
@@ -255,7 +254,7 @@ enum rendermode_e
 /**
  * @enum graphics_errors
  * @brief Graphics operation error codes
- * 
+ *
  * Defines various error codes that can be returned by graphics operations
  */
 enum graphics_errors
@@ -291,13 +290,13 @@ enum graphics_errors
 /**
  * @enum message_event
  * @brief Message event types
- * 
+ *
  * Defines event types for mouse and keyboard messages, used for message handling
  */
 enum message_event
 {
     MSG_EVENT_UP         = 0x00,    ///< Key/mouse button release event
-    MSG_EVENT_DOWN       = 0x01,    ///< Key/mouse button press event  
+    MSG_EVENT_DOWN       = 0x01,    ///< Key/mouse button press event
     MSG_EVENT_CLICK      = 0x01,    ///< Mouse click event (equivalent to DOWN)
     MSG_EVENT_DBCLICK    = 0x02,    ///< Mouse double-click event
     MSG_EVENT_MOVE       = 0x04,    ///< Mouse move event
@@ -307,7 +306,7 @@ enum message_event
 /**
  * @enum message_mouse
  * @brief Mouse button identifiers
- * 
+ *
  * Defines different mouse buttons, can be combined using bitwise OR operations
  */
 enum message_mouse
@@ -327,7 +326,7 @@ typedef uint32_t color_t;
 /**
  * @enum alpha_type
  * @brief Alpha channel types
- * 
+ *
  * Defines different handling methods for image alpha channels
  */
 enum alpha_type
@@ -352,7 +351,7 @@ enum color_type
 /**
  * @struct ege_point
  * @brief Floating-point coordinate point structure
- * 
+ *
  * Used to represent a point in 2D space with floating-point coordinates
  */
 struct ege_point
@@ -364,7 +363,7 @@ struct ege_point
 /**
  * @struct ege_rect
  * @brief Rectangle area structure
- * 
+ *
  * Used to represent a rectangular area, including position and size information
  */
 struct ege_rect
@@ -378,7 +377,7 @@ struct ege_rect
 /**
  * @struct ege_colpoint
  * @brief Coordinate point structure with color
- * 
+ *
  * Used to represent a 2D coordinate point with color information, commonly used for gradient effects
  */
 struct ege_colpoint
@@ -391,7 +390,7 @@ struct ege_colpoint
 /**
  * @enum COLORS
  * @brief Predefined color constants
- * 
+ *
  * Provides commonly used color constants, defined based on web-safe color standards
  * Color values use RGB format and can be used directly in drawing functions
  */
@@ -544,7 +543,7 @@ EGE_ENUM(COLORS, color_t)
 /**
  * @enum line_styles
  * @brief Line styles
- * 
+ *
  * Defines different styles that can be used when drawing lines
  */
 enum line_styles
@@ -560,7 +559,7 @@ enum line_styles
 /**
  * @struct line_style_type
  * @brief Line style structure
- * 
+ *
  * Describes detailed style attributes of lines
  */
 struct line_style_type
@@ -573,20 +572,20 @@ struct line_style_type
 /**
  * @enum line_cap_type
  * @brief Line cap styles
- * 
+ *
  * Defines the drawing styles for line endpoints
  */
 enum line_cap_type
 {
     LINECAP_FLAT   = 0,     ///< Flat cap
-    LINECAP_SQUARE,         ///< Square cap  
+    LINECAP_SQUARE,         ///< Square cap
     LINECAP_ROUND           ///< Round cap
 };
 
 /**
  * @enum line_join_type
  * @brief Line join styles
- * 
+ *
  * Defines the drawing styles for line connection points
  */
 enum line_join_type
@@ -599,7 +598,7 @@ enum line_join_type
 /**
  * @enum fill_patterns
  * @brief Fill patterns
- * 
+ *
  * Defines different pattern styles that can be used when filling geometric shapes
  */
 enum fill_patterns
@@ -622,7 +621,7 @@ enum fill_patterns
 /**
  * @enum fill_mode
  * @brief Fill modes
- * 
+ *
  * Defines filling algorithms for complex graphics
  */
 enum fill_mode
@@ -635,7 +634,7 @@ enum fill_mode
 /**
  * @enum text_just
  * @brief Text alignment methods
- * 
+ *
  * Defines horizontal and vertical alignment methods for text
  */
 enum text_just
@@ -652,7 +651,7 @@ enum text_just
 /**
  * @struct textsettingstype
  * @brief Text settings structure
- * 
+ *
  * Contains text settings such as font, direction, size and alignment
  */
 struct textsettingstype
@@ -667,13 +666,13 @@ struct textsettingstype
 /**
  * @enum font_styles
  * @brief Font styles
- * 
+ *
  * Defines various font styles, can be combined using bitwise OR operations
  */
 enum font_styles
 {
     FONTSTYLE_BOLD       = 1,   ///< Bold
-    FONTSTYLE_ITALIC     = 2,   ///< Italic  
+    FONTSTYLE_ITALIC     = 2,   ///< Italic
     FONTSTYLE_UNDERLINE  = 4,   ///< Underline
     FONTSTYLE_STRIKEOUT  = 8    ///< Strikeout
 };
@@ -681,7 +680,7 @@ enum font_styles
 /**
  * @enum music_state_flag
  * @brief Music playback state flags
- * 
+ *
  * Defines various states of the music player
  */
 enum music_state_flag
@@ -701,7 +700,7 @@ enum music_state_flag
 /**
  * @enum key_msg_flag
  * @brief Key message flags
- * 
+ *
  * Defines types and state flags for key messages
  */
 enum key_msg_flag
@@ -719,7 +718,7 @@ enum key_msg_flag
 /**
  * @enum key_code_e
  * @brief Keyboard and mouse key codes
- * 
+ *
  * Defines key code values for all detectable keyboard keys and mouse buttons
  * Key code values are based on Windows Virtual Key Codes
  */
@@ -731,7 +730,7 @@ enum key_code_e
     key_mouse_m         = 0x04,     ///< Middle mouse button
     key_mouse_x1        = 0x05,     ///< Mouse X1 button
     key_mouse_x2        = 0x06,     ///< Mouse X2 button
-    
+
     // Special function keys
     key_back            = 0x08,     ///< Backspace key
     key_tab             = 0x09,     ///< Tab key
@@ -801,7 +800,7 @@ enum key_code_e
     key_X               = 0x58,     ///< Letter key X
     key_Y               = 0x59,     ///< Letter key Y
     key_Z               = 0x5a,     ///< Letter key Z
-    
+
     // Windows keys
     key_win_l           = 0x5b,     ///< Left Windows key
     key_win_r           = 0x5c,     ///< Right Windows key
@@ -873,7 +872,7 @@ enum key_code_e
 /**
  * @enum key_msg_e
  * @brief Key message types
- * 
+ *
  * Defines specific types of key events
  */
 enum key_msg_e
@@ -886,7 +885,7 @@ enum key_msg_e
 /**
  * @enum key_flag_e
  * @brief Key state flags
- * 
+ *
  * Defines modifier key states and special flags for key events
  */
 enum key_flag_e
@@ -899,7 +898,7 @@ enum key_flag_e
 /**
  * @struct key_msg
  * @brief Key message structure
- * 
+ *
  * Contains complete key event information
  */
 struct key_msg
@@ -912,7 +911,7 @@ struct key_msg
 /**
  * @enum mouse_msg_e
  * @brief Mouse message types
- * 
+ *
  * Defines specific types of mouse events
  */
 enum mouse_msg_e
@@ -926,7 +925,7 @@ enum mouse_msg_e
 /**
  * @enum mouse_flag_e
  * @brief Mouse state flags
- * 
+ *
  * Defines the states of various mouse buttons and modifier keys in mouse events
  */
 enum mouse_flag_e
@@ -944,7 +943,7 @@ enum mouse_flag_e
 /**
  * @struct mouse_msg
  * @brief Mouse message structure
- * 
+ *
  * Contains complete mouse event information with convenient state query methods
  */
 struct mouse_msg
@@ -982,7 +981,7 @@ struct mouse_msg
 /**
  * @struct MOUSEMSG
  * @brief Legacy mouse message structure (compatibility)
- * 
+ *
  * Provides mouse message format compatible with older versions
  */
 struct MOUSEMSG
@@ -1003,13 +1002,13 @@ struct MOUSEMSG
 /**
  * @struct viewporttype
  * @brief Viewport type structure
- * 
+ *
  * Defines the boundary rectangle of the drawing viewport
  */
 /**
  * @struct viewporttype
  * @brief Viewport type structure
- * 
+ *
  * Defines the boundary rectangle of the drawing viewport
  */
 struct viewporttype
@@ -1024,7 +1023,7 @@ struct viewporttype
 /**
  * @struct ege_transform_matrix
  * @brief 2D transformation matrix
- * 
+ *
  * 3x2 matrix for 2D graphics transformations, supports translation, rotation, scaling, etc.
  */
 struct ege_transform_matrix
@@ -1037,7 +1036,7 @@ struct ege_transform_matrix
 /**
  * @struct ege_path
  * @brief Graphics path
- * 
+ *
  * Used to define complex graphics paths, supporting combinations of lines, curves and other graphic elements
  */
 struct ege_path
@@ -1048,28 +1047,28 @@ private:
 public:
     /// @brief Default constructor
     ege_path();
-    
+
     /// @brief Construct path from point array and type array
     /// @param points Point array
     /// @param types Path type array
     /// @param count Number of points
     ege_path(const ege_point* points, const unsigned char* types, int count);
-    
+
     /// @brief Copy constructor
     /// @param path Path to copy
     ege_path(const ege_path& path);
-    
+
     /// @brief Destructor
     virtual ~ege_path();
 
     /// @brief Get read-only data pointer
     /// @return Constant data pointer
     const void* data() const;
-    
+
     /// @brief Get writable data pointer
     /// @return Data pointer
     void* data();
-    
+
     /// @brief Assignment operator
     /// @param path Path to assign
     /// @return Path reference
@@ -1079,7 +1078,7 @@ public:
 /**
  * @struct msg_createwindow
  * @brief Create window message structure
- * 
+ *
  * Message structure used to pass parameters when creating windows
  */
 struct msg_createwindow
@@ -1139,7 +1138,7 @@ void EGEAPI rotate_point3d_z(VECTOR3D* point, float rad);
 /**
  * @struct VECTOR3D
  * @brief 3D vector structure
- * 
+ *
  * Represents vectors or points in 3D space, provides basic 3D graphics computation functionality
  */
 struct VECTOR3D
@@ -1148,7 +1147,7 @@ struct VECTOR3D
 
     /// @brief Default constructor, initialize to origin
     VECTOR3D() : x(0.0f), y(0.0f), z(0.0f) {}
-    
+
     /// @brief Constructor
     /// @param x x coordinate
     /// @param y y coordinate
@@ -1182,7 +1181,7 @@ struct VECTOR3D
     VECTOR3D  operator& (const VECTOR3D& vector) const;
     /// @brief Vector cross product assignment operator
     VECTOR3D& operator&=(const VECTOR3D& vector);
-    
+
     /// @brief Get vector magnitude
     /// @return Vector magnitude
     float     GetModule() const;
@@ -1224,7 +1223,7 @@ struct VECTOR3D
     /// @param s Start vector (default to positive z-axis)
     /// @return Vector reference
     VECTOR3D&    Rotate  (const VECTOR3D& e, const VECTOR3D& s = VECTOR3D(0.0f, 0.0f, 1.0f));
-    
+
     /// @brief Calculate angle between two vectors
     /// @param e First vector
     /// @param s Second vector (default to positive z-axis)
@@ -1241,7 +1240,7 @@ typedef const IMAGE *PCIMAGE;
 
 /**
  * @brief Set code page
- * 
+ *
  * Set character encoding, affects text processing and display
  * @param codepage Code page, should use EGE_CODEPAGE_XXX constants, default is EGE_CODEPAGE_ANSI
  */
@@ -1249,14 +1248,14 @@ void EGEAPI setcodepage(unsigned int codepage);
 
 /**
  * @brief Get current code page
- * 
+ *
  * @return Currently set code page
  */
 unsigned int EGEAPI getcodepage();
 
 /**
  * @brief Set whether to enable Unicode character messages
- * 
+ *
  * Control whether getkey() function uses UTF-16 encoded character messages
  * @param enable true enables UTF-16, false uses ANSI
  */
@@ -1264,14 +1263,14 @@ void EGEAPI setunicodecharmessage(bool enable);
 
 /**
  * @brief Get Unicode character message setting status
- * 
+ *
  * @return true indicates UTF-16 is enabled, false indicates ANSI is used
  */
 bool EGEAPI getunicodecharmessage();
 
 /**
  * @brief Set initialization mode
- * 
+ *
  * Set default parameters when creating windows
  * @param mode Initialization mode flags
  * @param x Initial window x coordinate (default CW_USEDEFAULT)
@@ -1285,24 +1284,24 @@ inline void setinitmode(int mode, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT)
 
 /**
  * @brief Get current initialization mode
- * 
+ *
  * @return Currently set initialization mode flags
  */
 initmode_flag  EGEAPI getinitmode();
 
 /**
  * @brief Create EGE graphics window and perform environment initialization
- * 
+ *
  * This is the main initialization function of the EGE graphics library, creates and displays graphics window after execution
- * 
+ *
  * @param width Window width (pixels)
  * @param height Window height (pixels)
  * @param mode Initialization mode flags, controls various window attributes
- * 
+ *
  * @code
  * // Create an 800x600 default window
  * initgraph(800, 600, INIT_DEFAULT);
- * 
+ *
  * // Create a borderless topmost window
  * initgraph(640, 480, INIT_NOBORDER | INIT_TOPMOST);
  * @endcode
@@ -1315,10 +1314,10 @@ inline void initgraph(int width, int height, int mode)
 
 /**
  * @brief Create EGE graphics window (simplified version)
- * 
+ *
  * Create graphics window using currently set initialization mode
  * Uses default mode in debug version, shows EGE logo in release version
- * 
+ *
  * @param width Window width (pixels)
  * @param height Window height (pixels)
  */
@@ -1333,9 +1332,9 @@ inline void EGEAPI initgraph(int width, int height)
 
 /**
  * @brief Initialize graphics system (BGI compatible version)
- * 
+ *
  * Provides compatible interface with traditional BGI graphics library
- * 
+ *
  * @param graphdriver Graphics driver type pointer, usually pass DETECT for auto-detection
  * @param graphmode Graphics mode pointer, usually pass 0 for auto-selection
  * @param pathtodriver BGI driver file path, can pass empty string "" if driver file is in current directory
@@ -1344,7 +1343,7 @@ void initgraph(int *graphdriver, int *graphmode, const char *pathtodriver);
 
 /**
  * @brief Close graphics system
- * 
+ *
  * Logically close graphics system
  * After execution, EGE window will be hidden, but resources won't be fully released, is_run() function still returns true (note this)
  * If IMAGE object resources need to be released, delimage function still needs to be called
@@ -1353,7 +1352,7 @@ void EGEAPI closegraph();
 
 /**
  * @brief Check if graphics environment is running
- * 
+ *
  * @return true When EGE graphics environment exists and window is not closed
  * @return false When EGE graphics environment doesn't exist or user clicks close button
  */
@@ -1810,6 +1809,20 @@ color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src);
 color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src, unsigned char srcAlphaFactor);
 
 /**
+ * @brief Convert PRGB32 to ARGB32
+ * @param color PRGB32 color
+ * @return ARGB32 color
+ */
+color_t EGEAPI color_unpremultiply(color_t color);
+
+/**
+ * @brief Convert ARGB32 to PRGB32
+ * @param color ARGB32 color
+ * @return PRGB32 color
+ */
+color_t EGEAPI color_premultiply(color_t color);
+
+/**
  * @brief Convert pixel color types of the image，convert from src color type to dst color type.
 * @details
 * - src == dst, do nothing.
@@ -1817,9 +1830,9 @@ color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src, unsigned char 
 * - ARGB32 --> PRGB32: premultiply alpha
 * - PRGB32 --> ARGB32: unpremultiply alpha
 * - PRGB32 -->  RGB32: unpremultiply alpha and then set alpha to 0xFF
- * @param pimg image
+ * @param pimg Target image to convert
  * @param src Source color type
- * @param dst Destingnation color type
+ * @param dst Destination color type
  */
 void EGEAPI image_convertcolor(PIMAGE pimg, color_type src, color_type dst);
 
@@ -3742,7 +3755,7 @@ int  EGEAPI textheight(wchar_t c, PCIMAGE pimg = NULL);
  * @param width Pointer to receive text display width (pixels)
  * @param height Pointer to receive text display height (pixels)
  * @param pimg Target image pointer, NULL means current ege window
- * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions. 
+ * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions.
  *       Result is affected by current font settings
  */
 void EGEAPI measuretext(const char* text, float* width, float* height, PCIMAGE pimg = NULL);
@@ -3753,7 +3766,7 @@ void EGEAPI measuretext(const char* text, float* width, float* height, PCIMAGE p
  * @param width Pointer to receive text display width (pixels)
  * @param height Pointer to receive text display height (pixels)
  * @param pimg Target image pointer, NULL means current ege window
- * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions. 
+ * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions.
  *       Result is affected by current font settings
  */
 void EGEAPI measuretext(const wchar_t* text, float* width, float* height, PCIMAGE pimg = NULL);
@@ -3764,7 +3777,7 @@ void EGEAPI measuretext(const wchar_t* text, float* width, float* height, PCIMAG
  * @param width Pointer to receive character display width (pixels)
  * @param height Pointer to receive character display height (pixels)
  * @param pimg Target image pointer, NULL means current ege window
- * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions. 
+ * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions.
  *       Result is affected by current font settings
  */
 void EGEAPI measuretext(char c, float* width, float* height, PCIMAGE pimg = NULL);
@@ -3775,7 +3788,7 @@ void EGEAPI measuretext(char c, float* width, float* height, PCIMAGE pimg = NULL
  * @param width Pointer to receive character display width (pixels)
  * @param height Pointer to receive character display height (pixels)
  * @param pimg Target image pointer, NULL means current ege window
- * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions. 
+ * @note Uses GDI+ for precise measurement, suitable for ege_ text rendering functions.
  *       Result is affected by current font settings
  */
 void EGEAPI measuretext(wchar_t c, float* width, float* height, PCIMAGE pimg = NULL);
@@ -3992,10 +4005,10 @@ void EGEAPI getfont(LOGFONTA *font, PCIMAGE pimg = NULL);
  * @brief Get width of window or image
  * @param pimg Image object pointer, NULL means get width of current drawing window
  * @return Returns width of window or image (pixels), returns 0 if image object is invalid
- * 
+ *
  * This function is used to get the width of the specified image or window. When pimg is NULL,
  * it returns the width of the current EGE drawing window; when pimg points to a valid image, it returns the width of that image.
- * 
+ *
  * @see getheight() Get height
  * @see getx() Get current x coordinate
  * @see gety() Get current y coordinate
@@ -4006,10 +4019,10 @@ int EGEAPI getwidth(PCIMAGE pimg = NULL);
  * @brief Get height of window or image
  * @param pimg Image object pointer, NULL means get height of current drawing window
  * @return Returns height of window or image (pixels), returns 0 if image object is invalid
- * 
+ *
  * This function is used to get the height of the specified image or window. When pimg is NULL,
  * it returns the height of the current EGE drawing window; when pimg points to a valid image, it returns the height of that image.
- * 
+ *
  * @see getwidth() Get width
  * @see getx() Get current x coordinate
  * @see gety() Get current y coordinate
@@ -4020,10 +4033,10 @@ int EGEAPI getheight(PCIMAGE pimg = NULL);
  * @brief Get x coordinate of current pen position
  * @param pimg Image object pointer, NULL means get pen position of current drawing window
  * @return Returns x coordinate of current pen position, returns -1 if image object is invalid
- * 
+ *
  * Get the x coordinate of the current drawing position. The pen position is usually set by functions like moveto(), lineto(),
  * or changed by the execution of drawing functions (like line()).
- * 
+ *
  * @see gety() Get current y coordinate
  * @see moveto() Move pen to specified position
  * @see getwidth() Get width
@@ -4035,10 +4048,10 @@ int EGEAPI getx(PCIMAGE pimg = NULL);
  * @brief Get y coordinate of current pen position
  * @param pimg Image object pointer, NULL means get pen position of current drawing window
  * @return Returns y coordinate of current pen position, returns -1 if image object is invalid
- * 
+ *
  * Get the y coordinate of the current drawing position. The pen position is usually set by functions like moveto(), lineto(),
  * or changed by the execution of drawing functions (like line()).
- * 
+ *
  * @see getx() Get current x coordinate
  * @see moveto() Move pen to specified position
  * @see getwidth() Get width
@@ -4049,13 +4062,13 @@ int EGEAPI gety(PCIMAGE pimg = NULL);
 /**
  * @brief Create a new image object (1x1 pixels)
  * @return Returns pointer to newly created image object, returns NULL on failure
- * 
+ *
  * Creates an image object with size 1x1 pixels, background color is black.
  * The created image needs to be destroyed using delimage() function to prevent memory leaks.
- * 
+ *
  * @note This function creates the minimum size image, usually used for subsequent resizing or as placeholder
  * @warning Must use delimage() to destroy the created image, otherwise it will cause memory leaks
- * 
+ *
  * @see newimage(int, int) Create image with specified size
  * @see delimage() Destroy image object
  * @see resize() Resize image
@@ -4067,13 +4080,13 @@ PIMAGE         EGEAPI newimage();
  * @param width Image width (pixels), automatically adjusted to 1 if less than 1
  * @param height Image height (pixels), automatically adjusted to 1 if less than 1
  * @return Returns pointer to newly created image object, returns NULL on failure
- * 
+ *
  * Creates an image object with specified size, background color is black.
  * If the specified width or height is less than 1, it will be automatically adjusted to 1.
  * The created image needs to be destroyed using delimage() function to prevent memory leaks.
- * 
+ *
  * @warning Must use delimage() to destroy the created image, otherwise it will cause memory leaks
- * 
+ *
  * @see newimage() Create 1x1 pixel image
  * @see delimage() Destroy image object
  * @see resize() Resize image
@@ -4083,13 +4096,13 @@ PIMAGE         EGEAPI newimage(int width, int height);
 /**
  * @brief Destroy image object and free memory
  * @param pimg Image object pointer to destroy, ignored if NULL
- * 
+ *
  * Destroys image object created by newimage() function, freeing related memory and system resources.
  * The image pointer should not be used after destruction.
- * 
+ *
  * @note Passing NULL pointer is safe, the function will ignore NULL parameter
  * @warning Do not use the image pointer after destroying the image, otherwise it may cause program crash
- * 
+ *
  * @see newimage() Create image object
  * @see newimage(int, int) Create image object with specified size
  */
@@ -4100,13 +4113,13 @@ void           EGEAPI delimage(PCIMAGE pimg);
 /**
  * @defgroup image_management Image management and processing functions
  * @brief Image creation, loading, saving and processing functionality of EGE graphics library
- * 
+ *
  * The image management module provides complete image operation capabilities, including:
  * - Image buffer operations: getbuffer() get pixel buffer
  * - Image resizing: resize(), resize_f() adjust image size
  * - Image acquisition: getimage() series functions to get image data from different sources
  * - Image saving: saveimage(), savepng(), savebmp() save images to files
- * 
+ *
  * Supported image formats: PNG, BMP, JPG, GIF, EMF, WMF, ICO
  * Support getting images from window, file, resource, other IMAGE objects
  * @{
@@ -4265,13 +4278,13 @@ int  EGEAPI getimage_pngfile(PIMAGE pimg, const wchar_t* filename);
 /**
  * @defgroup putimage_functions putimage series functions
  * @brief Core image drawing functionality of EGE graphics library
- * 
+ *
  * putimage series functions provide rich image drawing and processing capabilities, including:
  * - Basic image drawing: putimage() series overloaded functions
  * - Transparency effects: putimage_transparent(), putimage_alphablend(), putimage_withalpha()
  * - Blending effects: putimage_alphatransparent(), putimage_alphafilter()
  * - Transform effects: putimage_rotate(), putimage_rotatezoom(), putimage_rotatetransparent()
- * 
+ *
  * These functions support multiple drawing modes:
  * - Draw to screen (imgDest = NULL) or another image
  * - Support region clipping, stretch scaling, rotation transformation
@@ -4459,7 +4472,7 @@ int EGEAPI putimage_transparent(
     color_t transparentColor,   // color to make transparent
     int xSrc = 0,               // x-coord of source upper-left corner
     int ySrc = 0,               // y-coord of source upper-left corner
-    int widthSrc = 0,           // width of source rectangle    
+    int widthSrc = 0,           // width of source rectangle
     int heightSrc = 0           // height of source rectangle
 );
 
@@ -4964,14 +4977,34 @@ int     EGEAPI kbhitEx(int flag);
 
 /**
  * @brief Determine if a certain key on keyboard or mouse is in pressed state
- * @param key Key code to detect, see key_code_e enumeration
+ * @param key Key code to detect. @see key_code_e
  * @return Non-zero value indicates key is pressed, 0 indicates not pressed, -1 indicates parameter error
  * @note Real-time key state detection, does not consume message queue; supports keyboard and mouse keys
- * @see key_code_e
  */
 bool    EGEAPI keystate(int key);
+
+/**
+ * @brief Returns the count of key presses since the last check
+ * @param key The key code to check. @see key_code_e
+ * @return the count of key presses since the last check
+ * @note After checking, the press count for the corresponding key will be cleared
+ */
 int     EGEAPI keypress(int key);
+
+/**
+ * @brief Returns the count of key releases since the last check
+ * @param key The key code to check. @see key_code_e
+ * @return the count of key releases since the last check
+ * @note After checking, the release count for the corresponding key will be cleared
+ */
 int     EGEAPI keyrelease(int key);
+
+/**
+ * @brief Returns the count of key repeats triggered by long presses since the last check
+ * @param key The key code to check. @see key_code_e
+ * @return The count of key repeats triggered by long presses since the last check
+ * @note After checking, the repeat count for the corresponding key will be cleared
+ */
 int     EGEAPI keyrepeat(int key);
 
 
@@ -5100,7 +5133,7 @@ return zero means process this message, otherwise means pass it and then process
 callback function define as:
 int __stdcall on_msg_mouse(void* param, unsigned msg, int key, int x, int y);
 msg: see 'enum message_event'
-key: see 'enum message_mouse', if msg==MSG_EVENT_WHELL, key is a int number that indicates the distance the wheel is rotated, expressed in multiples or divisions of WHEEL_DELTA, which is 120.
+key: see 'enum message_mouse', if msg==MSG_EVENT_WHEEL, key is a int number that indicates the distance the wheel is rotated, expressed in multiples or divisions of WHEEL_DELTA, which is 120.
 x,y: current mouse (x, y)
 return zero means process this message, otherwise means pass it and then process with 'GetMouseMsg' function
 */
@@ -5109,10 +5142,10 @@ int EGEAPI SetCloseHandler(LPCALLBACK_PROC func);
 
 /**
  * @brief Music playback class
- * 
+ *
  * MUSIC class provides music playback functionality based on Windows Media Control Interface (MCI),
  * supports playing various audio formats such as WAV, MP3, MIDI, etc.
- * 
+ *
  * @note This class is based on Windows MCI implementation, only supports Windows platform
  * @note Supported audio formats include: WAV, MP3, MIDI, etc.
  * @see music_state_flag, MUSIC_ERROR
@@ -5125,7 +5158,7 @@ public:
      * @note Initializes music player, sets initial state to not opened
      */
     MUSIC();
-    
+
     /**
      * @brief Destructor
      * @note Automatically closes opened music file and cleans up resources
@@ -5156,7 +5189,7 @@ public:
      * @see OpenFile(const wchar_t*), Close()
      */
     DWORD OpenFile(const char* filepath);
-    
+
     /**
      * @brief Open music file (Unicode version)
      * @param filepath Music file path (including filename)
@@ -5166,7 +5199,7 @@ public:
      * @see OpenFile(const char*), Close()
      */
     DWORD OpenFile(const wchar_t* filepath);
-    
+
     /**
      * @brief Play music
      * @param dwFrom Start position for playback (milliseconds), default is MUSIC_ERROR (continue playing)
@@ -5177,7 +5210,7 @@ public:
      * @see Pause(), Stop(), RepeatPlay()
      */
     DWORD Play(DWORD dwFrom = MUSIC_ERROR, DWORD dwTo = MUSIC_ERROR);
-    
+
     /**
      * @brief Loop play music
      * @param dwFrom Start position for playback (milliseconds), default is MUSIC_ERROR
@@ -5187,7 +5220,7 @@ public:
      * @see Play(), Pause(), Stop()
      */
     DWORD RepeatPlay(DWORD dwFrom = MUSIC_ERROR, DWORD dwTo = MUSIC_ERROR);
-    
+
     /**
      * @brief Pause playback
      * @return Returns 0 on success, non-zero on failure
@@ -5195,7 +5228,7 @@ public:
      * @see Play(), Stop()
      */
     DWORD Pause();
-    
+
     /**
      * @brief Seek to playback position
      * @param dwTo Target playback position (milliseconds)
@@ -5205,7 +5238,7 @@ public:
      * @see Play()
      */
     DWORD Seek(DWORD dwTo);
-    
+
     /**
      * @brief Set playback volume
      * @param value Volume level, range 0.0~1.0
@@ -5213,7 +5246,7 @@ public:
      * @note 0.0 is mute, 1.0 is maximum volume
      */
     DWORD SetVolume(float value);
-    
+
     /**
      * @brief Close music file
      * @return Returns 0 on success, non-zero on failure
@@ -5221,7 +5254,7 @@ public:
      * @see OpenFile()
      */
     DWORD Close();
-    
+
     /**
      * @brief Stop playback
      * @return Returns 0 on success, non-zero on failure
@@ -5229,7 +5262,7 @@ public:
      * @see Play(), Pause()
      */
     DWORD Stop();
-    
+
     /**
      * @brief Get current playback position
      * @return Current playback position (milliseconds)
@@ -5237,7 +5270,7 @@ public:
      * @see GetLength(), GetPlayStatus()
      */
     DWORD GetPosition();
-    
+
     /**
      * @brief Get total music duration
      * @return Total music duration (milliseconds)

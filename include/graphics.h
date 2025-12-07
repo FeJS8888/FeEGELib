@@ -1,14 +1,11 @@
 /*********************************************************
- * EGE (Easy Graphics Engine)  24.04
+ * EGE (Easy Graphics Engine)  25.11
  * FileName:    graphics.h
  * Website:     https://xege.org
  * Community:   https://club.xege.org
- * GitHub:      https://github.com/wysaid/xege
- * GitHub:      https://github.com/Easy-Graphics-Engine
+ * GitHub:      https://github.com/x-ege/xege
  * Gitee:       https://gitee.com/xege/xege
- * Blog:        https://wysaid.org
- * E-Mail:      this@wysaid.org
- * E-Mail:      misakamm@gmail.com
+ * E-Mail:      this@xege.org
  *
  *********************************************************/
 
