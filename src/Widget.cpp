@@ -69,7 +69,8 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     
     // 总是清空并重绘（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
-    setbkcolor_f(EGEACOLOR(0,bgColor), layer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
     cleardevice(layer);
 
     // 绘制自身背景（圆角矩形）
@@ -342,7 +343,8 @@ void Button::draw(PIMAGE dst,int x,int y){
         putimage_withalpha(dst,bgLayer,left,top);
         return;
     }
-    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
 
     // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
@@ -375,7 +377,8 @@ void Button::draw(PIMAGE dst,int x,int y){
                  content.c_str(), btnLayer);
     
     // 应用遮罩绘制
-    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
@@ -657,7 +660,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         (this->content.substr(0,cursor_pos) + IMECompositionString + this->content.substr(cursor_pos)) : 
         (this->content);
         
-    setbkcolor_f(EGEACOLOR(0,color), btnLayer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
 
     // 按钮背景
@@ -750,7 +754,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     // 应用遮罩绘制
-    setbkcolor_f(EGEACOLOR(0,color), bgLayer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
@@ -1419,7 +1424,8 @@ void ProgressBar::draw(PIMAGE dst, int x, int y) {
     }
 
     // 重绘
-    setbkcolor_f(EGEACOLOR(0, bgColor), barLayer);
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), barLayer);
     cleardevice(barLayer);
 
     setfillcolor(bgColor, barLayer);
