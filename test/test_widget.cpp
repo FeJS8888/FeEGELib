@@ -65,7 +65,7 @@ int main() {
     .setCenter(400,425)
     .setOnChange([=](double f){
         loginPanel->setScale(f);
-    }
+    })
     .build();
 
     assignOrder({loginPanel,ss});
