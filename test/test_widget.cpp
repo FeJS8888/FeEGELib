@@ -60,7 +60,15 @@ int main() {
         .setBackground(EGERGB(250, 250, 250))
         .build();
 
-    assignOrder({loginPanel});
+    Slider* ss = SliderBuilder()
+        .setSize(400,35)
+    .setCenter(400,425)
+    .setOnChange([=](double f){
+        loginPanel->setScale(f);
+    }
+    .build();
+
+    assignOrder({loginPanel,ss});
 
     start();
     
