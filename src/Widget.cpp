@@ -69,6 +69,24 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
+    // 性能优化：在缩放变化时使用跳帧机制
+    bool isScaling = (scaleChangeFrameCounter > 0 && scaleChangeFrameCounter < REDRAW_SKIP_FRAMES);
+    
+    if (isScaling) {
+        // 使用缩放绘制中间帧，避免重新创建图像
+        scaleChangeFrameCounter++;
+        double scaleRatio = targetScale / cachedScale;
+        int scaledWidth = width / scaleRatio;
+        int scaledHeight = height / scaleRatio;
+        putimage_withalpha(dst, layer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        return;
+    }
+    
+    // 到达跳帧阈值，重置计数器
+    if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES) {
+        scaleChangeFrameCounter = 0;
+    }
+    
     // 总是清空并重绘（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
@@ -110,27 +128,43 @@ Position Panel::getPosition(){
 }
 
 void Panel::setScale(double s){
+	if(sgn(scale - s) == 0) return;
+	
+	// 保存当前缩放比例作为缓存
+	cachedScale = scale;
+	targetScale = s;
+	
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
 	scale = s;
+	
 	for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setScale(s);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(layer) delimage(layer);
-    layer = newimage(width,height);
-    ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
+	// 启动跳帧机制：延迟重建图像
+	scaleChangeFrameCounter = 1;
+	
+	// 只有在计数器达到阈值时才重建图像
+	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+		if(maskLayer) delimage(maskLayer);
+		maskLayer = newimage(width,height);
+		if(layer) delimage(layer);
+		layer = newimage(width,height);
+		ege_enable_aa(true,layer);
+		ege_enable_aa(true,maskLayer);
 
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+		cleardevice(maskLayer);
+		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+		ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+		
+		cachedScale = s;
+		scaleChangeFrameCounter = 0;
+	}
 }
 
 double Panel::getScale(){
@@ -344,10 +378,30 @@ Button::~Button() {
 void Button::draw(PIMAGE dst,int x,int y){
     int left = x - width / 2;
     int top = y - height / 2;
-    if(!ripples.size() && !needRedraw){
+    
+    // 性能优化：在缩放变化时使用跳帧机制
+    bool isScaling = (scaleChangeFrameCounter > 0 && scaleChangeFrameCounter < REDRAW_SKIP_FRAMES);
+    
+    if(!ripples.size() && !needRedraw && !isScaling){
         putimage_withalpha(dst,bgLayer,left,top);
         return;
     }
+    
+    if (isScaling && !needRedraw) {
+        // 使用缩放绘制中间帧，避免重新创建图像
+        scaleChangeFrameCounter++;
+        double scaleRatio = targetScale / cachedScale;
+        int scaledWidth = width / scaleRatio;
+        int scaledHeight = height / scaleRatio;
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        return;
+    }
+    
+    // 到达跳帧阈值，重置计数器
+    if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES) {
+        scaleChangeFrameCounter = 0;
+    }
+    
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
@@ -480,28 +534,44 @@ void Button::setPosition(int x,int y){
 
 void Button::setScale(double s){
     if(sgn(scale - s) == 0) return;
+	
+	// 保存当前缩放比例作为缓存
+	cachedScale = scale;
+	targetScale = s;
+	
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;
+    
+    // 启动跳帧机制：延迟重建图像
+	scaleChangeFrameCounter = 1;
+	
+	// 只有在计数器达到阈值时才重建图像
+	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+		// 遮罩
+		if(maskLayer) delimage(maskLayer);
+		maskLayer = newimage(width,height);
+		if(btnLayer) delimage(btnLayer);
+		btnLayer = newimage(width,height);
+		if(bgLayer) delimage(bgLayer);
+		bgLayer = newimage(width,height);
+		ege_enable_aa(true,bgLayer);
+		ege_enable_aa(true,maskLayer);
+		ege_enable_aa(true,btnLayer);
+		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+		cleardevice(maskLayer);
+		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+		ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+		
+		cachedScale = s;
+		scaleChangeFrameCounter = 0;
+	}
+	
+	needRedraw = true;
 }
 
 void Button::setIcon(PIMAGE img){
@@ -656,9 +726,27 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         setContent(str);
     }
     
-    if(!on_focus && !ripples.size() && !needRedraw){
+    // 性能优化：在缩放变化时使用跳帧机制
+    bool isScaling = (scaleChangeFrameCounter > 0 && scaleChangeFrameCounter < REDRAW_SKIP_FRAMES);
+    
+    if(!on_focus && !ripples.size() && !needRedraw && !isScaling){
         putimage_withalpha(dst, bgLayer, left, top);
         return;
+    }
+    
+    if (isScaling && !needRedraw && !on_focus) {
+        // 使用缩放绘制中间帧，避免重新创建图像
+        scaleChangeFrameCounter++;
+        double scaleRatio = targetScale / cachedScale;
+        int scaledWidth = width / scaleRatio;
+        int scaledHeight = height / scaleRatio;
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        return;
+    }
+    
+    // 到达跳帧阈值，重置计数器
+    if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES) {
+        scaleChangeFrameCounter = 0;
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -921,28 +1009,44 @@ void InputBox::setPosition(int x,int y){
 
 void InputBox::setScale(double s){
     if(sgn(scale - s) == 0) return;
+	
+	// 保存当前缩放比例作为缓存
+	cachedScale = scale;
+	targetScale = s;
+	
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;
+    
+    // 启动跳帧机制：延迟重建图像
+	scaleChangeFrameCounter = 1;
+	
+	// 只有在计数器达到阈值时才重建图像
+	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+		// 遮罩
+		if(maskLayer) delimage(maskLayer);
+		maskLayer = newimage(width,height);
+		if(btnLayer) delimage(btnLayer);
+		btnLayer = newimage(width,height);
+		if(bgLayer) delimage(bgLayer);
+		bgLayer = newimage(width,height);
+		ege_enable_aa(true,bgLayer);
+		ege_enable_aa(true,maskLayer);
+		ege_enable_aa(true,btnLayer);
+		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+		cleardevice(maskLayer);
+		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+		ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+		
+		cachedScale = s;
+		scaleChangeFrameCounter = 0;
+	}
+	
+	needRedraw = true;
     scaleChanged = true;
 }
 

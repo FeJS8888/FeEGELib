@@ -206,7 +206,14 @@ private:
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
-    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象}
+    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象
+    
+    // Performance optimization: frame skipping for scale changes
+    int scaleChangeFrameCounter = 0;    ///< 缩放变化后的帧计数器
+    double cachedScale = 1.0;           ///< 缓存的缩放比例
+    double targetScale = 1.0;           ///< 目标缩放比例
+    static constexpr int REDRAW_SKIP_FRAMES = 3;  ///< 跳过的帧数
+}
 };
 
 
@@ -297,6 +304,12 @@ private:
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
+    
+    // Performance optimization: frame skipping for scale changes
+    int scaleChangeFrameCounter = 0;            ///< 缩放变化后的帧计数器
+    double cachedScale = 1.0;                   ///< 缓存的缩放比例
+    double targetScale = 1.0;                   ///< 目标缩放比例
+    static constexpr int REDRAW_SKIP_FRAMES = 3;  ///< 跳过的帧数
 
 public:
     /**
@@ -477,6 +490,12 @@ private:
     float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
     float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
     float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
+    
+    // Performance optimization: frame skipping for scale changes
+    int scaleChangeFrameCounter = 0;    ///< 缩放变化后的帧计数器
+    double cachedScale = 1.0;           ///< 缓存的缩放比例
+    double targetScale = 1.0;           ///< 目标缩放比例
+    static constexpr int REDRAW_SKIP_FRAMES = 3;  ///< 跳过的帧数
 
 public:
     /**
