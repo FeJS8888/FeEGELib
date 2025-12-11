@@ -132,7 +132,6 @@ void Panel::setScale(double s){
 	
 	// 保存当前缩放比例作为缓存
 	double oldCachedScale = cachedScale;
-	cachedScale = scale;
 	targetScale = s;
 	
 	width = origin_width * s;
@@ -160,10 +159,12 @@ void Panel::setScale(double s){
 		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
 		ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 		
+		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
 		// 启动跳帧机制：延迟重建图像
+		// 保持cachedScale不变，它代表当前图像的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 }
@@ -538,7 +539,6 @@ void Button::setScale(double s){
 	
 	// 保存当前缩放比例作为缓存
 	double oldCachedScale = cachedScale;
-	cachedScale = scale;
 	targetScale = s;
 	
 	width = origin_width * s;
@@ -566,10 +566,12 @@ void Button::setScale(double s){
 		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
 		ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
 		
+		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
 		// 启动跳帧机制：延迟重建图像
+		// 保持cachedScale不变，它代表当前图像的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 	
@@ -1014,7 +1016,6 @@ void InputBox::setScale(double s){
 	
 	// 保存当前缩放比例作为缓存
 	double oldCachedScale = cachedScale;
-	cachedScale = scale;
 	targetScale = s;
 	
 	width = origin_width * s;
@@ -1042,10 +1043,12 @@ void InputBox::setScale(double s){
 		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
 		ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
 		
+		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
 		// 启动跳帧机制：延迟重建图像
+		// 保持cachedScale不变，它代表当前图像的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 	
