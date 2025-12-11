@@ -72,7 +72,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     // 性能优化：在缩放变化时使用跳帧机制
     bool isScaling = (scaleChangeFrameCounter > 0 && scaleChangeFrameCounter < REDRAW_SKIP_FRAMES);
     
-    if (isScaling) {
+    if (isScaling && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
         double scaleRatio = targetScale / cachedScale;
@@ -131,6 +131,7 @@ void Panel::setScale(double s){
 	if(sgn(scale - s) == 0) return;
 	
 	// 保存当前缩放比例作为缓存
+	double oldCachedScale = cachedScale;
 	cachedScale = scale;
 	targetScale = s;
 	
@@ -144,11 +145,8 @@ void Panel::setScale(double s){
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-	// 启动跳帧机制：延迟重建图像
-	scaleChangeFrameCounter = 1;
-	
-	// 只有在计数器达到阈值时才重建图像
-	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+	// 首次调用或缓存无效时立即重建图像
+	if (oldCachedScale <= 0 || layer == nullptr || maskLayer == nullptr) {
 		if(maskLayer) delimage(maskLayer);
 		maskLayer = newimage(width,height);
 		if(layer) delimage(layer);
@@ -164,6 +162,9 @@ void Panel::setScale(double s){
 		
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
+	} else {
+		// 启动跳帧机制：延迟重建图像
+		scaleChangeFrameCounter = 1;
 	}
 }
 
@@ -387,7 +388,7 @@ void Button::draw(PIMAGE dst,int x,int y){
         return;
     }
     
-    if (isScaling && !needRedraw) {
+    if (isScaling && !needRedraw && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
         double scaleRatio = targetScale / cachedScale;
@@ -536,6 +537,7 @@ void Button::setScale(double s){
     if(sgn(scale - s) == 0) return;
 	
 	// 保存当前缩放比例作为缓存
+	double oldCachedScale = cachedScale;
 	cachedScale = scale;
 	targetScale = s;
 	
@@ -546,11 +548,8 @@ void Button::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     
-    // 启动跳帧机制：延迟重建图像
-	scaleChangeFrameCounter = 1;
-	
-	// 只有在计数器达到阈值时才重建图像
-	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+    // 首次调用或缓存无效时立即重建图像
+	if (oldCachedScale <= 0 || btnLayer == nullptr || maskLayer == nullptr || bgLayer == nullptr) {
 		// 遮罩
 		if(maskLayer) delimage(maskLayer);
 		maskLayer = newimage(width,height);
@@ -569,6 +568,9 @@ void Button::setScale(double s){
 		
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
+	} else {
+		// 启动跳帧机制：延迟重建图像
+		scaleChangeFrameCounter = 1;
 	}
 	
 	needRedraw = true;
@@ -734,7 +736,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         return;
     }
     
-    if (isScaling && !needRedraw && !on_focus) {
+    if (isScaling && !needRedraw && !on_focus && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
         double scaleRatio = targetScale / cachedScale;
@@ -1011,6 +1013,7 @@ void InputBox::setScale(double s){
     if(sgn(scale - s) == 0) return;
 	
 	// 保存当前缩放比例作为缓存
+	double oldCachedScale = cachedScale;
 	cachedScale = scale;
 	targetScale = s;
 	
@@ -1021,11 +1024,8 @@ void InputBox::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     
-    // 启动跳帧机制：延迟重建图像
-	scaleChangeFrameCounter = 1;
-	
-	// 只有在计数器达到阈值时才重建图像
-	if (scaleChangeFrameCounter >= REDRAW_SKIP_FRAMES || cachedScale <= 0) {
+    // 首次调用或缓存无效时立即重建图像
+	if (oldCachedScale <= 0 || btnLayer == nullptr || maskLayer == nullptr || bgLayer == nullptr) {
 		// 遮罩
 		if(maskLayer) delimage(maskLayer);
 		maskLayer = newimage(width,height);
@@ -1044,6 +1044,9 @@ void InputBox::setScale(double s){
 		
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
+	} else {
+		// 启动跳帧机制：延迟重建图像
+		scaleChangeFrameCounter = 1;
 	}
 	
 	needRedraw = true;
