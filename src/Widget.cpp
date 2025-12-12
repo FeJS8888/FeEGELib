@@ -75,11 +75,16 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     if (isScaling && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
+        // 创建临时图像用于缩放后的内容
+        PIMAGE tempLayer = newimage(width, height);
         // 源图像尺寸（缓存图像的实际大小）
         int srcWidth = getwidth(layer);
         int srcHeight = getheight(layer);
-        // 目标绘制尺寸（当前控件大小）
-        putimage_withalpha(dst, layer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
+        // 将缓存的layer缩放到临时图像
+        putimage_withalpha(tempLayer, layer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        // 应用当前尺寸的maskLayer并绘制到目标
+        putimage_alphafilter(dst, tempLayer, left, top, maskLayer, 0, 0, -1, -1);
+        delimage(tempLayer);
         return;
     }
     
@@ -145,27 +150,28 @@ void Panel::setScale(double s){
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-	// 首次调用或缓存无效时立即重建图像
-	if (oldCachedScale <= 0 || layer == nullptr || maskLayer == nullptr) {
-		if(maskLayer) delimage(maskLayer);
-		maskLayer = newimage(width,height);
+	// 总是立即重建maskLayer（轻量级操作）
+	if(maskLayer) delimage(maskLayer);
+	maskLayer = newimage(width,height);
+	ege_enable_aa(true,maskLayer);
+	// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+	cleardevice(maskLayer);
+	setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+	ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+	
+	// 首次调用或缓存无效时立即重建layer
+	if (oldCachedScale <= 0 || layer == nullptr) {
 		if(layer) delimage(layer);
 		layer = newimage(width,height);
 		ege_enable_aa(true,layer);
-		ege_enable_aa(true,maskLayer);
-
-		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-		cleardevice(maskLayer);
-		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-		ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 		
 		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
-		// 启动跳帧机制：延迟重建图像
-		// 保持cachedScale不变，它代表当前图像的缩放比例
+		// 启动跳帧机制：延迟重建layer
+		// 保持cachedScale不变，它代表当前layer的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 }
@@ -391,13 +397,22 @@ void Button::draw(PIMAGE dst,int x,int y){
     }
     
     if (isScaling && !needRedraw && cachedScale > 0) {
-        // 使用缩放绘制中间帧，避免重新创建图像
+        // 使用缩放绘制中间帧，避免重新创建btnLayer
         scaleChangeFrameCounter++;
+        // 创建临时图像用于缩放后的内容
+        PIMAGE tempLayer = newimage(width, height);
         // 源图像尺寸（缓存图像的实际大小）
-        int srcWidth = getwidth(bgLayer);
-        int srcHeight = getheight(bgLayer);
-        // 目标绘制尺寸（当前控件大小）
-        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
+        int srcWidth = getwidth(btnLayer);
+        int srcHeight = getheight(btnLayer);
+        // 将缓存的btnLayer缩放到临时图像
+        putimage_withalpha(tempLayer, btnLayer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        // 应用当前尺寸的maskLayer到bgLayer
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
+        cleardevice(bgLayer);
+        putimage_alphafilter(bgLayer, tempLayer, 0, 0, maskLayer, 0, 0, -1, -1);
+        // 绘制到目标
+        putimage_withalpha(dst, bgLayer, left, top);
+        delimage(tempLayer);
         return;
     }
     
@@ -550,30 +565,31 @@ void Button::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     
-    // 首次调用或缓存无效时立即重建图像
-	if (oldCachedScale <= 0 || btnLayer == nullptr || maskLayer == nullptr || bgLayer == nullptr) {
-		// 遮罩
-		if(maskLayer) delimage(maskLayer);
-		maskLayer = newimage(width,height);
+    // 总是立即重建maskLayer和bgLayer（轻量级操作）
+	if(maskLayer) delimage(maskLayer);
+	maskLayer = newimage(width,height);
+	if(bgLayer) delimage(bgLayer);
+	bgLayer = newimage(width,height);
+	ege_enable_aa(true,bgLayer);
+	ege_enable_aa(true,maskLayer);
+	// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+	cleardevice(maskLayer);
+	setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+	ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+	
+    // 首次调用或缓存无效时立即重建btnLayer
+	if (oldCachedScale <= 0 || btnLayer == nullptr) {
 		if(btnLayer) delimage(btnLayer);
 		btnLayer = newimage(width,height);
-		if(bgLayer) delimage(bgLayer);
-		bgLayer = newimage(width,height);
-		ege_enable_aa(true,bgLayer);
-		ege_enable_aa(true,maskLayer);
 		ege_enable_aa(true,btnLayer);
-		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-		cleardevice(maskLayer);
-		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-		ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
 		
 		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
-		// 启动跳帧机制：延迟重建图像
-		// 保持cachedScale不变，它代表当前图像的缩放比例
+		// 启动跳帧机制：延迟重建btnLayer
+		// 保持cachedScale不变，它代表当前btnLayer的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 	
@@ -741,13 +757,22 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if (isScaling && !needRedraw && !on_focus && cachedScale > 0) {
-        // 使用缩放绘制中间帧，避免重新创建图像
+        // 使用缩放绘制中间帧，避免重新创建btnLayer
         scaleChangeFrameCounter++;
+        // 创建临时图像用于缩放后的内容
+        PIMAGE tempLayer = newimage(width, height);
         // 源图像尺寸（缓存图像的实际大小）
-        int srcWidth = getwidth(bgLayer);
-        int srcHeight = getheight(bgLayer);
-        // 目标绘制尺寸（当前控件大小）
-        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
+        int srcWidth = getwidth(btnLayer);
+        int srcHeight = getheight(btnLayer);
+        // 将缓存的btnLayer缩放到临时图像
+        putimage_withalpha(tempLayer, btnLayer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        // 应用当前尺寸的maskLayer到bgLayer
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
+        cleardevice(bgLayer);
+        putimage_alphafilter(bgLayer, tempLayer, 0, 0, maskLayer, 0, 0, -1, -1);
+        // 绘制到目标
+        putimage_withalpha(dst, bgLayer, left, top);
+        delimage(tempLayer);
         return;
     }
     
@@ -1028,30 +1053,31 @@ void InputBox::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     
-    // 首次调用或缓存无效时立即重建图像
-	if (oldCachedScale <= 0 || btnLayer == nullptr || maskLayer == nullptr || bgLayer == nullptr) {
-		// 遮罩
-		if(maskLayer) delimage(maskLayer);
-		maskLayer = newimage(width,height);
+    // 总是立即重建maskLayer和bgLayer（轻量级操作）
+	if(maskLayer) delimage(maskLayer);
+	maskLayer = newimage(width,height);
+	if(bgLayer) delimage(bgLayer);
+	bgLayer = newimage(width,height);
+	ege_enable_aa(true,bgLayer);
+	ege_enable_aa(true,maskLayer);
+	// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+	cleardevice(maskLayer);
+	setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+	ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+	
+    // 首次调用或缓存无效时立即重建btnLayer
+	if (oldCachedScale <= 0 || btnLayer == nullptr) {
 		if(btnLayer) delimage(btnLayer);
 		btnLayer = newimage(width,height);
-		if(bgLayer) delimage(bgLayer);
-		bgLayer = newimage(width,height);
-		ege_enable_aa(true,bgLayer);
-		ege_enable_aa(true,maskLayer);
 		ege_enable_aa(true,btnLayer);
-		// 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-		cleardevice(maskLayer);
-		setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-		ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
 		
 		// 缓存当前缩放比例（图像已在此比例下创建）
 		cachedScale = s;
 		scaleChangeFrameCounter = 0;
 	} else {
-		// 启动跳帧机制：延迟重建图像
-		// 保持cachedScale不变，它代表当前图像的缩放比例
+		// 启动跳帧机制：延迟重建btnLayer
+		// 保持cachedScale不变，它代表当前btnLayer的缩放比例
 		scaleChangeFrameCounter = 1;
 	}
 	
