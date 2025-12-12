@@ -213,7 +213,6 @@ private:
     double cachedScale = 1.0;           ///< 缓存的缩放比例
     double targetScale = 1.0;           ///< 目标缩放比例
     static constexpr int REDRAW_SKIP_FRAMES = 3;  ///< 跳过的帧数
-}
 };
 
 

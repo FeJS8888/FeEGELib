@@ -75,10 +75,11 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     if (isScaling && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
-        double scaleRatio = targetScale / cachedScale;
-        int scaledWidth = width / scaleRatio;
-        int scaledHeight = height / scaleRatio;
-        putimage_withalpha(dst, layer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        // 源图像尺寸（缓存图像的实际大小）
+        int srcWidth = getwidth(layer);
+        int srcHeight = getheight(layer);
+        // 目标绘制尺寸（当前控件大小）
+        putimage_withalpha(dst, layer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
         return;
     }
     
@@ -392,10 +393,11 @@ void Button::draw(PIMAGE dst,int x,int y){
     if (isScaling && !needRedraw && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
-        double scaleRatio = targetScale / cachedScale;
-        int scaledWidth = width / scaleRatio;
-        int scaledHeight = height / scaleRatio;
-        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        // 源图像尺寸（缓存图像的实际大小）
+        int srcWidth = getwidth(bgLayer);
+        int srcHeight = getheight(bgLayer);
+        // 目标绘制尺寸（当前控件大小）
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
         return;
     }
     
@@ -741,10 +743,11 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     if (isScaling && !needRedraw && !on_focus && cachedScale > 0) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
-        double scaleRatio = targetScale / cachedScale;
-        int scaledWidth = width / scaleRatio;
-        int scaledHeight = height / scaleRatio;
-        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, scaledWidth, scaledHeight, true);
+        // 源图像尺寸（缓存图像的实际大小）
+        int srcWidth = getwidth(bgLayer);
+        int srcHeight = getheight(bgLayer);
+        // 目标绘制尺寸（当前控件大小）
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 0, 0, srcWidth, srcHeight, true);
         return;
     }
     
