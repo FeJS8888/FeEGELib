@@ -842,9 +842,11 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
                 setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
             }
             
-            // 更新IME位置
-            InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
-            InputPositionY = top + imgHeight / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
+            // 更新IME位置（屏幕坐标）
+            // 当scale != imageScale时，需要将图片坐标系的位置映射到屏幕坐标系
+            double scaleRatio = scale / imageScale;
+            InputPositionX = left + cursor_draw_x * scaleRatio + absolutPosDeltaX;
+            InputPositionY = top + (imgHeight / 2 + textRealHeight / 2 + 2) * scaleRatio + absolutPosDeltaY;
         }
     }
     
