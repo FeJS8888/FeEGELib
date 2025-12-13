@@ -76,12 +76,17 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         // 使用缩放绘制中间帧，避免重新创建图像
         scaleChangeFrameCounter++;
         // 创建临时图像用于缩放后的内容
-        PIMAGE tempLayer = newimage(width, height);
+        int targetWidth = (int)width;
+        int targetHeight = (int)height;
+        PIMAGE tempLayer = newimage(targetWidth, targetHeight);
+        ege_enable_aa(true, tempLayer);
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), tempLayer);
+        cleardevice(tempLayer);
         // 源图像尺寸（缓存图像的实际大小）
         int srcWidth = getwidth(layer);
         int srcHeight = getheight(layer);
         // 将缓存的layer缩放到临时图像
-        putimage_withalpha(tempLayer, layer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        putimage_withalpha(tempLayer, layer, 0, 0, targetWidth, targetHeight, 0, 0, srcWidth, srcHeight, true);
         // 应用当前尺寸的maskLayer并绘制到目标
         putimage_alphafilter(dst, tempLayer, left, top, maskLayer, 0, 0, -1, -1);
         delimage(tempLayer);
@@ -400,12 +405,17 @@ void Button::draw(PIMAGE dst,int x,int y){
         // 使用缩放绘制中间帧，避免重新创建btnLayer
         scaleChangeFrameCounter++;
         // 创建临时图像用于缩放后的内容
-        PIMAGE tempLayer = newimage(width, height);
+        int targetWidth = (int)width;
+        int targetHeight = (int)height;
+        PIMAGE tempLayer = newimage(targetWidth, targetHeight);
+        ege_enable_aa(true, tempLayer);
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), tempLayer);
+        cleardevice(tempLayer);
         // 源图像尺寸（缓存图像的实际大小）
         int srcWidth = getwidth(btnLayer);
         int srcHeight = getheight(btnLayer);
         // 将缓存的btnLayer缩放到临时图像
-        putimage_withalpha(tempLayer, btnLayer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        putimage_withalpha(tempLayer, btnLayer, 0, 0, targetWidth, targetHeight, 0, 0, srcWidth, srcHeight, true);
         // 应用当前尺寸的maskLayer到bgLayer
         setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
         cleardevice(bgLayer);
@@ -760,12 +770,17 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         // 使用缩放绘制中间帧，避免重新创建btnLayer
         scaleChangeFrameCounter++;
         // 创建临时图像用于缩放后的内容
-        PIMAGE tempLayer = newimage(width, height);
+        int targetWidth = (int)width;
+        int targetHeight = (int)height;
+        PIMAGE tempLayer = newimage(targetWidth, targetHeight);
+        ege_enable_aa(true, tempLayer);
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), tempLayer);
+        cleardevice(tempLayer);
         // 源图像尺寸（缓存图像的实际大小）
         int srcWidth = getwidth(btnLayer);
         int srcHeight = getheight(btnLayer);
         // 将缓存的btnLayer缩放到临时图像
-        putimage_withalpha(tempLayer, btnLayer, 0, 0, width, height, 0, 0, srcWidth, srcHeight, true);
+        putimage_withalpha(tempLayer, btnLayer, 0, 0, targetWidth, targetHeight, 0, 0, srcWidth, srcHeight, true);
         // 应用当前尺寸的maskLayer到bgLayer
         setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
         cleardevice(bgLayer);
