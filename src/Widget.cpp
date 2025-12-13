@@ -844,7 +844,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             
             // 更新IME位置（屏幕坐标）
             // 当scale != imageScale时，需要将图片坐标系的位置映射到屏幕坐标系
-            double scaleRatio = scale / imageScale;
+            // 防止除零：imageScale应始终为正值，但加入保护
+            double scaleRatio = (std::abs(imageScale) > SCALE_EPSILON) ? (scale / imageScale) : 1.0;
             InputPositionX = left + cursor_draw_x * scaleRatio + absolutPosDeltaX;
             InputPositionY = top + (imgHeight / 2 + textRealHeight / 2 + 2) * scaleRatio + absolutPosDeltaY;
         }
