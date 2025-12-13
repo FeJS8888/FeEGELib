@@ -138,14 +138,14 @@ void Panel::setScale(double s){
     radius = origin_radius * s;
 	scale = s;
 	
-	// 更新子控件缩放
-	for (size_t i = 0; i < children.size(); ++i) {
-        children[i]->setScale(s);
-        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
-    }
-	
-	// 只有当缩放变化超过阈值时才重新创建图片
+	// 只有当缩放变化超过阈值时才重新创建图片并更新子控件缩放
 	if (std::abs(s - imageScale) > SCALE_THRESHOLD) {
+	    // 更新子控件缩放
+	    for (size_t i = 0; i < children.size(); ++i) {
+	        children[i]->setScale(s);
+	        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
+	    }
+	    
 	    if(maskLayer) delimage(maskLayer);
 	    maskLayer = newimage(width, height);
 	    if(layer) delimage(layer);
@@ -161,6 +161,11 @@ void Panel::setScale(double s){
 	    cleardevice(maskLayer);
 	    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
 	    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+	} else {
+	    // 当缩放变化小于阈值时，仍需更新子控件的位置（但不改变它们的scale）
+	    for (size_t i = 0; i < children.size(); ++i) {
+	        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
+	    }
 	}
 	// 否则继续使用现有图片，在绘制时进行缩放
 }
