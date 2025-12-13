@@ -9,6 +9,8 @@ double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 
 // 缩放阈值：当缩放比例变化小于此值时，不重新创建图片，而是在绘制时使用缩放的putimage
 constexpr double SCALE_THRESHOLD = 0.05;
+// 浮点数比较的epsilon值，用于判断scale是否实际发生了变化
+constexpr double SCALE_EPSILON = 1e-6;
 
 double Widget::getWidth(){
     return width;
@@ -43,6 +45,7 @@ Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
+    imageScale = 1.0;  // 初始化imageScale
     layer = newimage(w,h);
     maskLayer = newimage(w,h);
 	ege_enable_aa(true,layer);
@@ -88,7 +91,9 @@ void Panel::draw(PIMAGE dst, int x, int y) {
                      origin_radius * imageScale, origin_radius * imageScale, 
                      origin_radius * imageScale, layer);
 
-    // 绘制子控件 - 子控件位置需要根据imageScale调整
+    // 绘制子控件
+    // childX/childY: 子控件在layer中的位置（使用imageScale坐标系）
+    // setPosition: 设置子控件的屏幕绝对位置（使用scale坐标系，用于事件处理）
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = imgWidth / 2 + childOffsets[i].x * imageScale;
         int childY = imgHeight / 2 + childOffsets[i].y * imageScale;
@@ -101,8 +106,9 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     }
 
     // 如果当前缩放比例与图片缩放比例不同，需要缩放绘制
-    if (std::abs(scale - imageScale) > 1e-6) {
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
         // 先应用遮罩，创建临时带alpha的图片
+        // 注意：这个临时图片只在缩放渲染时创建，当scale接近imageScale时不会进入此分支
         PIMAGE tempImg = newimage(imgWidth, imgHeight);
         setbkcolor_f(EGEARGB(0, 0, 0, 0), tempImg);
         cleardevice(tempImg);
@@ -355,6 +361,7 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
+    imageScale = 1.0;  // 初始化imageScale
     left = cx - width / 2;
     top = cy - height / 2;
 
@@ -388,7 +395,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     
     if(!ripples.size() && !needRedraw){
         // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-        if (std::abs(scale - imageScale) > 1e-6) {
+        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
             putimage_withalpha(dst, bgLayer, left, top, width, height,
                              0, 0, imgWidth, imgHeight, true);
         } else {
@@ -440,7 +447,7 @@ void Button::draw(PIMAGE dst,int x,int y){
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
     // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-    if (std::abs(scale - imageScale) > 1e-6) {
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
         putimage_withalpha(dst, bgLayer, left, top, width, height,
                          0, 0, imgWidth, imgHeight, true);
     } else {
@@ -669,6 +676,7 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
+    imageScale = 1.0;  // 初始化imageScale
     left = cx - width / 2;
     top = cy - height / 2;
     btnLayer = newimage(width, height);
@@ -730,7 +738,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     
     if(!on_focus && !ripples.size() && !needRedraw){
         // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-        if (std::abs(scale - imageScale) > 1e-6) {
+        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
             putimage_withalpha(dst, bgLayer, left, top, width, height,
                              0, 0, imgWidth, imgHeight, true);
         } else {
@@ -847,7 +855,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
     // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-    if (std::abs(scale - imageScale) > 1e-6) {
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
         putimage_withalpha(dst, bgLayer, left, top, width, height,
                          0, 0, imgWidth, imgHeight, true);
     } else {
