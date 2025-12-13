@@ -48,8 +48,10 @@ Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     imageScale = 1.0;  // 初始化imageScale
     layer = newimage(w,h);
     maskLayer = newimage(w,h);
+    bgLayer = newimage(w,h);
 	ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,bgLayer);
 	
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
     // 这在PRGB32模式下更可靠，因为它依赖RGB值而非alpha值进行遮罩
@@ -75,7 +77,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
-    // 总是清空并重绘（子控件可能有动态内容）
+    // 总是清空并重绘layer（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
@@ -105,28 +107,32 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         absolutPosDeltaY = 0;
     }
 
-    // 如果当前缩放比例与图片缩放比例不同，需要缩放绘制
+    // layer内容已更新，标记需要重新应用遮罩
+    layerDirty = true;
+    
+    // 如果layer内容有变化，重新应用遮罩到bgLayer
+    if (layerDirty) {
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
+        cleardevice(bgLayer);
+        putimage_alphafilter(bgLayer, layer, 0, 0, maskLayer, 0, 0, -1, -1);
+        layerDirty = false;
+    }
+    
+    // 如果当前缩放比例与图片缩放比例不同，需要缩放绘制bgLayer
     if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-        // 先应用遮罩，创建临时带alpha的图片
-        // 注意：这个临时图片只在缩放渲染时创建，当scale接近imageScale时不会进入此分支
-        PIMAGE tempImg = newimage(imgWidth, imgHeight);
-        setbkcolor_f(EGEARGB(0, 0, 0, 0), tempImg);
-        cleardevice(tempImg);
-        putimage_alphafilter(tempImg, layer, 0, 0, maskLayer, 0, 0, -1, -1);
-        
-        // 使用缩放绘制
-        putimage_withalpha(dst, tempImg, left, top, width, height, 
+        // 使用缩放绘制已缓存的bgLayer，避免重复调用alphafilter
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 
                           0, 0, imgWidth, imgHeight, true);
-        delimage(tempImg);
     } else {
         // 直接粘贴到主窗口
-        putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
+        putimage_withalpha(dst, bgLayer, left, top);
     }
 }
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
     if (maskLayer) delimage(maskLayer);
+    if (bgLayer) delimage(bgLayer);
 }
 
 void Panel::setPosition(int x,int y){
@@ -156,8 +162,11 @@ void Panel::setScale(double s){
 	    maskLayer = newimage(width, height);
 	    if(layer) delimage(layer);
 	    layer = newimage(width, height);
+	    if(bgLayer) delimage(bgLayer);
+	    bgLayer = newimage(width, height);
 	    ege_enable_aa(true, layer);
 	    ege_enable_aa(true, maskLayer);
+	    ege_enable_aa(true, bgLayer);
 	    
 	    // 更新imageScale为新的缩放比例
 	    imageScale = s;
@@ -167,6 +176,9 @@ void Panel::setScale(double s){
 	    cleardevice(maskLayer);
 	    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
 	    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+	    
+	    // 标记需要重新应用遮罩
+	    layerDirty = true;
 	} else {
 	    // 当缩放变化小于阈值时，仍需更新子控件的位置（但不改变它们的scale）
 	    for (size_t i = 0; i < children.size(); ++i) {
@@ -574,9 +586,11 @@ void Button::setScale(double s){
         cleardevice(maskLayer);
         setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
         ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+        
+        // 只有重新创建图片时才需要重绘内容
+        needRedraw = true;
     }
-    // 否则继续使用现有图片，在绘制时进行缩放
-    needRedraw = true;
+    // 当仅缩放时，不需要重绘，直接缩放现有的bgLayer即可
 }
 
 void Button::setIcon(PIMAGE img){
@@ -1049,10 +1063,12 @@ void InputBox::setScale(double s){
         cleardevice(maskLayer);
         setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
         ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+        
+        // 只有重新创建图片时才需要重绘内容
+        needRedraw = true;
+        scaleChanged = true;
     }
-    // 否则继续使用现有图片，在绘制时进行缩放
-    needRedraw = true;
-    scaleChanged = true;
+    // 当仅缩放时，不需要重绘，直接缩放现有的bgLayer即可
 }
 
 void InputBox::setTextHeight(double height){

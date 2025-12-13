@@ -203,7 +203,9 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    PIMAGE bgLayer = nullptr;  ///< 缓存应用遮罩后的图层，用于缩放时避免重复调用alphafilter
     double imageScale = 1.0;  ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
+    bool layerDirty = true;  ///< 标记layer是否需要重新应用遮罩到bgLayer
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
