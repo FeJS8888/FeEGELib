@@ -46,6 +46,7 @@ Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     origin_height = height = h;
     origin_radius = radius = r;
     imageScale = 1.0;  // 初始化imageScale
+    layerDirty = true;  // 初始化layerDirty
     layer = newimage(w,h);
     maskLayer = newimage(w,h);
     bgLayer = newimage(w,h);
