@@ -203,6 +203,7 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    double imageScale = 1.0;  ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -297,6 +298,7 @@ private:
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
+    double imageScale = 1.0;                    ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
 
 public:
     /**
@@ -454,6 +456,7 @@ private:
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
     bool scaleChanged = true;
+    double imageScale = 1.0;  ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
 
     int cursor_pos = 0;
     double text_height = 23;

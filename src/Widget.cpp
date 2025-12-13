@@ -7,6 +7,9 @@ Widget* focusingWidget = nullptr;
 vector<Widget*> widgets;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 
+// 缩放阈值：当缩放比例变化小于此值时，不重新创建图片，而是在绘制时使用缩放的putimage
+constexpr double SCALE_THRESHOLD = 0.05;
+
 double Widget::getWidth(){
     return width;
 }
@@ -75,24 +78,44 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
     cleardevice(layer);
 
-    // 绘制自身背景（圆角矩形）
+    // 获取当前图片尺寸
+    double imgWidth = getwidth(layer);
+    double imgHeight = getheight(layer);
+    
+    // 绘制自身背景（圆角矩形）- 使用imageScale对应的尺寸
     setfillcolor(bgColor, layer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
+    ege_fillroundrect(0, 0, imgWidth, imgHeight, origin_radius * imageScale, 
+                     origin_radius * imageScale, origin_radius * imageScale, 
+                     origin_radius * imageScale, layer);
 
-    // 绘制子控件
+    // 绘制子控件 - 子控件位置需要根据imageScale调整
     for (size_t i = 0; i < children.size(); ++i) {
-        int childX = width / 2 + childOffsets[i].x * scale;
-        int childY = height / 2 + childOffsets[i].y * scale;
+        int childX = imgWidth / 2 + childOffsets[i].x * imageScale;
+        int childY = imgHeight / 2 + childOffsets[i].y * imageScale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
         children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
 
-    // 粘贴到主窗口
-    putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
+    // 如果当前缩放比例与图片缩放比例不同，需要缩放绘制
+    if (std::abs(scale - imageScale) > 1e-6) {
+        // 先应用遮罩，创建临时带alpha的图片
+        PIMAGE tempImg = newimage(imgWidth, imgHeight);
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), tempImg);
+        cleardevice(tempImg);
+        putimage_alphafilter(tempImg, layer, 0, 0, maskLayer, 0, 0, -1, -1);
+        
+        // 使用缩放绘制
+        putimage_withalpha(dst, tempImg, left, top, width, height, 
+                          0, 0, imgWidth, imgHeight, true);
+        delimage(tempImg);
+    } else {
+        // 直接粘贴到主窗口
+        putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
+    }
 }
 
 Panel::~Panel(){
@@ -114,23 +137,32 @@ void Panel::setScale(double s){
     height = origin_height * s;
     radius = origin_radius * s;
 	scale = s;
+	
+	// 更新子控件缩放
 	for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setScale(s);
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
     }
 	
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(layer) delimage(layer);
-    layer = newimage(width,height);
-    ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
+	// 只有当缩放变化超过阈值时才重新创建图片
+	if (std::abs(s - imageScale) > SCALE_THRESHOLD) {
+	    if(maskLayer) delimage(maskLayer);
+	    maskLayer = newimage(width, height);
+	    if(layer) delimage(layer);
+	    layer = newimage(width, height);
+	    ege_enable_aa(true, layer);
+	    ege_enable_aa(true, maskLayer);
+	    
+	    // 更新imageScale为新的缩放比例
+	    imageScale = s;
 
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+	    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+		setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+	    cleardevice(maskLayer);
+	    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+	    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+	}
+	// 否则继续使用现有图片，在绘制时进行缩放
 }
 
 double Panel::getScale(){
@@ -344,41 +376,56 @@ Button::~Button() {
 void Button::draw(PIMAGE dst,int x,int y){
     int left = x - width / 2;
     int top = y - height / 2;
+    
+    // 获取当前图片尺寸
+    double imgWidth = getwidth(btnLayer);
+    double imgHeight = getheight(btnLayer);
+    
     if(!ripples.size() && !needRedraw){
-        putimage_withalpha(dst,bgLayer,left,top);
+        // 如果缩放比例与图片缩放比例不同，需要缩放绘制
+        if (std::abs(scale - imageScale) > 1e-6) {
+            putimage_withalpha(dst, bgLayer, left, top, width, height,
+                             0, 0, imgWidth, imgHeight, true);
+        } else {
+            putimage_withalpha(dst, bgLayer, left, top);
+        }
         return;
     }
+    
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
 
     // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
     setfillcolor(color, btnLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+    ege_fillroundrect(0, 0, imgWidth, imgHeight, origin_radius * imageScale, 
+                     origin_radius * imageScale, origin_radius * imageScale, 
+                     origin_radius * imageScale, btnLayer);
                  
     if(icon != nullptr){
-	    int iconW = getwidth(icon) * scale * iconSize / 100;
-	    int iconH = getheight(icon) * scale * iconSize / 100;
-	    int iconX = width / 2 - iconW / 2;
-	    int iconY = height / 2 - iconH / 2;
-	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getwidth(icon),true);
+	    int iconW = getwidth(icon) * imageScale * iconSize / 100;
+	    int iconH = getheight(icon) * imageScale * iconSize / 100;
+	    int iconX = imgWidth / 2 - iconW / 2;
+	    int iconY = imgHeight / 2 - iconH / 2;
+	    putimage_alphablend(btnLayer, icon, iconX, iconY, iconW, iconH, 255, 
+	                       0, 0, getwidth(icon), getwidth(icon), true);
 	}
     
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer,scale);
+        r.draw(btnLayer, imageScale);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
-    setfont(23 * scale, 0, L"宋体", btnLayer);
+    setfont(23 * imageScale, 0, L"宋体", btnLayer);
     
     // 按钮文字
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    ege_outtextxy(width / 2 - textwidth(content.c_str(), btnLayer) / 2, 
-                 height / 2 - textheight(content.c_str(), btnLayer) / 2, 
+    ege_outtextxy(imgWidth / 2 - textwidth(content.c_str(), btnLayer) / 2, 
+                 imgHeight / 2 - textheight(content.c_str(), btnLayer) / 2, 
                  content.c_str(), btnLayer);
     
     // 应用遮罩绘制
@@ -386,7 +433,14 @@ void Button::draw(PIMAGE dst,int x,int y){
     setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
-    putimage_withalpha(dst,bgLayer,left,top);
+    
+    // 如果缩放比例与图片缩放比例不同，需要缩放绘制
+    if (std::abs(scale - imageScale) > 1e-6) {
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
+    } else {
+        putimage_withalpha(dst, bgLayer, left, top);
+    }
     needRedraw = false;
 }
 
@@ -486,21 +540,30 @@ void Button::setScale(double s){
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    
+    // 只有当缩放变化超过阈值时才重新创建图片
+    if (std::abs(s - imageScale) > SCALE_THRESHOLD) {
+        // 遮罩
+        if(maskLayer) delimage(maskLayer);
+        maskLayer = newimage(width, height);
+        if(btnLayer) delimage(btnLayer);
+        btnLayer = newimage(width, height);
+        if(bgLayer) delimage(bgLayer);
+        bgLayer = newimage(width, height);
+        ege_enable_aa(true, bgLayer);
+        ege_enable_aa(true, maskLayer);
+        ege_enable_aa(true, btnLayer);
+        
+        // 更新imageScale为新的缩放比例
+        imageScale = s;
+        
+        // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+        setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+        cleardevice(maskLayer);
+        setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+        ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    }
+    // 否则继续使用现有图片，在绘制时进行缩放
     needRedraw = true;
 }
 
@@ -648,6 +711,10 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
+    // 获取当前图片尺寸
+    double imgWidth = getwidth(btnLayer);
+    double imgHeight = getheight(btnLayer);
+    
     if (on_focus) {
         adjustScrollForCursor();
         inv.setfocus();
@@ -657,7 +724,13 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if(!on_focus && !ripples.size() && !needRedraw){
-        putimage_withalpha(dst, bgLayer, left, top);
+        // 如果缩放比例与图片缩放比例不同，需要缩放绘制
+        if (std::abs(scale - imageScale) > 1e-6) {
+            putimage_withalpha(dst, bgLayer, left, top, width, height,
+                             0, 0, imgWidth, imgHeight, true);
+        } else {
+            putimage_withalpha(dst, bgLayer, left, top);
+        }
         return;
     }
 
@@ -671,19 +744,21 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
 
     // 按钮背景
     setfillcolor(EGEACOLOR(255, color), btnLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+    ege_fillroundrect(0, 0, imgWidth, imgHeight, origin_radius * imageScale, 
+                     origin_radius * imageScale, origin_radius * imageScale, 
+                     origin_radius * imageScale, btnLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer, scale);
+        r.draw(btnLayer, imageScale);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
     // 优化：仅在缩放改变时设置字体
-    double currentFontScale = scale * text_height;
-    setfont(23 * scale, 0, L"宋体", btnLayer);
+    double currentFontScale = imageScale * text_height;
+    setfont(23 * imageScale, 0, L"宋体", btnLayer);
     
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
@@ -721,13 +796,15 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         float text_start_x = padding - scroll_offset;
         
         // 绘制文本
-        ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
+        ege_outtextxy(text_start_x, imgHeight / 2 - textRealHeight / 2, 
                     displayContent.c_str(), btnLayer);
         
         if (on_focus) {
             // 聚焦状态遮罩 - 使用圆角矩形匹配输入框形状
             setfillcolor(EGEARGB(50,30,30,30), btnLayer);
-            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+            ege_fillroundrect(0, 0, imgWidth, imgHeight, origin_radius * imageScale, 
+                             origin_radius * imageScale, origin_radius * imageScale, 
+                             origin_radius * imageScale, btnLayer);
 
             // 绘制光标
             std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
@@ -736,7 +813,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
             
             float cursor_draw_x = text_start_x + cursor_with_ime_width;
-            ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5, 
+            ege_fillrect(cursor_draw_x, imgHeight / 2 - textRealHeight / 2 - 3.5, 
                     2, textRealHeight + 7, btnLayer);
             
             // IME输入下划线
@@ -747,14 +824,14 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
                 float ime_start_x = text_start_x + cursor_pos_width;
                 float ime_end_x = text_start_x + cursor_with_full_ime_width;
                 
-                ege_line(ime_start_x, height / 2 + textRealHeight / 2 + 2,
-                    ime_end_x, height / 2 + textRealHeight / 2 + 2, btnLayer);
+                ege_line(ime_start_x, imgHeight / 2 + textRealHeight / 2 + 2,
+                    ime_end_x, imgHeight / 2 + textRealHeight / 2 + 2, btnLayer);
                 setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
             }
             
             // 更新IME位置
             InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
-            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
+            InputPositionY = top + imgHeight / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
         }
     }
     
@@ -763,7 +840,14 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
-    putimage_withalpha(dst,bgLayer,left,top);
+    
+    // 如果缩放比例与图片缩放比例不同，需要缩放绘制
+    if (std::abs(scale - imageScale) > 1e-6) {
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
+    } else {
+        putimage_withalpha(dst, bgLayer, left, top);
+    }
     needRedraw = false;
     scaleChanged = false;
 }
@@ -927,21 +1011,30 @@ void InputBox::setScale(double s){
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    
+    // 只有当缩放变化超过阈值时才重新创建图片
+    if (std::abs(s - imageScale) > SCALE_THRESHOLD) {
+        // 遮罩
+        if(maskLayer) delimage(maskLayer);
+        maskLayer = newimage(width, height);
+        if(btnLayer) delimage(btnLayer);
+        btnLayer = newimage(width, height);
+        if(bgLayer) delimage(bgLayer);
+        bgLayer = newimage(width, height);
+        ege_enable_aa(true, bgLayer);
+        ege_enable_aa(true, maskLayer);
+        ege_enable_aa(true, btnLayer);
+        
+        // 更新imageScale为新的缩放比例
+        imageScale = s;
+        
+        // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+        setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+        cleardevice(maskLayer);
+        setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+        ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    }
+    // 否则继续使用现有图片，在绘制时进行缩放
     needRedraw = true;
     scaleChanged = true;
 }
