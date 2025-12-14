@@ -207,7 +207,6 @@ void Panel::setScale(double s){
 	        lastScaleChangeTime = std::chrono::steady_clock::now();
 	    }
 	}
-	}
 	// 否则继续使用现有图片，在绘制时进行缩放
 }
 
