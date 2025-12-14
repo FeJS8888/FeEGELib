@@ -101,8 +101,8 @@ void Panel::draw(PIMAGE dst, double x, double y) {
             // 更新imageScale
             imageScale = scale;
             
-            // 子控件的scale已通过Panel::setScale逐步更新，无需在这里重复调用
-            // 只需确保它们的位置正确
+            // 子控件的scale已通过Panel::setScale逐步更新（见else分支）
+            // 延迟刷新时无需重复调用setScale，只需确保位置正确
             for (size_t i = 0; i < children.size(); ++i) {
                 children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
             }
@@ -225,8 +225,9 @@ void Panel::setScale(double s){
 	    // 重置时间点（刚刚刷新了图片）
 	    lastScaleChangeTime = std::chrono::steady_clock::now();
 	} else {
-	    // 当缩放变化小于阈值时，也要更新子控件的scale（逐步跟踪），但不强制重建图片
-	    // 这样可以避免延迟刷新时的突变
+	    // 当缩放变化小于阈值时，也要逐步更新子控件的scale
+	    // 这样可以避免延迟刷新时的突变（所有子控件同时更新）
+	    // 子控件的setScale内部也有阈值判断，不会频繁重建图片
 	    for (size_t i = 0; i < children.size(); ++i) {
 	        children[i]->setScale(s);
 	        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
