@@ -86,8 +86,35 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         auto now = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
         if (elapsed.count() > SCALE_REFRESH_DELAY) {
-            // 超过延迟时间，刷新图片到新的缩放比例
-            setScale(scale);  // 这会重新创建图片并更新imageScale
+            // 超过延迟时间，强制刷新图片到当前缩放比例
+            // 即使scale变化未超过SCALE_THRESHOLD，也要刷新以切换到简单绘制路径
+            if(maskLayer) delimage(maskLayer);
+            maskLayer = newimage(width, height);
+            if(layer) delimage(layer);
+            layer = newimage(width, height);
+            if(bgLayer) delimage(bgLayer);
+            bgLayer = newimage(width, height);
+            ege_enable_aa(true, layer);
+            ege_enable_aa(true, maskLayer);
+            ege_enable_aa(true, bgLayer);
+            
+            // 更新imageScale
+            imageScale = scale;
+            
+            // 更新子控件缩放
+            for (size_t i = 0; i < children.size(); ++i) {
+                children[i]->setScale(scale);
+                children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
+            }
+            
+            // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+            setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+            cleardevice(maskLayer);
+            setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+            ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+            
+            layerDirty = true;
+            lastScaleChangeTime = std::chrono::steady_clock::now();
         }
     }
     
@@ -433,8 +460,28 @@ void Button::draw(PIMAGE dst,int x,int y){
         auto now = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
         if (elapsed.count() > SCALE_REFRESH_DELAY) {
-            // 超过延迟时间，刷新图片到新的缩放比例
-            setScale(scale);
+            // 超过延迟时间，强制刷新图片到当前缩放比例
+            if(maskLayer) delimage(maskLayer);
+            maskLayer = newimage(width, height);
+            if(btnLayer) delimage(btnLayer);
+            btnLayer = newimage(width, height);
+            if(bgLayer) delimage(bgLayer);
+            bgLayer = newimage(width, height);
+            ege_enable_aa(true, bgLayer);
+            ege_enable_aa(true, maskLayer);
+            ege_enable_aa(true, btnLayer);
+            
+            imageScale = scale;
+            
+            // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+            setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+            cleardevice(maskLayer);
+            setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+            
+            needRedraw = true;
+            lastScaleChangeTime = std::chrono::steady_clock::now();
+            
             imgWidth = getwidth(btnLayer);
             imgHeight = getheight(btnLayer);
         }
@@ -794,8 +841,29 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         auto now = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
         if (elapsed.count() > SCALE_REFRESH_DELAY) {
-            // 超过延迟时间，刷新图片到新的缩放比例
-            setScale(scale);
+            // 超过延迟时间，强制刷新图片到当前缩放比例
+            if(maskLayer) delimage(maskLayer);
+            maskLayer = newimage(width, height);
+            if(btnLayer) delimage(btnLayer);
+            btnLayer = newimage(width, height);
+            if(bgLayer) delimage(bgLayer);
+            bgLayer = newimage(width, height);
+            ege_enable_aa(true, bgLayer);
+            ege_enable_aa(true, maskLayer);
+            ege_enable_aa(true, btnLayer);
+            
+            imageScale = scale;
+            
+            // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+            setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+            cleardevice(maskLayer);
+            setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+            
+            needRedraw = true;
+            scaleChanged = true;
+            lastScaleChangeTime = std::chrono::steady_clock::now();
+            
             imgWidth = getwidth(btnLayer);
             imgHeight = getheight(btnLayer);
         }
