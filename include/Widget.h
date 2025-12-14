@@ -41,7 +41,7 @@ public:
      * @param offsetX 控件中心 x 坐标（相对于 dst）
      * @param offsetY 控件中心 y 坐标（相对于 dst）
      */
-    virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
+    virtual void draw(PIMAGE dst, double offsetX, double offsetY) = 0;
     
     /**
      * @brief 绘制控件到默认图像
@@ -327,7 +327,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    virtual void draw(PIMAGE dst,int x,int y) override;
+    virtual void draw(PIMAGE dst, double x, double y) override;
     
     /**
      * @brief 绘制按钮到默认图像
@@ -506,7 +506,7 @@ public:
     /**
      * @brief 绘制输入框
      */
-    virtual void draw(PIMAGE dst,int x,int y) override;
+    virtual void draw(PIMAGE dst, double x, double y) override;
     virtual void draw() override;
 
     /**
@@ -635,7 +635,7 @@ public:
     /**
      * @brief 绘制滑动条
      */
-    virtual void draw(PIMAGE dst,int x,int y) override ;
+    virtual void draw(PIMAGE dst, double x, double y) override;
     virtual void draw();
     
     /**

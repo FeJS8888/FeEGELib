@@ -75,7 +75,7 @@ void Panel::draw() {
     draw(nullptr,cx,cy);
 }
 
-void Panel::draw(PIMAGE dst, int x, int y) {
+void Panel::draw(PIMAGE dst, double x, double y) {
     if (layout) layout->apply(*this);  // 自动计算子控件位置
     
     double left = x - width / 2;
@@ -137,14 +137,14 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     // 绘制子控件
     // childX/childY: 子控件在layer中的位置（使用imageScale坐标系）
     // setPosition: 设置子控件的屏幕绝对位置（使用scale坐标系，用于事件处理）
-    // 使用浮点数计算避免精度损失，然后四舍五入转换为整数
+    // 使用浮点数计算保持精度，直接传递给draw函数
     for (size_t i = 0; i < children.size(); ++i) {
         double childX = imgWidth / 2.0 + childOffsets[i].x * imageScale;
         double childY = imgHeight / 2.0 + childOffsets[i].y * imageScale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
-        children[i]->draw(layer, static_cast<int>(std::round(childX)), static_cast<int>(std::round(childY)));
+        children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
@@ -450,9 +450,9 @@ Button::~Button() {
     if (bgLayer) delimage(bgLayer);
 }
 
-void Button::draw(PIMAGE dst,int x,int y){
-    int left = x - width / 2;
-    int top = y - height / 2;
+void Button::draw(PIMAGE dst, double x, double y){
+    double left = x - width / 2;
+    double top = y - height / 2;
     
     // 获取当前图片尺寸
     double imgWidth = getwidth(btnLayer);
@@ -831,7 +831,7 @@ double InputBoxSinDoubleForCursor(double time) {
     return (sine_value + 1.0) / 2.0;
 }
 
-void InputBox::draw(PIMAGE dst, int x, int y) {
+void InputBox::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
@@ -1364,9 +1364,9 @@ void Slider::create(int x, int y, double w, double h) {
     origin_thickness = thickness = 4;
 }
 
-void Slider::draw(PIMAGE dst,int x,int y){
-	int left = x - width / 2;
-    int top = y - height / 2;
+void Slider::draw(PIMAGE dst, double x, double y){
+	double left = x - width / 2;
+    double top = y - height / 2;
     // 动态更新缩放比例
     if (m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
@@ -1680,9 +1680,9 @@ void ProgressBar::setBackground(color_t bg) {
     }
 }
 
-void ProgressBar::draw(PIMAGE dst, int x, int y) {
-    int left = x - width / 2;
-    int top = y - height / 2;
+void ProgressBar::draw(PIMAGE dst, double x, double y) {
+    double left = x - width / 2;
+    double top = y - height / 2;
 
     //缓动到目标进度
     currentProgress += (targetProgress - currentProgress) * 0.15;
@@ -1831,7 +1831,7 @@ void Dropdown::updateDropdownLayout() {
     }
 }
 
-void Dropdown::draw(PIMAGE dst, int x, int y) {
+void Dropdown::draw(PIMAGE dst, double x, double y) {
     // 主按钮正常绘制
     mainButton->draw(dst, x, y);
 
@@ -2020,7 +2020,7 @@ bool Radio::isChecked() const {
     return groupValuePtr && *groupValuePtr == value;
 }
 
-void Radio::draw(PIMAGE dst, int x, int y) {
+void Radio::draw(PIMAGE dst, double x, double y) {
     bool nowChecked = isChecked();
     bool showDot = isChecked() || (animOut && animProgress < 1.0);
     if (!nowChecked && wasChecked && !animOut) {
@@ -2333,7 +2333,7 @@ color_t mixColor(color_t c1, color_t c2, double ratio) {
     return EGERGB(r, g, b);
 }
 
-void Toggle::draw(PIMAGE dst, int x, int y) {
+void Toggle::draw(PIMAGE dst, double x, double y) {
     // === 动画推进 ===
     if (std::abs(knobOffset - knobTarget) > 1e-3)
         knobOffset += (knobTarget - knobOffset) * animationSpeed;
@@ -2543,7 +2543,7 @@ void Text::draw() {
 }
 
 // 绘制到目标图像
-void Text::draw(PIMAGE dst, int x, int y) {
+void Text::draw(PIMAGE dst, double x, double y) {
     // 重要：每次都设置字体，因为dst可能是不同的图像上下文
     // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
     setfont(fixed(fontSize * scale), 0, fontName.c_str(), dst);
@@ -2800,7 +2800,7 @@ bool Knob::isInside(int x, int y) const {
     return dist <= radius;
 }
 
-void Knob::draw(PIMAGE dst, int x, int y) {
+void Knob::draw(PIMAGE dst, double x, double y) {
     double r = radius;
     
     // 缓动到目标值（类似Slider的实现）
@@ -3119,7 +3119,7 @@ bool Sidebar::isExpanded() const {
     return expanded;
 }
 
-void Sidebar::draw(PIMAGE dst, int x, int y) {
+void Sidebar::draw(PIMAGE dst, double x, double y) {
     container->draw(dst, x, y);
 }
 
