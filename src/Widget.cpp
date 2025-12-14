@@ -477,7 +477,7 @@ void Button::draw(PIMAGE dst,int x,int y){
             setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
             cleardevice(maskLayer);
             setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+            ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
             
             needRedraw = true;
             lastScaleChangeTime = std::chrono::steady_clock::now();
@@ -858,7 +858,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
             cleardevice(maskLayer);
             setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+            ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
             
             needRedraw = true;
             scaleChanged = true;
