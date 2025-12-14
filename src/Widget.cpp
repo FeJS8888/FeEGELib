@@ -137,14 +137,14 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     // 绘制子控件
     // childX/childY: 子控件在layer中的位置（使用imageScale坐标系）
     // setPosition: 设置子控件的屏幕绝对位置（使用scale坐标系，用于事件处理）
-    // 使用浮点数避免缩放时的位置误差
+    // 使用浮点数计算避免精度损失，然后四舍五入转换为整数
     for (size_t i = 0; i < children.size(); ++i) {
         double childX = imgWidth / 2.0 + childOffsets[i].x * imageScale;
         double childY = imgHeight / 2.0 + childOffsets[i].y * imageScale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
-        children[i]->draw(layer, childX, childY);
+        children[i]->draw(layer, static_cast<int>(std::round(childX)), static_cast<int>(std::round(childY)));
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
