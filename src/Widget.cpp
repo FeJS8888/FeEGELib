@@ -119,15 +119,10 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         layerDirty = false;
     }
     
-    // 如果当前缩放比例与图片缩放比例不同，需要缩放绘制bgLayer
-    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-        // 使用缩放绘制已缓存的bgLayer，避免重复调用alphafilter
-        putimage_withalpha(dst, bgLayer, left, top, width, height, 
-                          0, 0, imgWidth, imgHeight, true);
-    } else {
-        // 直接粘贴到主窗口
-        putimage_withalpha(dst, bgLayer, left, top);
-    }
+    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
+    // 当scale == imageScale时，widthDest == imgWidth且heightDest == imgHeight，不会实际缩放
+    putimage_withalpha(dst, bgLayer, left, top, width, height, 
+                      0, 0, imgWidth, imgHeight, true);
 }
 
 Panel::~Panel(){
@@ -407,13 +402,9 @@ void Button::draw(PIMAGE dst,int x,int y){
     double imgHeight = getheight(btnLayer);
     
     if(!ripples.size() && !needRedraw){
-        // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-            putimage_withalpha(dst, bgLayer, left, top, width, height,
-                             0, 0, imgWidth, imgHeight, true);
-        } else {
-            putimage_withalpha(dst, bgLayer, left, top);
-        }
+        // 使用带缩放参数的putimage_withalpha（即使不缩放也使用此版本以保持一致性能）
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
         return;
     }
     
@@ -459,13 +450,9 @@ void Button::draw(PIMAGE dst,int x,int y){
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
-    // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-        putimage_withalpha(dst, bgLayer, left, top, width, height,
-                         0, 0, imgWidth, imgHeight, true);
-    } else {
-        putimage_withalpha(dst, bgLayer, left, top);
-    }
+    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
+    putimage_withalpha(dst, bgLayer, left, top, width, height,
+                     0, 0, imgWidth, imgHeight, true);
     needRedraw = false;
 }
 
@@ -872,13 +859,9 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
-    // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-        putimage_withalpha(dst, bgLayer, left, top, width, height,
-                         0, 0, imgWidth, imgHeight, true);
-    } else {
-        putimage_withalpha(dst, bgLayer, left, top);
-    }
+    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
+    putimage_withalpha(dst, bgLayer, left, top, width, height,
+                     0, 0, imgWidth, imgHeight, true);
     needRedraw = false;
     scaleChanged = false;
 }
