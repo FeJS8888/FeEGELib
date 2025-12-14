@@ -11,6 +11,8 @@ double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 constexpr double SCALE_THRESHOLD = 0.05;
 // 浮点数比较的epsilon值，用于判断scale是否实际发生了变化
 constexpr double SCALE_EPSILON = 1e-6;
+// 延迟缩放刷新时间阈值（秒）：超过此时间后，即使缩放变化未达到SCALE_THRESHOLD也会刷新图片
+constexpr double SCALE_REFRESH_DELAY = 0.3;
 
 double Widget::getWidth(){
     return width;
@@ -47,6 +49,7 @@ Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
     origin_radius = radius = r;
     imageScale = 1.0;  // 初始化imageScale
     layerDirty = true;  // 初始化layerDirty
+    lastScaleChangeTime = std::chrono::steady_clock::now();  // 初始化时间点
     layer = newimage(w,h);
     maskLayer = newimage(w,h);
     bgLayer = newimage(w,h);
@@ -77,6 +80,16 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     
     double left = x - width / 2;
     double top = y - height / 2;
+    
+    // 检查是否需要延迟刷新：缩放持续一段时间后刷新图片以使用简单版本绘制
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
+        if (elapsed.count() > SCALE_REFRESH_DELAY) {
+            // 超过延迟时间，刷新图片到新的缩放比例
+            setScale(scale);  // 这会重新创建图片并更新imageScale
+        }
+    }
     
     // 总是清空并重绘layer（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
@@ -119,10 +132,15 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         layerDirty = false;
     }
     
-    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
-    // 当scale == imageScale时，widthDest == imgWidth且heightDest == imgHeight，不会实际缩放
-    putimage_withalpha(dst, bgLayer, left, top, width, height, 
-                      0, 0, imgWidth, imgHeight, true);
+    // 根据scale与imageScale的关系选择绘制方式
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        // 需要缩放：使用带缩放参数的版本（开销较大）
+        putimage_withalpha(dst, bgLayer, left, top, width, height, 
+                          0, 0, imgWidth, imgHeight, true);
+    } else {
+        // 不需要缩放：使用简单版本（开销较小）
+        putimage_withalpha(dst, bgLayer, left, top);
+    }
 }
 
 Panel::~Panel(){
@@ -175,11 +193,20 @@ void Panel::setScale(double s){
 	    
 	    // 标记需要重新应用遮罩
 	    layerDirty = true;
+	    
+	    // 重置时间点（刚刚刷新了图片）
+	    lastScaleChangeTime = std::chrono::steady_clock::now();
 	} else {
 	    // 当缩放变化小于阈值时，仍需更新子控件的位置（但不改变它们的scale）
 	    for (size_t i = 0; i < children.size(); ++i) {
 	        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
 	    }
+	    
+	    // 记录缩放改变的时间（用于延迟刷新）
+	    if (std::abs(s - imageScale) > SCALE_EPSILON) {
+	        lastScaleChangeTime = std::chrono::steady_clock::now();
+	    }
+	}
 	}
 	// 否则继续使用现有图片，在绘制时进行缩放
 }
@@ -370,6 +397,7 @@ Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
     origin_height = height = h;
     origin_radius = radius = r;
     imageScale = 1.0;  // 初始化imageScale
+    lastScaleChangeTime = std::chrono::steady_clock::now();  // 初始化时间点
     left = cx - width / 2;
     top = cy - height / 2;
 
@@ -401,10 +429,28 @@ void Button::draw(PIMAGE dst,int x,int y){
     double imgWidth = getwidth(btnLayer);
     double imgHeight = getheight(btnLayer);
     
+    // 检查是否需要延迟刷新
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
+        if (elapsed.count() > SCALE_REFRESH_DELAY) {
+            // 超过延迟时间，刷新图片到新的缩放比例
+            setScale(scale);
+            imgWidth = getwidth(btnLayer);
+            imgHeight = getheight(btnLayer);
+        }
+    }
+    
     if(!ripples.size() && !needRedraw){
-        // 使用带缩放参数的putimage_withalpha（即使不缩放也使用此版本以保持一致性能）
-        putimage_withalpha(dst, bgLayer, left, top, width, height,
-                         0, 0, imgWidth, imgHeight, true);
+        // 根据scale与imageScale的关系选择绘制方式
+        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+            // 需要缩放：使用带缩放参数的版本
+            putimage_withalpha(dst, bgLayer, left, top, width, height,
+                             0, 0, imgWidth, imgHeight, true);
+        } else {
+            // 不需要缩放：使用简单版本（开销较小）
+            putimage_withalpha(dst, bgLayer, left, top);
+        }
         return;
     }
     
@@ -450,9 +496,15 @@ void Button::draw(PIMAGE dst,int x,int y){
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
-    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
-    putimage_withalpha(dst, bgLayer, left, top, width, height,
-                     0, 0, imgWidth, imgHeight, true);
+    // 根据scale与imageScale的关系选择绘制方式
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        // 需要缩放：使用带缩放参数的版本
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
+    } else {
+        // 不需要缩放：使用简单版本（开销较小）
+        putimage_withalpha(dst, bgLayer, left, top);
+    }
     needRedraw = false;
 }
 
@@ -577,6 +629,17 @@ void Button::setScale(double s){
         
         // 只有重新创建图片时才需要重绘内容
         needRedraw = true;
+        
+        // 重置时间点（刚刚刷新了图片）
+        lastScaleChangeTime = std::chrono::steady_clock::now();
+    } else {
+        // 记录缩放改变的时间（用于延迟刷新）
+        if (std::abs(s - imageScale) > SCALE_EPSILON) {
+            lastScaleChangeTime = std::chrono::steady_clock::now();
+        }
+    }
+}
+        needRedraw = true;
     }
     // 当仅缩放时，不需要重绘，直接缩放现有的bgLayer即可
 }
@@ -679,6 +742,7 @@ InputBox::InputBox(int cx, int cy, double w, double h, double r) {
     origin_height = height = h;
     origin_radius = radius = r;
     imageScale = 1.0;  // 初始化imageScale
+    lastScaleChangeTime = std::chrono::steady_clock::now();  // 初始化时间点
     left = cx - width / 2;
     top = cy - height / 2;
     btnLayer = newimage(width, height);
@@ -730,6 +794,18 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     double imgWidth = getwidth(btnLayer);
     double imgHeight = getheight(btnLayer);
     
+    // 检查是否需要延迟刷新
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = now - lastScaleChangeTime;
+        if (elapsed.count() > SCALE_REFRESH_DELAY) {
+            // 超过延迟时间，刷新图片到新的缩放比例
+            setScale(scale);
+            imgWidth = getwidth(btnLayer);
+            imgHeight = getheight(btnLayer);
+        }
+    }
+    
     if (on_focus) {
         adjustScrollForCursor();
         inv.setfocus();
@@ -739,9 +815,15 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if(!on_focus && !ripples.size() && !needRedraw){
-        // 使用带缩放参数的putimage_withalpha（即使不缩放也使用此版本以保持一致性能）
-        putimage_withalpha(dst, bgLayer, left, top, width, height,
-                         0, 0, imgWidth, imgHeight, true);
+        // 根据scale与imageScale的关系选择绘制方式
+        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+            // 需要缩放：使用带缩放参数的版本
+            putimage_withalpha(dst, bgLayer, left, top, width, height,
+                             0, 0, imgWidth, imgHeight, true);
+        } else {
+            // 不需要缩放：使用简单版本（开销较小）
+            putimage_withalpha(dst, bgLayer, left, top);
+        }
         return;
     }
 
@@ -855,9 +937,15 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     cleardevice(bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     
-    // 使用带缩放参数的putimage_withalpha绘制bgLayer（即使不缩放也使用此版本以保持一致性能）
-    putimage_withalpha(dst, bgLayer, left, top, width, height,
-                     0, 0, imgWidth, imgHeight, true);
+    // 根据scale与imageScale的关系选择绘制方式
+    if (std::abs(scale - imageScale) > SCALE_EPSILON) {
+        // 需要缩放：使用带缩放参数的版本
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
+    } else {
+        // 不需要缩放：使用简单版本（开销较小）
+        putimage_withalpha(dst, bgLayer, left, top);
+    }
     needRedraw = false;
     scaleChanged = false;
 }
@@ -1047,8 +1135,15 @@ void InputBox::setScale(double s){
         // 只有重新创建图片时才需要重绘内容
         needRedraw = true;
         scaleChanged = true;
+        
+        // 重置时间点（刚刚刷新了图片）
+        lastScaleChangeTime = std::chrono::steady_clock::now();
+    } else {
+        // 记录缩放改变的时间（用于延迟刷新）
+        if (std::abs(s - imageScale) > SCALE_EPSILON) {
+            lastScaleChangeTime = std::chrono::steady_clock::now();
+        }
     }
-    // 当仅缩放时，不需要重绘，直接缩放现有的bgLayer即可
 }
 
 void InputBox::setTextHeight(double height){

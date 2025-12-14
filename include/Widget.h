@@ -206,6 +206,7 @@ private:
     PIMAGE bgLayer = nullptr;  ///< 缓存应用遮罩后的图层，用于缩放时避免重复调用alphafilter
     double imageScale = 1.0;  ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
     bool layerDirty = true;  ///< 标记layer是否需要重新应用遮罩到bgLayer
+    std::chrono::steady_clock::time_point lastScaleChangeTime;  ///< 上次缩放改变的时间点
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -301,6 +302,7 @@ private:
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
     double imageScale = 1.0;                    ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
+    std::chrono::steady_clock::time_point lastScaleChangeTime;  ///< 上次缩放改变的时间点
 
 public:
     /**
@@ -459,6 +461,7 @@ private:
     bool needRedraw = true;
     bool scaleChanged = true;
     double imageScale = 1.0;  ///< 当前图片的实际缩放比例（用于判断是否需要重新创建图片）
+    std::chrono::steady_clock::time_point lastScaleChangeTime;  ///< 上次缩放改变的时间点
 
     int cursor_pos = 0;
     double text_height = 23;
