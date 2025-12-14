@@ -116,7 +116,7 @@ public:
      * @param x 粘贴到 dst 中的中心 x 坐标
      * @param y 粘贴到 dst 中的中心 y 坐标
      */
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     
     /**
      * @brief 绘制 Panel 到默认图像
@@ -827,7 +827,7 @@ public:
     void setColor(color_t fg);       // 设置前景颜色
     void setBackground(color_t bg);  // 设置背景颜色
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
     void setPosition(int x, int y) override;
@@ -868,7 +868,7 @@ public:
     void setScale(double s) override;
     void setPosition(int x, int y) override;
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
     bool isInside(int x, int y) const;
@@ -936,7 +936,7 @@ public:
     void setGroupValueRef(std::wstring* ref);
     void setScale(double s) override;
     void setStyle(RadioStyle s);
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
@@ -1051,7 +1051,7 @@ public:
     void setBaseColor(color_t col);
     void setDisabled(bool d);
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
@@ -1123,7 +1123,7 @@ public:
     TextAlign getAlign() const;
     int getLineSpacing() const;
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     void setPosition(int x, int y) override;
     bool handleEvent(const mouse_msg& msg) override;
@@ -1267,7 +1267,7 @@ public:
 
     void setScale(double s) override;
     void setPosition(int x, int y) override;
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
@@ -1540,7 +1540,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     
     /**
      * @brief 绘制侧边栏到默认图像
