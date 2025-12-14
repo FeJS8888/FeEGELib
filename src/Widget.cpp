@@ -739,13 +739,9 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     }
     
     if(!on_focus && !ripples.size() && !needRedraw){
-        // 如果缩放比例与图片缩放比例不同，需要缩放绘制
-        if (std::abs(scale - imageScale) > SCALE_EPSILON) {
-            putimage_withalpha(dst, bgLayer, left, top, width, height,
-                             0, 0, imgWidth, imgHeight, true);
-        } else {
-            putimage_withalpha(dst, bgLayer, left, top);
-        }
+        // 使用带缩放参数的putimage_withalpha（即使不缩放也使用此版本以保持一致性能）
+        putimage_withalpha(dst, bgLayer, left, top, width, height,
+                         0, 0, imgWidth, imgHeight, true);
         return;
     }
 
