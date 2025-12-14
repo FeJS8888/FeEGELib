@@ -12,7 +12,7 @@ constexpr double SCALE_THRESHOLD = 0.05;
 // 浮点数比较的epsilon值，用于判断scale是否实际发生了变化
 constexpr double SCALE_EPSILON = 1e-6;
 // 延迟缩放刷新时间阈值（秒）：超过此时间后，即使缩放变化未达到SCALE_THRESHOLD也会刷新图片
-constexpr double SCALE_REFRESH_DELAY = 0.3;
+constexpr double SCALE_REFRESH_DELAY = 0.05;
 
 double Widget::getWidth(){
     return width;
