@@ -639,10 +639,6 @@ void Button::setScale(double s){
         }
     }
 }
-        needRedraw = true;
-    }
-    // 当仅缩放时，不需要重绘，直接缩放现有的bgLayer即可
-}
 
 void Button::setIcon(PIMAGE img){
 	icon = img;

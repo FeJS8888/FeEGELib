@@ -9,6 +9,7 @@
 #include "Element.h"
 #include "Layout.h"
 #include "Base.h"
+#include <chrono>
 
 using namespace FeEGE;
 
