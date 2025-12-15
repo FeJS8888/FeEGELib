@@ -736,8 +736,8 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             setfillcolor(EGEARGB((char)(cursor_opacity * 255),255,255,0), btnLayer);
             
             float cursor_draw_x = text_start_x + cursor_with_ime_width;
-            ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5, 
-                    2, textRealHeight + 7, btnLayer);
+            ege_fillrect(cursor_draw_x, height / 2 - textRealHeight / 2 - 3.5 * scale, 
+                    2 * scale, textRealHeight + 7 * scale, btnLayer);
             
             // IME输入下划线
             if(IMECompositionString.size()){
@@ -747,14 +747,14 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
                 float ime_start_x = text_start_x + cursor_pos_width;
                 float ime_end_x = text_start_x + cursor_with_full_ime_width;
                 
-                ege_line(ime_start_x, height / 2 + textRealHeight / 2 + 2,
-                    ime_end_x, height / 2 + textRealHeight / 2 + 2, btnLayer);
+                ege_line(ime_start_x, height / 2 + textRealHeight / 2 + 2 * scale,
+                    ime_end_x, height / 2 + textRealHeight / 2 + 2 * scale, btnLayer);
                 setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
             }
             
             // 更新IME位置
             InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
-            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
+            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 * scale + absolutPosDeltaY;
         }
     }
     
