@@ -6,6 +6,7 @@ Widget* focusingWidget = nullptr;
 
 vector<Widget*> widgets;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
+bool PanelScaleChanged = false;
 
 double Widget::getWidth(){
     return width;
@@ -80,6 +81,7 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
 
     // 绘制子控件
+    if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
         int childX = width / 2 + childOffsets[i].x * scale;
         int childY = height / 2 + childOffsets[i].y * scale;
@@ -90,7 +92,8 @@ void Panel::draw(PIMAGE dst, int x, int y) {
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
-
+    PanelScaleChanged = false;
+    scaleChanged = false;
     // 粘贴到主窗口
     putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
 }
@@ -110,6 +113,8 @@ Position Panel::getPosition(){
 }
 
 void Panel::setScale(double s){
+    if(sgn(s - scale) == 0) return;
+    scaleChanged = true;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
@@ -656,7 +661,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
         setContent(str);
     }
     
-    if(!on_focus && !ripples.size() && !needRedraw){
+    if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
         putimage_withalpha(dst, bgLayer, left, top);
         return;
     }
@@ -688,12 +693,12 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
 
-    if(sgn(currentFontScale - 1) >= 0 || scaleChanged){
+    if(sgn(currentFontScale - 1) >= 0 || scaleChanged || PanelScaleChanged){
         const float padding = 14;
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
-        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos || scaleChanged) {
+        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos || scaleChanged || PanelScaleChanged) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             

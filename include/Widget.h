@@ -16,6 +16,7 @@ class Layout;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
+extern bool PanelScaleChanged;
 
 /**
  * @brief 所有可绘制控件的基类
@@ -203,6 +204,7 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    bool scaleChanged = true;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
