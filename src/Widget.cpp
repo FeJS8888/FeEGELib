@@ -694,7 +694,7 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     settextcolor(BLACK, btnLayer);
 
     if(sgn(currentFontScale - 1) >= 0 || scaleChanged || PanelScaleChanged){
-        const float padding = 14;
+        const float padding = 14 * scale;
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
@@ -814,7 +814,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
 
         // 计算点击位置对应的字符下标（二分法）
-        const float padding = 14;
+        const float padding = 14 * scale;
         float click_x = localX - padding + scroll_offset;
         int l = 0, r = content.length();
         int best_pos = 0;
@@ -978,7 +978,7 @@ void InputBox::setIMECursorPos(int pos){
 }
 
 void InputBox::adjustScrollForCursor() {
-    const float padding = 14;
+    const float padding = 14 * scale;
     const float visible_width = width - 2 * padding;
 
     float cursor_pixel_pos, tmp;
