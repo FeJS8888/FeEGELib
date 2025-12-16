@@ -932,6 +932,8 @@ void InputBox::setScale(double s){
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
+    // 重置滚动偏移，避免缩放时文本位置错误
+    scroll_offset = 0;
     // 遮罩
     if(maskLayer) delimage(maskLayer);
     maskLayer = newimage(width,height);
