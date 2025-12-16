@@ -926,14 +926,18 @@ void InputBox::setPosition(int x,int y){
 
 void InputBox::setScale(double s){
     if(sgn(scale - s) == 0) return;
+    // 保存旧缩放比例，用于按比例缩放滚动偏移
+    double old_scale = scale;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 重置滚动偏移，避免缩放时文本位置错误
-    scroll_offset = 0;
+    // 按比例缩放滚动偏移，保持文本相对位置
+    if (old_scale > 0) {
+        scroll_offset = scroll_offset * (s / old_scale);
+    }
     // 遮罩
     if(maskLayer) delimage(maskLayer);
     maskLayer = newimage(width,height);
