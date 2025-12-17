@@ -470,7 +470,6 @@ private:
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     double lastDragTick = 0.0;
     const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
-    const float padding = 14;
 
     LOGFONT m_font; // 输入框字体
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例
