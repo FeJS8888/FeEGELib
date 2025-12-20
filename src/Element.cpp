@@ -1,5 +1,4 @@
 ﻿#include "Element.h"
-#include "Base.h"
 using namespace FeEGE;
 
 // Initialize global variables
