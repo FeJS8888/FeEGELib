@@ -16,6 +16,7 @@ class Layout;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
+extern bool PanelScaleChanged;
 
 /**
  * @brief 所有可绘制控件的基类
@@ -203,6 +204,7 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    bool scaleChanged = true;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -468,7 +470,6 @@ private:
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     double lastDragTick = 0.0;
     const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
-    const float padding = 14;
 
     LOGFONT m_font; // 输入框字体
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例
@@ -1131,8 +1132,8 @@ private:
 
     std::wstring contentW;
     std::vector<std::wstring> lines;
-    int textWidth = 0;
-    int textHeight = 0;
+    double textWidth = 0;
+    double textHeight = 0;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0; // 额外行距
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例
