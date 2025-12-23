@@ -1132,8 +1132,8 @@ private:
 
     std::wstring contentW;
     std::vector<std::wstring> lines;
-    int textWidth = 0;
-    int textHeight = 0;
+    double textWidth = 0;
+    double textHeight = 0;
     TextAlign align = TextAlign::Left;
     int lineSpacing = 0; // 额外行距
     double lastFontScale = -1;  ///< 缓存上次字体缩放比例

@@ -1825,10 +1825,10 @@ color_t EGEAPI color_premultiply(color_t color);
  * @brief 转换图像的像素颜色类型，从源颜色类型转换为目标颜色类型。
  * @details
  * - src == dst, 不做任何操作。
- * - RGB32  --> ARGB32, RGB32 --> PRGB32, ARGB32 --> RGB32: 设置alpha为0xFF
- * - ARGB32 --> PRGB32: 预乘alpha
- * - PRGB32 --> ARGB32: 反预乘alpha
- * - PRGB32 -->  RGB32: 反预乘alpha然后设置alpha为0xFF
+ * - RGB32  --> ARGB32, RGB32 --> PARGB32, ARGB32 --> RGB32: 设置alpha为0xFF
+ * - ARGB32 --> PARGB32: 预乘alpha
+ * - PARGB32 --> ARGB32: 反预乘alpha
+ * - PARGB32 -->  RGB32: 反预乘alpha然后设置alpha为0xFF
  * @param pimg 要转换的目标图像
  * @param src 源颜色类型
  * @param dst 目标颜色类型
@@ -3990,6 +3990,56 @@ void EGEAPI setfont(const LOGFONTA *font, PIMAGE pimg = NULL);
  */
 EGE_DEPRECATE(getfont, "Please use the 'getfont' function with the LOGFONTW* parameter instead.")
 void EGEAPI getfont(LOGFONTA *font, PCIMAGE pimg = NULL);
+
+/**
+ * @brief 设置用于GDI+文字渲染的浮点数大小字体
+ * @param size 字体大小（浮点数），以单元格高度像素为单位，与GDI setfont()行为保持一致
+ * @param typeface 字体名称
+ * @param pimg 目标图像指针，NULL 表示当前ege窗口
+ * @note 此函数直接创建GDI+ Font，允许使用浮点数字体大小。
+ *       设置后，ege_drawtext将使用此GDI+字体，而不是从GDI HFONT转换。
+ *       大小表示单元格高度（类似GDI的LOGFONT.lfHeight）。实现内部会将其调整为
+ *       GDI+的em高度，以确保渲染大小与GDI字体一致。
+ */
+void EGEAPI ege_setfont(float size, const char* typeface, PIMAGE pimg = NULL);
+
+/**
+ * @brief 设置用于GDI+文字渲染的浮点数大小字体（Unicode版本）
+ * @param size 字体大小（浮点数），以单元格高度像素为单位，与GDI setfont()行为保持一致
+ * @param typeface 字体名称
+ * @param pimg 目标图像指针，NULL 表示当前ege窗口
+ * @note 此函数直接创建GDI+ Font，允许使用浮点数字体大小。
+ *       设置后，ege_drawtext将使用此GDI+字体，而不是从GDI HFONT转换。
+ *       大小表示单元格高度（类似GDI的LOGFONT.lfHeight）。实现内部会将其调整为
+ *       GDI+的em高度，以确保渲染大小与GDI字体一致。
+ */
+void EGEAPI ege_setfont(float size, const wchar_t* typeface, PIMAGE pimg = NULL);
+
+/**
+ * @brief 设置用于GDI+文字渲染的浮点数大小和样式字体
+ * @param size 字体大小（浮点数），以单元格高度像素为单位，与GDI setfont()行为保持一致
+ * @param typeface 字体名称
+ * @param style 字体样式（Gdiplus::FontStyle标志的组合：FontStyleBold、FontStyleItalic等）
+ * @param pimg 目标图像指针，NULL 表示当前ege窗口
+ * @note 此函数直接创建GDI+ Font，允许使用浮点数字体大小和GDI+字体样式。
+ *       设置后，ege_drawtext将使用此GDI+字体，而不是从GDI HFONT转换。
+ *       大小表示单元格高度（类似GDI的LOGFONT.lfHeight）。实现内部会将其调整为
+ *       GDI+的em高度，以确保渲染大小与GDI字体一致。
+ */
+void EGEAPI ege_setfont(float size, const char* typeface, int style, PIMAGE pimg = NULL);
+
+/**
+ * @brief 设置用于GDI+文字渲染的浮点数大小和样式字体（Unicode版本）
+ * @param size 字体大小（浮点数），以单元格高度像素为单位，与GDI setfont()行为保持一致
+ * @param typeface 字体名称
+ * @param style 字体样式（Gdiplus::FontStyle标志的组合：FontStyleBold、FontStyleItalic等）
+ * @param pimg 目标图像指针，NULL 表示当前ege窗口
+ * @note 此函数直接创建GDI+ Font，允许使用浮点数字体大小和GDI+字体样式。
+ *       设置后，ege_drawtext将使用此GDI+字体，而不是从GDI HFONT转换。
+ *       大小表示单元格高度（类似GDI的LOGFONT.lfHeight）。实现内部会将其调整为
+ *       GDI+的em高度，以确保渲染大小与GDI字体一致。
+ */
+void EGEAPI ege_setfont(float size, const wchar_t* typeface, int style, PIMAGE pimg = NULL);
 
 /// @}
 
