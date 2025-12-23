@@ -2,6 +2,7 @@
 using namespace FeEGE;
 
 int main() {
+    SetProcessDPIAware();
     _setmode(_fileno(stdout), _O_WTEXT);
     init(800, 600);
     
@@ -62,22 +63,16 @@ int main() {
 
     Slider* ss = SliderBuilder()
         .setSize(400,35)
-    .setCenter(400,425)
-    .setOnChange([=](double f){
-        loginPanel->setScale(f);
-    })
-    .build();
+        .setCenter(400,425)
+        .setOnChange([=](double f){
+            loginPanel->setScale(f * 2);
+        })
+        .setProgress(0.50f)
+        .build();
 
-    assignOrder({loginPanel,ss});
+    assignOrder({ss,loginPanel});
 
     start();
-    
-    // 清理资源
-    delete loginPanel;
-    delete title;
-    delete username;
-    delete password;
-    delete loginBtn;
     
     return 0;
 }

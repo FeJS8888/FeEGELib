@@ -1809,16 +1809,16 @@ color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src);
 color_t EGEAPI alphablend_premultiplied(color_t dst, color_t src, unsigned char srcAlphaFactor);
 
 /**
- * @brief Convert PRGB32 to ARGB32
- * @param color PRGB32 color
+ * @brief Convert PARGB32 to ARGB32
+ * @param color PARGB32 color
  * @return ARGB32 color
  */
 color_t EGEAPI color_unpremultiply(color_t color);
 
 /**
- * @brief Convert ARGB32 to PRGB32
+ * @brief Convert ARGB32 to PARGB32
  * @param color ARGB32 color
- * @return PRGB32 color
+ * @return PARGB32 color
  */
 color_t EGEAPI color_premultiply(color_t color);
 
@@ -1826,10 +1826,10 @@ color_t EGEAPI color_premultiply(color_t color);
  * @brief Convert pixel color types of the image，convert from src color type to dst color type.
 * @details
 * - src == dst, do nothing.
-* - RGB32  --> ARGB32, RGB32 --> PRGB32, ARGB32 --> RGB32: set alpha to 0xFF
-* - ARGB32 --> PRGB32: premultiply alpha
-* - PRGB32 --> ARGB32: unpremultiply alpha
-* - PRGB32 -->  RGB32: unpremultiply alpha and then set alpha to 0xFF
+* - RGB32  --> ARGB32, RGB32 --> PARGB32, ARGB32 --> RGB32: set alpha to 0xFF
+* - ARGB32 --> PARGB32: premultiply alpha
+* - PARGB32 --> ARGB32: unpremultiply alpha
+* - PARGB32 -->  RGB32: unpremultiply alpha and then set alpha to 0xFF
  * @param pimg Target image to convert
  * @param src Source color type
  * @param dst Destination color type
@@ -3995,6 +3995,56 @@ void EGEAPI setfont(const LOGFONTA *font, PIMAGE pimg = NULL);
  */
 EGE_DEPRECATE(getfont, "Please use the 'getfont' function with the LOGFONTW* parameter instead.")
 void EGEAPI getfont(LOGFONTA *font, PCIMAGE pimg = NULL);
+
+/**
+ * @brief Set font for GDI+ text rendering with floating-point size
+ * @param size Font size (floating-point), measured in cell height pixels to match GDI setfont() behavior
+ * @param typeface Font family name
+ * @param pimg Target image pointer, NULL means current ege window
+ * @note This function creates a GDI+ Font directly, allowing floating-point font sizes.
+ *       When set, ege_drawtext will use this GDI+ font instead of converting from GDI HFONT.
+ *       The size represents the cell height (like GDI's LOGFONT.lfHeight). The implementation
+ *       adjusts this to GDI+'s em height internally to ensure the rendered size matches GDI fonts.
+ */
+void EGEAPI ege_setfont(float size, const char* typeface, PIMAGE pimg = NULL);
+
+/**
+ * @brief Set font for GDI+ text rendering with floating-point size (Unicode)
+ * @param size Font size (floating-point), measured in cell height pixels to match GDI setfont() behavior
+ * @param typeface Font family name
+ * @param pimg Target image pointer, NULL means current ege window
+ * @note This function creates a GDI+ Font directly, allowing floating-point font sizes.
+ *       When set, ege_drawtext will use this GDI+ font instead of converting from GDI HFONT.
+ *       The size represents the cell height (like GDI's LOGFONT.lfHeight). The implementation
+ *       adjusts this to GDI+'s em height internally to ensure the rendered size matches GDI fonts.
+ */
+void EGEAPI ege_setfont(float size, const wchar_t* typeface, PIMAGE pimg = NULL);
+
+/**
+ * @brief Set font for GDI+ text rendering with floating-point size and style
+ * @param size Font size (floating-point), measured in cell height pixels to match GDI setfont() behavior
+ * @param typeface Font family name
+ * @param style Font style (combination of Gdiplus::FontStyle flags: FontStyleBold, FontStyleItalic, etc.)
+ * @param pimg Target image pointer, NULL means current ege window
+ * @note This function creates a GDI+ Font directly, allowing floating-point font sizes and GDI+ font styles.
+ *       When set, ege_drawtext will use this GDI+ font instead of converting from GDI HFONT.
+ *       The size represents the cell height (like GDI's LOGFONT.lfHeight). The implementation
+ *       adjusts this to GDI+'s em height internally to ensure the rendered size matches GDI fonts.
+ */
+void EGEAPI ege_setfont(float size, const char* typeface, int style, PIMAGE pimg = NULL);
+
+/**
+ * @brief Set font for GDI+ text rendering with floating-point size and style (Unicode)
+ * @param size Font size (floating-point), measured in cell height pixels to match GDI setfont() behavior
+ * @param typeface Font family name
+ * @param style Font style (combination of Gdiplus::FontStyle flags: FontStyleBold, FontStyleItalic, etc.)
+ * @param pimg Target image pointer, NULL means current ege window
+ * @note This function creates a GDI+ Font directly, allowing floating-point font sizes and GDI+ font styles.
+ *       When set, ege_drawtext will use this GDI+ font instead of converting from GDI HFONT.
+ *       The size represents the cell height (like GDI's LOGFONT.lfHeight). The implementation
+ *       adjusts this to GDI+'s em height internally to ensure the rendered size matches GDI fonts.
+ */
+void EGEAPI ege_setfont(float size, const wchar_t* typeface, int style, PIMAGE pimg = NULL);
 
 /// @}
 

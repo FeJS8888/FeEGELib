@@ -377,13 +377,15 @@ void Button::draw(PIMAGE dst,int x,int y){
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
-    setfont(23 * scale, 0, L"宋体", btnLayer);
+    ege_setfont(23 * scale, L"宋体", btnLayer);
+    float w,h;
+    measuretext(content.c_str(),&w,&h,btnLayer);
     
     // 按钮文字
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    ege_outtextxy(width / 2 - textwidth(content.c_str(), btnLayer) / 2, 
-                 height / 2 - textheight(content.c_str(), btnLayer) / 2, 
+    ege_outtextxy(width / 2 - w / 2, 
+                 height / 2 - h / 2, 
                  content.c_str(), btnLayer);
     
     // 应用遮罩绘制
@@ -653,17 +655,18 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
+    if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
+        putimage_withalpha(dst, bgLayer, left, top);
+        return;
+    }
+
+    ege_setfont(23 * scale, L"宋体", btnLayer);
     if (on_focus) {
         adjustScrollForCursor();
         inv.setfocus();
         wchar_t str[512];
         inv.gettext(512, str);
         setContent(str);
-    }
-    
-    if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
-        putimage_withalpha(dst, bgLayer, left, top);
-        return;
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -688,13 +691,12 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
 
     // 优化：仅在缩放改变时设置字体
     double currentFontScale = scale * text_height;
-    setfont(23 * scale, 0, L"宋体", btnLayer);
     
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
 
     if(sgn(currentFontScale - 1) >= 0 || scaleChanged || PanelScaleChanged){
-        const float padding = 14;
+        const float padding = 14 * scale;
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
@@ -722,7 +724,9 @@ void InputBox::draw(PIMAGE dst, int x, int y) {
             measuretext(displayContent.c_str(), &full_text_width, &tmp, btnLayer);
         }
         
-        float textRealHeight = tmp ? tmp : textheight("a", btnLayer);
+        float _w,_h;
+        measuretext("a",&_w,&_h,btnLayer);
+        float textRealHeight = tmp ? tmp : _h;
         float text_start_x = padding - scroll_offset;
         
         // 绘制文本
@@ -814,7 +818,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
 
         // 计算点击位置对应的字符下标（二分法）
-        const float padding = 14;
+        const float padding = 14 * scale;
         float click_x = localX - padding + scroll_offset;
         int l = 0, r = content.length();
         int best_pos = 0;
@@ -926,12 +930,18 @@ void InputBox::setPosition(int x,int y){
 
 void InputBox::setScale(double s){
     if(sgn(scale - s) == 0) return;
+    // 保存旧缩放比例，用于按比例缩放滚动偏移
+    double old_scale = scale;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
+    // 按比例缩放滚动偏移，保持文本相对位置
+    if (old_scale > 0) {
+        scroll_offset = scroll_offset * (s / old_scale);
+    }
     // 遮罩
     if(maskLayer) delimage(maskLayer);
     maskLayer = newimage(width,height);
@@ -978,7 +988,7 @@ void InputBox::setIMECursorPos(int pos){
 }
 
 void InputBox::adjustScrollForCursor() {
-    const float padding = 14;
+    const float padding = 14 * scale;
     const float visible_width = width - 2 * padding;
 
     float cursor_pixel_pos, tmp;
@@ -2239,7 +2249,7 @@ void Text::updateLayout() {
     textWidth = 0;
     textHeight = 0;
 
-    setfont((int)(fontSize * scale), 0, fontName.c_str());
+    ege_setfont(fontSize * scale, fontName.c_str());
     lastFontScale = fontSize * scale;
 
     std::wstring line;
@@ -2252,7 +2262,9 @@ void Text::updateLayout() {
 
         line += ch;
 
-        if (maxWidth > 0 && textwidth(line.c_str()) > maxWidth) {
+        float tmp,_w;
+        measuretext(line.c_str(),&_w,&tmp);
+        if (maxWidth > 0 && _w > maxWidth) {
             line.pop_back();
             lines.push_back(line);
             line = ch;
@@ -2265,12 +2277,15 @@ void Text::updateLayout() {
     // 优化：缓存每行的宽度
     cachedLineWidths.reserve(lines.size());
     for (const auto& l : lines) {
-        float w = textwidth(l.c_str());
+        float w,tmp;
+        measuretext(l.c_str(),&w,&tmp);
         cachedLineWidths.push_back(w);
-        textWidth = std::max(textWidth, (int)w);
+        textWidth = ((textWidth < w) ? w : textWidth);
     }
 
-    textHeight = lines.size() * textheight("A");
+    float _h,tmp;
+    measuretext("A",&tmp,&_h);
+    textHeight = lines.size() * _h;
 
     height = textHeight;
     width = textWidth;
@@ -2285,7 +2300,7 @@ void Text::draw() {
 void Text::draw(PIMAGE dst, int x, int y) {
     // 重要：每次都设置字体，因为dst可能是不同的图像上下文
     // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
-    setfont(fixed(fontSize * scale), 0, fontName.c_str(), dst);
+    ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -2306,8 +2321,10 @@ void Text::draw(PIMAGE dst, int x, int y) {
             x_draw = x + (maxWidth - lineW);
 
         // 使用缓存的行高
+        float tmp,_h;
+        measuretext("A",&tmp,&_h,dst);
         double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
-            (textHeight / lines.size()) : textheight("A", dst);
+            (textHeight / lines.size()) : _h;
         double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
@@ -2597,7 +2614,7 @@ void Knob::draw(PIMAGE dst, int x, int y) {
     // === 显示当前值 ===
     if (showValue) {
         // 计算字体大小
-        int actualFontSize = fontSize > 0 ? fontSize : (int)(r * 0.35);
+        double actualFontSize = fontSize > 0 ? fontSize : (r * 0.35);
         
         // 格式化显示值（显示displayValue而不是value，实现缓动效果）
         wchar_t valueText[64];
@@ -2610,13 +2627,13 @@ void Knob::draw(PIMAGE dst, int x, int y) {
         }
         
         // 设置字体和颜色
-        setfont(actualFontSize, 0, L"Consolas", dst);
+        ege_setfont(actualFontSize, L"Consolas", dst);
         setcolor(disabled ? EGERGB(150, 150, 150) : BLACK, dst);
         setbkmode(TRANSPARENT, dst);
         
         // 计算文本宽度和高度以居中显示
-        int textWidth = textwidth(valueText, dst);
-        int textHeight = textheight(valueText, dst);
+        float textWidth,textHeight;
+        measuretext(valueText,&textWidth,&textHeight,dst);
         
         outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
     }
