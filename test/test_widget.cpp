@@ -67,6 +67,7 @@ int main() {
         .setOnChange([=](double f){
             loginPanel->setScale(f * 2);
         })
+        .setProgress(0.50f)
         .build();
 
     assignOrder({ss,loginPanel});
