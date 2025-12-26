@@ -1188,15 +1188,15 @@ bool Slider::isInside(double x, double y){
     double knobX, knobY;
     if (m_orientation == Orientation::Column) {
         knobX = left + width / 2;
-        knobY = top + static_cast<int>((1.0 - m_progress) * height);
+        knobY = top + (1.0 - m_progress) * height;
         radius = width / 2;
     } else { // Row
-        knobX = left + static_cast<int>(m_progress * width);
+        knobX = left + m_progress * width;
         knobY = top + height / 2;
         radius = height / 2;
     }
-    int dx = x - knobX;
-    int dy = y - knobY;
+    double dx = x - knobX;
+    double dy = y - knobY;
     return dx * dx + dy * dy <= radius * radius;
 }
 
