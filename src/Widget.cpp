@@ -142,7 +142,6 @@ double Panel::getScale(){
 	return scale;
 }
 
-namespace {
 // Helper function to check if a widget is a descendant of a list of children
 bool isDescendant(Widget* target, const std::vector<Widget*>& children) {
     for(Widget* child : children) {
@@ -158,7 +157,6 @@ bool isDescendant(Widget* target, const std::vector<Widget*>& children) {
     }
     return false;
 }
-} // anonymous namespace
 
 bool Panel::handleEvent(const mouse_msg& msg){
     int mx = msg.x,my = msg.y;
