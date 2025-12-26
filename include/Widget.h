@@ -205,6 +205,7 @@ private:
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
     bool scaleChanged = true;
+    bool needRedraw = true;  ///< 是否需要重绘Panel背景
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）

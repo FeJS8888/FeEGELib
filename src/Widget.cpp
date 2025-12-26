@@ -70,17 +70,21 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
-    // 总是清空并重绘（子控件可能有动态内容）
+    // 优化：检查是否需要重绘背景
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
-    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
-    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
-    cleardevice(layer);
+    if(needRedraw || scaleChanged) {
+        // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
+        cleardevice(layer);
 
-    // 绘制自身背景（圆角矩形）
-    setfillcolor(bgColor, layer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
+        // 绘制自身背景（圆角矩形）
+        setfillcolor(bgColor, layer);
+        ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
+        
+        needRedraw = false;  // 标记背景已重绘
+    }
 
-    // 绘制子控件
+    // 绘制子控件（子控件内部有自己的缓存机制）
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
         double childX = width / 2 + childOffsets[i].x * scale;
@@ -115,27 +119,39 @@ Position Panel::getPosition(){
 void Panel::setScale(double s){
     if(sgn(s - scale) == 0) return;
     scaleChanged = true;
-	width = origin_width * s;
-    height = origin_height * s;
-    radius = origin_radius * s;
+    needRedraw = true;  // 缩放改变需要重绘
+    
+    double newWidth = origin_width * s;
+    double newHeight = origin_height * s;
+    double newRadius = origin_radius * s;
+    
+    // 只有当尺寸实际改变时才重建图层（优化性能）
+    bool needRecreateLayer = (sgn(width - newWidth) != 0) || (sgn(height - newHeight) != 0);
+    
+	width = newWidth;
+    height = newHeight;
+    radius = newRadius;
 	scale = s;
+	
 	for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setScale(s);
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(layer) delimage(layer);
-    layer = newimage(width,height);
-    ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
+    if(needRecreateLayer) {
+        if(maskLayer) delimage(maskLayer);
+        maskLayer = newimage(width,height);
+        if(layer) delimage(layer);
+        layer = newimage(width,height);
+        ege_enable_aa(true,layer);
+        ege_enable_aa(true,maskLayer);
 
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+        // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+        setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+        cleardevice(maskLayer);
+        setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+        ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+    }
 }
 
 double Panel::getScale(){
@@ -209,6 +225,7 @@ void Panel::setSize(double w,double h){
     cleardevice(maskLayer);
     setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+    needRedraw = true;  // 尺寸改变需要重绘
 }
 
 void Panel::clearChildren(){
@@ -516,27 +533,38 @@ void Button::setPosition(double x,double y){
 
 void Button::setScale(double s){
     if(sgn(scale - s) == 0) return;
-	width = origin_width * s;
-    height = origin_height * s;
-    radius = origin_radius * s;
+    
+    double newWidth = origin_width * s;
+    double newHeight = origin_height * s;
+    double newRadius = origin_radius * s;
+    
+    // 只有当尺寸实际改变时才重建图层（优化性能）
+    bool needRecreateLayer = (sgn(width - newWidth) != 0) || (sgn(height - newHeight) != 0);
+    
+	width = newWidth;
+    height = newHeight;
+    radius = newRadius;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    
+    if(needRecreateLayer) {
+        // 遮罩
+        if(maskLayer) delimage(maskLayer);
+        maskLayer = newimage(width,height);
+        if(btnLayer) delimage(btnLayer);
+        btnLayer = newimage(width,height);
+        if(bgLayer) delimage(bgLayer);
+        bgLayer = newimage(width,height);
+        ege_enable_aa(true,bgLayer);
+        ege_enable_aa(true,maskLayer);
+        ege_enable_aa(true,btnLayer);
+        // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+        setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+        cleardevice(maskLayer);
+        setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+        ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    }
     needRedraw = true;
 }
 
@@ -961,31 +989,43 @@ void InputBox::setScale(double s){
     if(sgn(scale - s) == 0) return;
     // 保存旧缩放比例，用于按比例缩放滚动偏移
     double old_scale = scale;
-	width = origin_width * s;
-    height = origin_height * s;
-    radius = origin_radius * s;
+    
+    double newWidth = origin_width * s;
+    double newHeight = origin_height * s;
+    double newRadius = origin_radius * s;
+    
+    // 只有当尺寸实际改变时才重建图层（优化性能）
+    bool needRecreateLayer = (sgn(width - newWidth) != 0) || (sgn(height - newHeight) != 0);
+    
+	width = newWidth;
+    height = newHeight;
+    radius = newRadius;
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
+    
     // 按比例缩放滚动偏移，保持文本相对位置
     if (old_scale > 0) {
         scroll_offset = scroll_offset * (s / old_scale);
     }
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
-    if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    
+    if(needRecreateLayer) {
+        // 遮罩
+        if(maskLayer) delimage(maskLayer);
+        maskLayer = newimage(width,height);
+        if(btnLayer) delimage(btnLayer);
+        btnLayer = newimage(width,height);
+        if(bgLayer) delimage(bgLayer);
+        bgLayer = newimage(width,height);
+        ege_enable_aa(true,bgLayer);
+        ege_enable_aa(true,maskLayer);
+        ege_enable_aa(true,btnLayer);
+        // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
+        setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
+        cleardevice(maskLayer);
+        setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
+        ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    }
     needRedraw = true;
     scaleChanged = true;
 }
@@ -1506,14 +1546,24 @@ void ProgressBar::setPosition(double x, double y) {
 
 void ProgressBar::setScale(double s) {
     if (fabs(scale - s) < 1e-6) return;
+    
+    double newWidth = origin_width * s;
+    double newHeight = origin_height * s;
+    
+    // 只有当尺寸实际改变时才重建图层（优化性能）
+    bool needRecreateLayer = (fabs(width - newWidth) > 1e-6) || (fabs(height - newHeight) > 1e-6);
+    
     scale = s;
-    width = origin_width * s;
-    height = origin_height * s;
-    if (barLayer) delimage(barLayer);
-    barLayer = newimage(width, height);
-    ege_enable_aa(true, barLayer);
+    width = newWidth;
+    height = newHeight;
     left = cx - width / 2;
     top = cy - height / 2;
+    
+    if(needRecreateLayer) {
+        if (barLayer) delimage(barLayer);
+        barLayer = newimage(width, height);
+        ege_enable_aa(true, barLayer);
+    }
     needRedraw = true;
 }
 
