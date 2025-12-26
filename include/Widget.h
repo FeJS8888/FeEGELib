@@ -274,7 +274,7 @@ struct Ripple{
      * @param dst 目标图像
      * @param scale 缩放比例
      */
-    void draw(PIMAGE dst,double scale) const;
+    void draw(PIMAGE dst) const;
 };
 
 /**
