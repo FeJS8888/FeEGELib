@@ -424,8 +424,8 @@ bool Button::handleEvent(const mouse_msg& msg) {
 
 bool Button::isInside(double x, double y) const {
     // 转换为按钮内部坐标系
-    int localX = x - left;
-    int localY = y - top;
+    double localX = x - left;
+    double localY = y - top;
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -866,8 +866,8 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
 bool InputBox::isInside(double x, double y) const {
     // 转换为按钮内部坐标系
-    int localX = x - left;
-    int localY = y - top;
+    double localX = x - left;
+    double localY = y - top;
     // wcout<<L"IS localX: "<<localX<<L" localY: "<<localY<<L"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
     // 先检查是否在按钮矩形框外
@@ -1185,18 +1185,18 @@ void Slider::draw(){
 }
 
 bool Slider::isInside(double x, double y){
-    int knobX, knobY;
+    double knobX, knobY;
     if (m_orientation == Orientation::Column) {
         knobX = left + width / 2;
-        knobY = top + static_cast<int>((1.0 - m_progress) * height);
+        knobY = top + (1.0 - m_progress) * height;
         radius = width / 2;
     } else { // Row
-        knobX = left + static_cast<int>(m_progress * width);
+        knobX = left + m_progress * width;
         knobY = top + height / 2;
         radius = height / 2;
     }
-    int dx = x - knobX;
-    int dy = y - knobY;
+    double dx = x - knobX;
+    double dy = y - knobY;
     return dx * dx + dy * dy <= radius * radius;
 }
 
