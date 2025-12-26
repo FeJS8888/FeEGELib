@@ -142,12 +142,41 @@ double Panel::getScale(){
 	return scale;
 }
 
+bool isDescendant(Widget* target, const std::vector<Widget*>& children) {
+    for(Widget* child : children) {
+        if(child == target) {
+            return true;
+        }
+        // Check if child is a Panel with its own children
+        if(Panel* childPanel = dynamic_cast<Panel*>(child)) {
+            if(isDescendant(target, childPanel->getChildren())) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool Panel::handleEvent(const mouse_msg& msg){
     int mx = msg.x,my = msg.y;
     double left = cx - width / 2;
     double top = cy - height / 2;
     bool isin = mx >= left && mx <= left + width && my >= top && my <= top + height;
-    if(!isin) return false;
+    if(!isin) {
+        // When clicking outside the Panel, remove focus from any descendant widget that has focus
+        if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
+            if(isDescendant(focusingWidget, children)) {
+                focusingWidget->deleteFocus();
+            }
+        }
+        return false;
+    }
+    // When clicking inside this Panel, if the focused widget is in another Panel, remove its focus
+    if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
+        if(!isDescendant(focusingWidget, children)) {
+            focusingWidget->deleteFocus();
+        }
+    }
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
         if(state) return true;
