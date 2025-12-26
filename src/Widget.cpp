@@ -308,9 +308,9 @@ void Ripple::update() {
     age++;
 }
 
-void Ripple::draw(PIMAGE dst,double s) const {
+void Ripple::draw(PIMAGE dst) const {
     double progress = (double)age / life;
-    double r = maxRadius * progress * s;
+    double r = maxRadius * progress;
     int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
     setfillcolor(EGEARGB(alpha, 30, 30, 30), dst);
     ege_fillellipse(x - r, y - r, r * 2, r * 2, dst);
@@ -372,7 +372,7 @@ void Button::draw(PIMAGE dst,double x,double y){
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer,scale);
+        r.draw(btnLayer);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
@@ -684,7 +684,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer, scale);
+        r.draw(btnLayer);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
