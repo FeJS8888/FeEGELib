@@ -41,7 +41,7 @@ public:
      * @param offsetX 控件中心 x 坐标（相对于 dst）
      * @param offsetY 控件中心 y 坐标（相对于 dst）
      */
-    virtual void draw(PIMAGE dst, int offsetX, int offsetY) = 0;
+    virtual void draw(PIMAGE dst, double offsetX, double offsetY) = 0;
     
     /**
      * @brief 绘制控件到默认图像
@@ -53,7 +53,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    virtual void setPosition(int x,int y) = 0;
+    virtual void setPosition(double x,double y) = 0;
     
     /**
      * @brief 设置控件缩放比例
@@ -75,7 +75,7 @@ public:
 
     virtual void deleteFocus();
 protected:
-    int cx = 0, cy = 0;       ///< 中心坐标
+    double cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
     double scale = 1;         ///< 缩放比例
 };
@@ -95,7 +95,7 @@ public:
      * @param r 圆角半径
      * @param bg 背景颜色
      */
-    Panel(int cx, int cy, double w, double h, double r, color_t bg);
+    Panel(double cx, double cy, double w, double h, double r, color_t bg);
     
     /**
      * @brief 析构函数
@@ -116,7 +116,7 @@ public:
      * @param x 粘贴到 dst 中的中心 x 坐标
      * @param y 粘贴到 dst 中的中心 y 坐标
      */
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     
     /**
      * @brief 绘制 Panel 到默认图像
@@ -128,7 +128,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    void setPosition(int x,int y) override;
+    void setPosition(double x,double y) override;
     
     /**
      * @brief 获取面板位置
@@ -215,7 +215,7 @@ private:
 class PanelBuilder {
 public:
     PanelBuilder& setIdentifier(const std::wstring& identifier);
-    PanelBuilder& setCenter(int x, int y);
+    PanelBuilder& setCenter(double x, double y);
     PanelBuilder& setSize(double w, double h);
     PanelBuilder& setRadius(double r);
     PanelBuilder& setBackground(color_t color);
@@ -227,7 +227,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 5;
     color_t bg = EGERGB(240, 240, 240);
@@ -242,7 +242,7 @@ private:
  * @brief 波纹动画效果结构体
  */
 struct Ripple{
-    int x, y;           ///< 波纹中心坐标
+    double x, y;           ///< 波纹中心坐标
     int maxRadius;      ///< 最大半径
     int life;           ///< 生命周期
     int age = 0;        ///< 当前年龄
@@ -309,7 +309,7 @@ public:
      * @param h 高度
      * @param r 圆角半径
      */
-    Button(int cx, int cy, double w, double h, double r);
+    Button(double cx, double cy, double w, double h, double r);
 
     /**
      * @brief 析构函数
@@ -322,7 +322,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    virtual void draw(PIMAGE dst,int x,int y) override;
+    virtual void draw(PIMAGE dst,double x,double y) override;
     
     /**
      * @brief 绘制按钮到默认图像
@@ -359,14 +359,14 @@ public:
      * @param y y坐标
      * @return 是否在按钮内
      */
-    bool isInside(int x, int y) const;
+    bool isInside(double x, double y) const;
     
     /**
      * @brief 设置按钮位置
      * @param x x坐标
      * @param y y坐标
      */
-    void setPosition(int x,int y) override;
+    void setPosition(double x,double y) override;
     
     /**
      * @brief 设置按钮缩放比例
@@ -411,7 +411,7 @@ public:
 class ButtonBuilder {
 public:
     ButtonBuilder& setIdentifier(const std::wstring& identifier);
-    ButtonBuilder& setCenter(int x, int y);
+    ButtonBuilder& setCenter(double x, double y);
     ButtonBuilder& setSize(double w, double h);
     ButtonBuilder& setRadius(double r);
     ButtonBuilder& setContent(const std::wstring& text);
@@ -424,7 +424,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double width = 100, height = 50;
     double radius = 8;
     std::wstring content = L"Button";
@@ -488,7 +488,7 @@ public:
      * @param h 高度
      * @param r 圆角半径
      */
-    InputBox(int cx, int cy, double w, double h, double r);
+    InputBox(double cx, double cy, double w, double h, double r);
 
     /**
      * @brief 析构函数
@@ -498,7 +498,7 @@ public:
     /**
      * @brief 绘制输入框
      */
-    virtual void draw(PIMAGE dst,int x,int y) override;
+    virtual void draw(PIMAGE dst,double x,double y) override;
     virtual void draw() override;
 
     /**
@@ -513,7 +513,7 @@ public:
      * @param y y坐标
      * @return 是否在输入框内
      */
-    bool isInside(int x, int y) const;
+    bool isInside(double x, double y) const;
 
     /**
      * @brief 设置输入内容
@@ -527,7 +527,7 @@ public:
      */
     void setMaxlen(int maxlen);
     
-    void setPosition(int x,int y) override;
+    void setPosition(double x,double y) override;
     
     void setScale(double s) override;
 
@@ -554,7 +554,7 @@ public:
 class InputBoxBuilder {
 public:
     InputBoxBuilder& setIdentifier(const std::wstring& identifier);
-    InputBoxBuilder& setCenter(int x, int y);
+    InputBoxBuilder& setCenter(double x, double y);
     InputBoxBuilder& setSize(double w, double h);
     InputBoxBuilder& setRadius(double r);
     InputBoxBuilder& setContent(const std::wstring& text);
@@ -565,7 +565,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double width = 160, height = 40;
     double radius = 6;
     std::wstring content = L"";
@@ -622,12 +622,12 @@ public:
      * @param w 宽度
      * @param h 高度
      */
-    void create(int x, int y, double w, double h);
+    void create(double x, double y, double w, double h);
 
     /**
      * @brief 绘制滑动条
      */
-    virtual void draw(PIMAGE dst,int x,int y) override ;
+    virtual void draw(PIMAGE dst,double x,double y) override ;
     virtual void draw();
     
     /**
@@ -636,7 +636,7 @@ public:
      * @param y y坐标
      * @return 是否在输入框内
      */
-    bool isInside(int x, int y);
+    bool isInside(double x, double y);
 
     /**
      * @brief 检查点是否在滑动条轨道内
@@ -644,7 +644,7 @@ public:
      * @param y y坐标
      * @return 是否在轨道内
      */
-    bool isInsideBar(int x, int y);
+    bool isInsideBar(double x, double y);
 
     /**
      * @brief 处理鼠标事件
@@ -688,7 +688,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    void setPosition(int x,int y) override;
+    void setPosition(double x,double y) override;
     
     /**
      * @brief 设置缩放比例
@@ -723,7 +723,7 @@ public:
      * @param cx 中心 x 坐标
      * @param cy 中心 y 坐标
      */
-    SliderBuilder& setCenter(int cx, int cy);
+    SliderBuilder& setCenter(double cx, double cy);
 
     /**
      * @brief 设置尺寸
@@ -782,7 +782,7 @@ public:
 
 private:
     std::wstring identifier;
-    int x = 0, y = 0;
+    double x = 0, y = 0;
     double width = 200, height = 20;
     color_t bgColor = EGERGB(200, 200, 200);
     color_t fgColor = EGERGB(100, 100, 255);
@@ -811,7 +811,7 @@ private:
     PIMAGE barLayer = nullptr;
 
 public:
-    ProgressBar(int cx, int cy, double w, double h);
+    ProgressBar(double cx, double cy, double w, double h);
     ~ProgressBar();
 
     void setProgress(double p);      // 目标进度（0~1）
@@ -819,10 +819,10 @@ public:
     void setColor(color_t fg);       // 设置前景颜色
     void setBackground(color_t bg);  // 设置背景颜色
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
     void setScale(double s) override;
 };
 
@@ -830,7 +830,7 @@ public:
 class ProgressBarBuilder {
 public:
     ProgressBarBuilder& setIdentifier(const std::wstring& identifier);
-    ProgressBarBuilder& setCenter(int x, int y);
+    ProgressBarBuilder& setCenter(double x, double y);
     ProgressBarBuilder& setSize(double w, double h);
     ProgressBarBuilder& setScale(double s);
     ProgressBarBuilder& setProgress(double p);
@@ -840,7 +840,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double width = 200, height = 20;
     double scale = 1.0;
     double progress = 0.0;
@@ -851,19 +851,19 @@ private:
 
 class Dropdown : public Widget {
 public:
-    Dropdown(int cx, int cy, double w, double h, double r);
+    Dropdown(double cx, double cy, double w, double h, double r);
     ~Dropdown();
 
     void addOption(const std::wstring& text, std::function<void()> onClick);
     void setContent(const std::wstring& text);
     void setColor(color_t col);
     void setScale(double s) override;
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
-    bool isInside(int x, int y) const;
+    bool isInside(double x, double y) const;
 
 
 private:
@@ -871,7 +871,7 @@ private:
     Panel* dropdownPanel;
     std::vector<Button*> options;
     bool expanded = false;
-    int cx, cy;
+    double cx, cy;
     double width, height, radius;
     double scale = 1.0;
     double fadeAlpha = 0.0;
@@ -889,7 +889,7 @@ private:
 class DropdownBuilder {
 public:
     DropdownBuilder& setIdentifier(const std::wstring& identifier);
-    DropdownBuilder& setCenter(int x, int y);
+    DropdownBuilder& setCenter(double x, double y);
     DropdownBuilder& setSize(double w, double h);
     DropdownBuilder& setRadius(double r);
     DropdownBuilder& setContent(const std::wstring& text);
@@ -900,7 +900,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double width = 100, height = 40;
     double radius = 8;
     double scale = 1.0;
@@ -919,21 +919,21 @@ enum class RadioStyle {
 
 class Radio : public Widget {
 public:
-    Radio(int cx, int cy, double r, const std::wstring& val);
+    Radio(double cx, double cy, double r, const std::wstring& val);
 
     void setOnSelect(std::function<void()> callback);
     std::wstring getValue() const;
     bool isChecked() const;
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
     void setGroupValueRef(std::wstring* ref);
     void setScale(double s) override;
     void setStyle(RadioStyle s);
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
 private:
-    int cx, cy;
+    double cx, cy;
     double radius, scale = 1.0;
     double origin_radius;
     std::wstring value;
@@ -959,7 +959,7 @@ private:
 class RadioBuilder {
 public:
     RadioBuilder& setIdentifier(const std::wstring& identifier);
-    RadioBuilder& setCenter(int x, int y);
+    RadioBuilder& setCenter(double x, double y);
     RadioBuilder& setRadius(double r);
     RadioBuilder& setValue(const std::wstring& val);
     RadioBuilder& setScale(double s);
@@ -970,7 +970,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double radius = 12;
     double scale = 1.0;
     std::wstring value = L"";
@@ -983,7 +983,7 @@ private:
 
 class RadioController {
 public:
-    RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style);
+    RadioController(double cx, double cy, double r, double gap, double scale, RadioStyle style);
 
     void addValue(const std::wstring& val);
     void setDefault(const std::wstring& val);
@@ -993,7 +993,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx, cy;
+    double cx, cy;
     double radius, scale, gap;
     RadioStyle style;
     std::vector<std::wstring> values;
@@ -1005,7 +1005,7 @@ private:
 class RadioControllerBuilder {
 public:
     RadioControllerBuilder& setIdentifier(const std::wstring& identifier);
-    RadioControllerBuilder& setCenter(int x, int y);
+    RadioControllerBuilder& setCenter(double x, double y);
     RadioControllerBuilder& setRadius(double r);
     RadioControllerBuilder& setGap(double g);
     RadioControllerBuilder& setScale(double s);
@@ -1017,7 +1017,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double radius = 12;
     double gap = 40;
     double scale = 1.0;
@@ -1030,7 +1030,7 @@ private:
 
 class Toggle : public Widget {
 public:
-    Toggle(int cx, int cy, double w, double h);
+    Toggle(double cx, double cy, double w, double h);
 
     void setChecked(bool c);
     void toggle();
@@ -1038,17 +1038,17 @@ public:
     bool isDisabled() const;
     void setOnToggle(std::function<void(bool)> cb);
     void setScale(double s);
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
     void setKeepColor(bool keep);
     void setBaseColor(color_t col);
     void setDisabled(bool d);
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
 private:
-    int cx, cy;
+    double cx, cy;
     double width, height, scale = 1.0;
 
     bool checked = false;
@@ -1070,7 +1070,7 @@ private:
 class ToggleBuilder {
 public:
     ToggleBuilder& setIdentifier(const std::wstring& identifier);
-    ToggleBuilder& setCenter(int x, int y);
+    ToggleBuilder& setCenter(double x, double y);
     ToggleBuilder& setSize(double w, double h);
     ToggleBuilder& setScale(double s);
     ToggleBuilder& setChecked(bool c);
@@ -1081,7 +1081,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double w = 60, h = 30, scale = 1.0;
     bool checked = false;
     std::function<void(bool)> onToggle = nullptr;
@@ -1099,7 +1099,7 @@ enum class TextAlign {
 
 class Text : public Widget {
 public:
-    Text(int x, int y, int maxWidth = 0);
+    Text(double x, double y, int maxWidth = 0);
 
     void setContent(const std::wstring& text);      // UTF-8 / GBK 自动转换
     void setMaxWidth(int width);
@@ -1115,9 +1115,9 @@ public:
     TextAlign getAlign() const;
     int getLineSpacing() const;
 
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
     bool handleEvent(const mouse_msg& msg) override;
 
 private:
@@ -1144,7 +1144,7 @@ private:
 class TextBuilder {
 public:
     TextBuilder& setIdentifier(const std::wstring& identifier);
-    TextBuilder& setPosition(int x, int y);
+    TextBuilder& setPosition(double x, double y);
     TextBuilder& setMaxWidth(int w);
     TextBuilder& setFont(int size, const std::wstring& name);
     TextBuilder& setScale(double s);
@@ -1156,7 +1156,7 @@ public:
 
 private:
     std::wstring identifier;
-    int x = 0, y = 0;
+    double x = 0, y = 0;
     int maxWidth = 0;
     int fontSize = 16;
     std::wstring fontName = L"Consolas";
@@ -1180,7 +1180,7 @@ public:
      * @param cy 中心y坐标
      * @param r 旋钮半径
      */
-    Knob(int cx, int cy, double r);
+    Knob(double cx, double cy, double r);
 
     /**
      * @brief 设置值范围
@@ -1258,13 +1258,13 @@ public:
     double getValue() const;
 
     void setScale(double s) override;
-    void setPosition(int x, int y) override;
-    void draw(PIMAGE dst, int x, int y) override;
+    void setPosition(double x, double y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
 private:
-    int cx, cy;                      ///< 中心坐标
+    double cx, cy;                      ///< 中心坐标
     double radius;                   ///< 半径
     double origin_radius;            ///< 原始半径（用于缩放）
     double scale = 1.0;              ///< 缩放比例
@@ -1329,7 +1329,7 @@ private:
      * @param y y坐标
      * @return 是否在旋钮内
      */
-    bool isInside(int x, int y) const;
+    bool isInside(double x, double y) const;
 
     /**
      * @brief 计算鼠标位置对应的角度
@@ -1337,7 +1337,7 @@ private:
      * @param y y坐标
      * @return 角度（度）
      */
-    double calculateAngle(int x, int y) const;
+    double calculateAngle(double x, double y) const;
 };
 
 
@@ -1360,7 +1360,7 @@ public:
      * @param y y坐标
      * @return 构建器引用
      */
-    KnobBuilder& setCenter(int x, int y);
+    KnobBuilder& setCenter(double x, double y);
 
     /**
      * @brief 设置半径
@@ -1464,7 +1464,7 @@ public:
 
 private:
     std::wstring identifier;
-    int cx = 0, cy = 0;
+    double cx = 0, cy = 0;
     double radius = 60;
     double minValue = 0.0;
     double maxValue = 100.0;
@@ -1500,7 +1500,7 @@ public:
      * @param r 圆角半径
      * @param bg 背景颜色
      */
-    Sidebar(int cx, int cy, double w, double h, double r, color_t bg);
+    Sidebar(double cx, double cy, double w, double h, double r, color_t bg);
 
     /**
      * @brief 添加子项
@@ -1532,7 +1532,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    void draw(PIMAGE dst, int x, int y) override;
+    void draw(PIMAGE dst, double x, double y) override;
     
     /**
      * @brief 绘制侧边栏到默认图像
@@ -1550,7 +1550,7 @@ public:
      * @param x x坐标
      * @param y y坐标
      */
-    void setPosition(int x, int y) override;
+    void setPosition(double x, double y) override;
     
     /**
      * @brief 设置侧边栏缩放比例
@@ -1586,7 +1586,7 @@ public:
      * @param y y坐标
      * @return 构建器引用
      */
-    SidebarBuilder& setCenter(int x, int y);
+    SidebarBuilder& setCenter(double x, double y);
     
     /**
      * @brief 设置尺寸
@@ -1624,7 +1624,7 @@ public:
     Sidebar* build();
 
 private:
-    int cx = 0, cy = 0;                  ///< 中心坐标
+    double cx = 0, cy = 0;                  ///< 中心坐标
     double width = 200, height = 400;    ///< 宽高
     double radius = 8;                   ///< 圆角半径
     color_t bg = EGERGB(240, 240, 240);  ///< 背景颜色

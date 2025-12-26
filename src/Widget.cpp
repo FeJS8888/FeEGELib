@@ -32,7 +32,7 @@ Widget::~Widget() {
     }
 }
 
-Panel::Panel(int cx, int cy, double w, double h, double r, color_t bg) {
+Panel::Panel(double cx, double cy, double w, double h, double r, color_t bg) {
     this->cx = cx;
     this->cy = cy;
     this->width = w;
@@ -64,7 +64,7 @@ void Panel::draw() {
     draw(nullptr,cx,cy);
 }
 
-void Panel::draw(PIMAGE dst, int x, int y) {
+void Panel::draw(PIMAGE dst, double x, double y) {
     if (layout) layout->apply(*this);  // 自动计算子控件位置
     
     double left = x - width / 2;
@@ -83,8 +83,8 @@ void Panel::draw(PIMAGE dst, int x, int y) {
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
-        int childX = width / 2 + childOffsets[i].x * scale;
-        int childY = height / 2 + childOffsets[i].y * scale;
+        double childX = width / 2 + childOffsets[i].x * scale;
+        double childY = height / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
@@ -103,7 +103,7 @@ Panel::~Panel(){
     if (maskLayer) delimage(maskLayer);
 }
 
-void Panel::setPosition(int x,int y){
+void Panel::setPosition(double x,double y){
 	cx = x;
 	cy = y;
 }
@@ -212,7 +212,7 @@ PanelBuilder& PanelBuilder::setIdentifier(const wstring& id) {
     return *this;
 }
 
-PanelBuilder& PanelBuilder::setCenter(int x, int y) {
+PanelBuilder& PanelBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -317,7 +317,7 @@ void Ripple::draw(PIMAGE dst,double s) const {
 }
 
 // Button 类实现
-Button::Button(int cx, int cy, double w, double h, double r): radius(r) {
+Button::Button(double cx, double cy, double w, double h, double r): radius(r) {
     this->cx = cx;
     this->cy = cy;
     origin_width = width = w;
@@ -346,9 +346,9 @@ Button::~Button() {
     if (bgLayer) delimage(bgLayer);
 }
 
-void Button::draw(PIMAGE dst,int x,int y){
-    int left = x - width / 2;
-    int top = y - height / 2;
+void Button::draw(PIMAGE dst,double x,double y){
+    double left = x - width / 2;
+    double top = y - height / 2;
     if(!ripples.size() && !needRedraw){
         putimage_withalpha(dst,bgLayer,left,top);
         return;
@@ -362,10 +362,10 @@ void Button::draw(PIMAGE dst,int x,int y){
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
                  
     if(icon != nullptr){
-	    int iconW = getwidth(icon) * scale * iconSize / 100;
-	    int iconH = getheight(icon) * scale * iconSize / 100;
-	    int iconX = width / 2 - iconW / 2;
-	    int iconY = height / 2 - iconH / 2;
+	    double iconW = getwidth(icon) * scale * iconSize / 100;
+	    double iconH = getheight(icon) * scale * iconSize / 100;
+	    double iconX = width / 2 - iconW / 2;
+	    double iconY = height / 2 - iconH / 2;
 	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getwidth(icon),true);
 	}
     
@@ -422,7 +422,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
     return false;
 }
 
-bool Button::isInside(int x, int y) const {
+bool Button::isInside(double x, double y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
@@ -478,7 +478,7 @@ std::wstring Button::getContent(){
     return content;
 }
 
-void Button::setPosition(int x,int y){
+void Button::setPosition(double x,double y){
     if(sgn(left - x + width / 2) == 0 && sgn(top - y + height / 2) == 0) return;
     left = x - width / 2;
 	top = y - height / 2;
@@ -541,7 +541,7 @@ ButtonBuilder& ButtonBuilder::setIdentifier(const wstring& id) {
     return *this;
 }
 
-ButtonBuilder& ButtonBuilder::setCenter(int x, int y) {
+ButtonBuilder& ButtonBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -602,7 +602,7 @@ Button* ButtonBuilder::build() {
 }
 
 // InputBoxBuilder 实现
-InputBox::InputBox(int cx, int cy, double w, double h, double r) {
+InputBox::InputBox(double cx, double cy, double w, double h, double r) {
     this->cx = cx;
     this->cy = cy;
     origin_width = width = w;
@@ -651,7 +651,7 @@ double InputBoxSinDoubleForCursor(double time) {
     return (sine_value + 1.0) / 2.0;
 }
 
-void InputBox::draw(PIMAGE dst, int x, int y) {
+void InputBox::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2;
     double top = y - height / 2;
     
@@ -864,7 +864,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
     return false;
 }
 
-bool InputBox::isInside(int x, int y) const {
+bool InputBox::isInside(double x, double y) const {
     // 转换为按钮内部坐标系
     int localX = x - left;
     int localY = y - top;
@@ -921,7 +921,7 @@ void InputBox::setMaxlen(int maxlen) {
     inv.setmaxlen(maxlen);
 }
 
-void InputBox::setPosition(int x,int y){
+void InputBox::setPosition(double x,double y){
     if(sgn(left - (x - width / 2)) == 0 && sgn(top - (y - height / 2)) == 0) return;
 	left = x - width / 2;
 	top = y - height / 2;
@@ -1049,7 +1049,7 @@ InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
     return *this;
 }
 
-InputBoxBuilder& InputBoxBuilder::setCenter(int x, int y) {
+InputBoxBuilder& InputBoxBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -1102,7 +1102,7 @@ Slider::Slider()
         this->height = 0;
       }
 
-void Slider::create(int x, int y, double w, double h) {
+void Slider::create(double x, double y, double w, double h) {
     cx = x;
     cy = y;
     left = x - w / 2;
@@ -1113,9 +1113,9 @@ void Slider::create(int x, int y, double w, double h) {
     origin_thickness = thickness = 4;
 }
 
-void Slider::draw(PIMAGE dst,int x,int y){
-	int left = x - width / 2;
-    int top = y - height / 2;
+void Slider::draw(PIMAGE dst,double x,double y){
+	double left = x - width / 2;
+    double top = y - height / 2;
     // 动态更新缩放比例
     if (m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
@@ -1184,7 +1184,7 @@ void Slider::draw(){
 	draw(nullptr,cx,cy);
 }
 
-bool Slider::isInside(int x, int y){
+bool Slider::isInside(double x, double y){
     int knobX, knobY;
     if (m_orientation == Orientation::Column) {
         knobX = left + width / 2;
@@ -1200,7 +1200,7 @@ bool Slider::isInside(int x, int y){
     return dx * dx + dy * dy <= radius * radius;
 }
 
-bool Slider::isInsideBar(int x, int y){
+bool Slider::isInsideBar(double x, double y){
     return x >= left && x <= left + width && 
            y >= top && y <= top + height;
 }
@@ -1301,7 +1301,7 @@ void Slider::setOnChange(std::function<void(double)> callback) {
     m_onChange = callback;
 }
 
-void Slider::setPosition(int x,int y){
+void Slider::setPosition(double x,double y){
 	left = x - width / 2;
 	top = y - height / 2;
 }
@@ -1321,7 +1321,7 @@ void Slider::setOrientation(Orientation ori){
     m_orientation = ori;
 }
 
-SliderBuilder& SliderBuilder::setCenter(int x_, int y_) {
+SliderBuilder& SliderBuilder::setCenter(double x_, double y_) {
     x = x_; y = y_;
     return *this;
 }
@@ -1387,7 +1387,7 @@ Slider* SliderBuilder::build() {
     return slider;
 }
 
-ProgressBar::ProgressBar(int cx, int cy, double w, double h):
+ProgressBar::ProgressBar(double cx, double cy, double w, double h):
       origin_width(w), origin_height(h) {
     this->cx = cx;
     this->cy = cy;
@@ -1429,9 +1429,9 @@ void ProgressBar::setBackground(color_t bg) {
     }
 }
 
-void ProgressBar::draw(PIMAGE dst, int x, int y) {
-    int left = x - width / 2;
-    int top = y - height / 2;
+void ProgressBar::draw(PIMAGE dst, double x, double y) {
+    double left = x - width / 2;
+    double top = y - height / 2;
 
     //缓动到目标进度
     currentProgress += (targetProgress - currentProgress) * 0.15;
@@ -1466,7 +1466,7 @@ bool ProgressBar::handleEvent(const mouse_msg& msg){
     return false;
 }
 
-void ProgressBar::setPosition(int x, int y) {
+void ProgressBar::setPosition(double x, double y) {
     if (cx == x && cy == y) return;
     cx = x;
     cy = y;
@@ -1489,7 +1489,7 @@ void ProgressBar::setScale(double s) {
 }
 
 // PanelBuilder 实现
-ProgressBarBuilder& ProgressBarBuilder::setCenter(int x, int y) {
+ProgressBarBuilder& ProgressBarBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -1535,7 +1535,7 @@ ProgressBar* ProgressBarBuilder::build() {
     return bar;
 }
 
-Dropdown::Dropdown(int cx, int cy, double w, double h, double r)
+Dropdown::Dropdown(double cx, double cy, double w, double h, double r)
     : cx(cx), cy(cy), width(w), height(h), radius(r) {
     mainButton = new Button(cx, cy, w, h, r);
     mainButton->setOnClickEvent([this] { 
@@ -1580,7 +1580,7 @@ void Dropdown::updateDropdownLayout() {
     }
 }
 
-void Dropdown::draw(PIMAGE dst, int x, int y) {
+void Dropdown::draw(PIMAGE dst, double x, double y) {
     // 主按钮正常绘制
     mainButton->draw(dst, x, y);
 
@@ -1648,7 +1648,7 @@ void Dropdown::toggleDropdown() {
     }
 }
 
-void Dropdown::setPosition(int x, int y) {
+void Dropdown::setPosition(double x, double y) {
     cx = x; cy = y;
     mainButton->setPosition(x, y);
     updateDropdownLayout();
@@ -1671,7 +1671,7 @@ void Dropdown::setColor(color_t col) {
         opt->setColor(col);
 }
 
-bool Dropdown::isInside(int x, int y) const {
+bool Dropdown::isInside(double x, double y) const {
     // 检查是否在主按钮内
     if (mainButton->isInside(x, y))
         return true;
@@ -1689,7 +1689,7 @@ bool Dropdown::isInside(int x, int y) const {
     return false;
 }
 
-DropdownBuilder& DropdownBuilder::setCenter(int x, int y) {
+DropdownBuilder& DropdownBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -1736,10 +1736,10 @@ Dropdown* DropdownBuilder::build() {
     return dropdown;
 }
 
-Radio::Radio(int cx, int cy, double r, const std::wstring& val)
+Radio::Radio(double cx, double cy, double r, const std::wstring& val)
     : cx(cx), cy(cy), radius(r), origin_radius(r), value(val) {}
 
-void Radio::setPosition(int x, int y) {
+void Radio::setPosition(double x, double y) {
     cx = x;
     cy = y;
 }
@@ -1769,7 +1769,7 @@ bool Radio::isChecked() const {
     return groupValuePtr && *groupValuePtr == value;
 }
 
-void Radio::draw(PIMAGE dst, int x, int y) {
+void Radio::draw(PIMAGE dst, double x, double y) {
     bool nowChecked = isChecked();
     bool showDot = isChecked() || (animOut && animProgress < 1.0);
     if (!nowChecked && wasChecked && !animOut) {
@@ -1870,7 +1870,7 @@ bool Radio::handleEvent(const mouse_msg& msg) {
     return false;
 }
 
-RadioBuilder& RadioBuilder::setCenter(int x, int y) {
+RadioBuilder& RadioBuilder::setCenter(double x, double y) {
     cx = x; cy = y; return *this;
 }
 RadioBuilder& RadioBuilder::setRadius(double r) {
@@ -1902,7 +1902,7 @@ Radio* RadioBuilder::build() {
     return radio;
 }
 
-RadioController::RadioController(int cx, int cy, double r, double gap, double scale, RadioStyle style)
+RadioController::RadioController(double cx, double cy, double r, double gap, double scale, RadioStyle style)
     : cx(cx), cy(cy), radius(r), gap(gap), scale(scale), style(style) {}
 
 void RadioController::addValue(const std::wstring& val) {
@@ -1939,7 +1939,7 @@ void RadioController::build() {
     }
 }
 
-RadioControllerBuilder& RadioControllerBuilder::setCenter(int x, int y) {
+RadioControllerBuilder& RadioControllerBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -1990,7 +1990,7 @@ RadioController* RadioControllerBuilder::build() {
     return controller;
 }
 
-Toggle::Toggle(int cx, int cy, double w, double h)
+Toggle::Toggle(double cx, double cy, double w, double h)
     : cx(cx), cy(cy), width(w), height(h) {}
 
 void Toggle::setChecked(bool c) {
@@ -2015,7 +2015,7 @@ void Toggle::setScale(double s) {
     scale = s;
 }
 
-void Toggle::setPosition(int x, int y) {
+void Toggle::setPosition(double x, double y) {
     cx = x; cy = y;
 }
 
@@ -2082,7 +2082,7 @@ color_t mixColor(color_t c1, color_t c2, double ratio) {
     return EGERGB(r, g, b);
 }
 
-void Toggle::draw(PIMAGE dst, int x, int y) {
+void Toggle::draw(PIMAGE dst, double x, double y) {
     // === 动画推进 ===
     if (std::abs(knobOffset - knobTarget) > 1e-3)
         knobOffset += (knobTarget - knobOffset) * animationSpeed;
@@ -2143,7 +2143,7 @@ void Toggle::draw() {
     draw(nullptr, cx, cy);
 }
 
-ToggleBuilder& ToggleBuilder::setCenter(int x, int y) {
+ToggleBuilder& ToggleBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
@@ -2196,7 +2196,7 @@ Toggle* ToggleBuilder::build() {
 }
 
 // 构造函数
-Text::Text(int x, int y, int maxW)
+Text::Text(double x, double y, int maxW)
     : posX(x), posY(y), maxWidth(maxW) {}
 
 // 设置文本
@@ -2225,7 +2225,7 @@ void Text::setScale(double s) {
     updateLayout();
 }
 
-void Text::setPosition(int x, int y) {
+void Text::setPosition(double x, double y) {
     posX = x;
     posY = y;
 }
@@ -2297,7 +2297,7 @@ void Text::draw() {
 }
 
 // 绘制到目标图像
-void Text::draw(PIMAGE dst, int x, int y) {
+void Text::draw(PIMAGE dst, double x, double y) {
     // 重要：每次都设置字体，因为dst可能是不同的图像上下文
     // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
@@ -2356,7 +2356,7 @@ TextBuilder& TextBuilder::setIdentifier(const wstring& id) {
     return *this;
 }
 
-TextBuilder& TextBuilder::setPosition(int px, int py) {
+TextBuilder& TextBuilder::setPosition(double px, double py) {
     x = px; y = py;
     return *this;
 }
@@ -2409,7 +2409,7 @@ Text* TextBuilder::build() {
     //widgets.insert(txt);
     return txt;
 }
-Knob::Knob(int cx, int cy, double r)
+Knob::Knob(double cx, double cy, double r)
     : cx(cx), cy(cy), radius(r), origin_radius(r) {
     // 初始化内部范围为外部范围
     innerMin = minValue;
@@ -2487,7 +2487,7 @@ void Knob::setScale(double s) {
     radius = origin_radius * s;
 }
 
-void Knob::setPosition(int x, int y) {
+void Knob::setPosition(double x, double y) {
     cx = x;
     cy = y;
 }
@@ -2538,7 +2538,7 @@ double Knob::angleToValue(double angle) const {
     return minValue + ratio * (maxValue - minValue);
 }
 
-double Knob::calculateAngle(int x, int y) const {
+double Knob::calculateAngle(double x, double y) const {
     // 计算鼠标相对于中心的角度
     double dx = x - cx;
     double dy = y - cy;
@@ -2549,14 +2549,14 @@ double Knob::calculateAngle(int x, int y) const {
     return angle;
 }
 
-bool Knob::isInside(int x, int y) const {
+bool Knob::isInside(double x, double y) const {
     double dx = x - cx;
     double dy = y - cy;
     double dist = std::sqrt(dx * dx + dy * dy);
     return dist <= radius;
 }
 
-void Knob::draw(PIMAGE dst, int x, int y) {
+void Knob::draw(PIMAGE dst, double x, double y) {
     double r = radius;
     
     // 缓动到目标值（类似Slider的实现）
@@ -2735,7 +2735,7 @@ KnobBuilder& KnobBuilder::setIdentifier(const wstring& id) {
     return *this;
 }
 
-KnobBuilder& KnobBuilder::setCenter(int x, int y) {
+KnobBuilder& KnobBuilder::setCenter(double x, double y) {
     cx = x;
     cy = y;
     return *this;
@@ -2841,7 +2841,7 @@ Knob* KnobBuilder::build() {
 }
 
 
-Sidebar::Sidebar(int cx, int cy, double w, double h, double r, color_t bg) {
+Sidebar::Sidebar(double cx, double cy, double w, double h, double r, color_t bg) {
     this->cx = cx;
     this->cy = cy;
     origin_width = width = w;
@@ -2875,7 +2875,7 @@ bool Sidebar::isExpanded() const {
     return expanded;
 }
 
-void Sidebar::draw(PIMAGE dst, int x, int y) {
+void Sidebar::draw(PIMAGE dst, double x, double y) {
     container->draw(dst, x, y);
 }
 
@@ -2887,7 +2887,7 @@ bool Sidebar::handleEvent(const mouse_msg& msg) {
     return container->handleEvent(msg);
 }
 
-void Sidebar::setPosition(int x, int y) {
+void Sidebar::setPosition(double x, double y) {
     cx = x; cy = y;
     container->setPosition(x, y);
 }
@@ -2903,7 +2903,7 @@ Sidebar::~Sidebar(){
 }
 
 // Builder 实现
-SidebarBuilder& SidebarBuilder::setCenter(int x, int y) {
+SidebarBuilder& SidebarBuilder::setCenter(double x, double y) {
     cx = x; cy = y;
     return *this;
 }
