@@ -76,6 +76,8 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
         setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
         cleardevice(layer);
+        // 修复：cleardevice可能禁用抗锯齿，重新启用
+        ege_enable_aa(true, layer);
 
         // 绘制自身背景（圆角矩形）
         setfillcolor(bgColor, layer);
@@ -404,6 +406,8 @@ void Button::draw(PIMAGE dst,double x,double y){
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
+    // 修复：cleardevice可能禁用抗锯齿，重新启用
+    ege_enable_aa(true, btnLayer);
 
     // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
     setfillcolor(color, btnLayer);
@@ -440,6 +444,8 @@ void Button::draw(PIMAGE dst,double x,double y){
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
+    // 修复：cleardevice可能禁用抗锯齿，重新启用
+    ege_enable_aa(true, bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
@@ -739,6 +745,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
+    // 修复：cleardevice可能禁用抗锯齿，重新启用
+    ege_enable_aa(true, btnLayer);
 
     // 按钮背景
     setfillcolor(EGEACOLOR(255, color), btnLayer);
@@ -834,6 +842,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
     cleardevice(bgLayer);
+    // 修复：cleardevice可能禁用抗锯齿，重新启用
+    ege_enable_aa(true, bgLayer);
     putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
     putimage_withalpha(dst,bgLayer,left,top);
     needRedraw = false;
@@ -1526,6 +1536,8 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), barLayer);
     cleardevice(barLayer);
+    // 修复：cleardevice可能禁用抗锯齿，重新启用
+    ege_enable_aa(true, barLayer);
 
     setfillcolor(bgColor, barLayer);
     ege_fillrect(0, 0, width, height, barLayer);
