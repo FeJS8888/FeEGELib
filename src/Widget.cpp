@@ -60,8 +60,7 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     children.push_back(child);
     childOffsets.push_back(Position{ offsetX, offsetY });
     child->is_global = false;
-    needRedraw = true;
-    activeRedrawFrames = kDefaultActiveFrames;
+    markDirty();
 }
 
 void Panel::draw() {
@@ -130,8 +129,7 @@ Position Panel::getPosition(){
 void Panel::setScale(double s){
     if(sgn(s - scale) == 0) return;
     scaleChanged = true;
-    needRedraw = true;
-    activeRedrawFrames = kDefaultActiveFrames;
+    markDirty();
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
@@ -200,23 +198,20 @@ bool Panel::handleEvent(const mouse_msg& msg){
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
         if(state) {
-            needRedraw = true;
-            activeRedrawFrames = kDefaultActiveFrames;
+            markDirty();
             return true;
         }
     }
     if(msg.is_left() && msg.is_down()){
         mouseOwningFlag = this;
-        needRedraw = true;
-        activeRedrawFrames = kDefaultActiveFrames;
+        markDirty();
         return true;
     }
     else if(msg.is_left() && msg.is_up()){
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
         }
-        needRedraw = true;
-        activeRedrawFrames = kDefaultActiveFrames;
+        markDirty();
         return false;
     }
     return false;
@@ -225,8 +220,7 @@ bool Panel::handleEvent(const mouse_msg& msg){
 void Panel::setSize(double w,double h){
     origin_width = width = w;
     origin_height = height = h;
-    needRedraw = true;
-    activeRedrawFrames = kDefaultActiveFrames;
+    markDirty();
     if(layer) delimage(layer);
     if(maskLayer) delimage(maskLayer);
     if(cachedLayer) delimage(cachedLayer);
@@ -247,14 +241,12 @@ void Panel::setSize(double w,double h){
 void Panel::clearChildren(){
     children.clear();
     childOffsets.clear();
-    needRedraw = true;
-    activeRedrawFrames = kDefaultActiveFrames;
+    markDirty();
 }
 
 void Panel::setAlpha(double a) {
     alpha = clamp(a, 0, 255);
-    needRedraw = true;
-    activeRedrawFrames = kDefaultActiveFrames;
+    markDirty();
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
     setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
     cleardevice(maskLayer);
@@ -269,8 +261,7 @@ std::vector<Widget*>& Panel::getChildren() {
 void Panel::setChildrenOffset(int index,Position pos){
     if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
         childOffsets[index] = pos;
-        needRedraw = true;
-        activeRedrawFrames = kDefaultActiveFrames;
+        markDirty();
     }
 }
 
