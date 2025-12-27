@@ -109,6 +109,7 @@ public:
      * @param offsetY 相对于面板中心的 y 偏移
      */
     void addChild(Widget* child, double offsetX, double offsetY);
+    void markDirty() { needRedraw = true; activeRedrawFrames = kDefaultActiveFrames; }
 
     /**
      * @brief 绘制 Panel 到指定图层
@@ -189,7 +190,7 @@ public:
      * @brief 设置布局管理器
      * @param l 布局对象
      */
-    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
+    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); markDirty(); }
     
     /**
      * @brief 获取布局管理器
@@ -204,7 +205,12 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    PIMAGE cachedLayer = nullptr;
     bool scaleChanged = true;
+    bool needRedraw = true;
+    int activeRedrawFrames = 0;
+    // Keep redraws alive for ~80 frames after interactions (covers ripple/transition ~1s @60fps)
+    static constexpr int kDefaultActiveFrames = 80;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
