@@ -209,6 +209,7 @@ private:
     bool scaleChanged = true;
     bool needRedraw = true;
     int activeRedrawFrames = 0;
+    // Keep redraws alive for ~80 frames after interactions (covers ripple等动画约1s @60fps)
     static constexpr int kDefaultActiveFrames = 80;
 
     std::vector<Widget*> children;
