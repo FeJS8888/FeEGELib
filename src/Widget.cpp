@@ -68,6 +68,7 @@ void Panel::draw() {
 }
 
 void Panel::draw(PIMAGE dst, double x, double y) {
+    // activeRedrawFrames keeps a short redraw window after interactions/animations
     bool shouldRedraw = needRedraw || scaleChanged || PanelScaleChanged || activeRedrawFrames > 0;
     if (layout && shouldRedraw) layout->apply(*this);  // 自动计算子控件位置
     
@@ -99,8 +100,8 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         }
         PanelScaleChanged = false;
         scaleChanged = false;
-        needRedraw = false;
         if (activeRedrawFrames > 0) activeRedrawFrames--;
+        needRedraw = activeRedrawFrames > 0;
 
         // 生成一次遮罩后的缓存层，后续直接用 putimage_withalpha
         setbkcolor_f(EGEARGB(0, 0, 0, 0), cachedLayer);
