@@ -42,9 +42,11 @@ Panel::Panel(double cx, double cy, double w, double h, double r, color_t bg) {
     origin_height = height = h;
     origin_radius = radius = r;
     layer = newimage(w,h);
+    cachedLayer = newimage(w,h);
     maskLayer = newimage(w,h);
 	ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,cachedLayer);
 	
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
     // 这在PRGB32模式下更可靠，因为它依赖RGB值而非alpha值进行遮罩
@@ -58,6 +60,8 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     children.push_back(child);
     childOffsets.push_back(Position{ offsetX, offsetY });
     child->is_global = false;
+    needRedraw = true;
+    activeRedrawFrames = kDefaultActiveFrames;
 }
 
 void Panel::draw() {
@@ -65,41 +69,52 @@ void Panel::draw() {
 }
 
 void Panel::draw(PIMAGE dst, double x, double y) {
-    if (layout) layout->apply(*this);  // 自动计算子控件位置
+    bool shouldRedraw = needRedraw || scaleChanged || PanelScaleChanged || activeRedrawFrames > 0;
+    if (layout && shouldRedraw) layout->apply(*this);  // 自动计算子控件位置
     
     double left = x - width / 2;
     double top = y - height / 2;
     
-    // 总是清空并重绘（子控件可能有动态内容）
-    // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
-    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
-    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
-    cleardevice(layer);
+    if (shouldRedraw) {
+        // 总是清空并重绘（子控件可能有动态内容）
+        // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
+        // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
+        cleardevice(layer);
 
-    // 绘制自身背景（圆角矩形）
-    setfillcolor(bgColor, layer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
+        // 绘制自身背景（圆角矩形）
+        setfillcolor(bgColor, layer);
+        ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
 
-    // 绘制子控件
-    if(scaleChanged) PanelScaleChanged = true;
-    for (size_t i = 0; i < children.size(); ++i) {
-        double childX = width / 2 + childOffsets[i].x * scale;
-        double childY = height / 2 + childOffsets[i].y * scale;
-        absolutPosDeltaX = left;
-        absolutPosDeltaY = top;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
-        children[i]->draw(layer, childX, childY);
-        absolutPosDeltaX = 0;
-        absolutPosDeltaY = 0;
+        // 绘制子控件
+        if(scaleChanged) PanelScaleChanged = true;
+        for (size_t i = 0; i < children.size(); ++i) {
+            double childX = width / 2 + childOffsets[i].x * scale;
+            double childY = height / 2 + childOffsets[i].y * scale;
+            absolutPosDeltaX = left;
+            absolutPosDeltaY = top;
+            children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+            children[i]->draw(layer, childX, childY);
+            absolutPosDeltaX = 0;
+            absolutPosDeltaY = 0;
+        }
+        PanelScaleChanged = false;
+        scaleChanged = false;
+        needRedraw = false;
+        if (activeRedrawFrames > 0) activeRedrawFrames--;
+
+        // 生成一次遮罩后的缓存层，后续直接用 putimage_withalpha
+        setbkcolor_f(EGEARGB(0, 0, 0, 0), cachedLayer);
+        cleardevice(cachedLayer);
+        putimage_alphafilter(cachedLayer, layer, 0, 0, maskLayer, 0, 0, -1, -1);
     }
-    PanelScaleChanged = false;
-    scaleChanged = false;
-    // 粘贴到主窗口
-    putimage_alphafilter(dst, layer, left, top, maskLayer, 0, 0, -1, -1);
+    // 粘贴到主窗口，优先使用 withalpha（相对 alphafilter 开销更低）
+    putimage_withalpha(dst, cachedLayer, left, top);
 }
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
+    if (cachedLayer) delimage(cachedLayer);
     if (maskLayer) delimage(maskLayer);
 }
 
@@ -115,6 +130,8 @@ Position Panel::getPosition(){
 void Panel::setScale(double s){
     if(sgn(s - scale) == 0) return;
     scaleChanged = true;
+    needRedraw = true;
+    activeRedrawFrames = kDefaultActiveFrames;
 	width = origin_width * s;
     height = origin_height * s;
     radius = origin_radius * s;
@@ -128,8 +145,11 @@ void Panel::setScale(double s){
     maskLayer = newimage(width,height);
     if(layer) delimage(layer);
     layer = newimage(width,height);
+    if(cachedLayer) delimage(cachedLayer);
+    cachedLayer = newimage(width,height);
     ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,cachedLayer);
 
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
 	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
@@ -179,16 +199,24 @@ bool Panel::handleEvent(const mouse_msg& msg){
     }
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
-        if(state) return true;
+        if(state) {
+            needRedraw = true;
+            activeRedrawFrames = kDefaultActiveFrames;
+            return true;
+        }
     }
     if(msg.is_left() && msg.is_down()){
         mouseOwningFlag = this;
+        needRedraw = true;
+        activeRedrawFrames = kDefaultActiveFrames;
         return true;
     }
     else if(msg.is_left() && msg.is_up()){
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
         }
+        needRedraw = true;
+        activeRedrawFrames = kDefaultActiveFrames;
         return false;
     }
     return false;
@@ -197,12 +225,17 @@ bool Panel::handleEvent(const mouse_msg& msg){
 void Panel::setSize(double w,double h){
     origin_width = width = w;
     origin_height = height = h;
+    needRedraw = true;
+    activeRedrawFrames = kDefaultActiveFrames;
     if(layer) delimage(layer);
     if(maskLayer) delimage(maskLayer);
+    if(cachedLayer) delimage(cachedLayer);
     layer = newimage(width,height);
     maskLayer = newimage(width,height);
+    cachedLayer = newimage(width,height);
     ege_enable_aa(true,layer);
     ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,cachedLayer);
 	
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
 	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
@@ -214,10 +247,14 @@ void Panel::setSize(double w,double h){
 void Panel::clearChildren(){
     children.clear();
     childOffsets.clear();
+    needRedraw = true;
+    activeRedrawFrames = kDefaultActiveFrames;
 }
 
 void Panel::setAlpha(double a) {
     alpha = clamp(a, 0, 255);
+    needRedraw = true;
+    activeRedrawFrames = kDefaultActiveFrames;
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
     setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
     cleardevice(maskLayer);
@@ -232,6 +269,8 @@ std::vector<Widget*>& Panel::getChildren() {
 void Panel::setChildrenOffset(int index,Position pos){
     if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
         childOffsets[index] = pos;
+        needRedraw = true;
+        activeRedrawFrames = kDefaultActiveFrames;
     }
 }
 
