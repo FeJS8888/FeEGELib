@@ -143,8 +143,6 @@ void Panel::setScale(double s){
         maskLayer = newimage(width,height);
         if(layer) delimage(layer);
         layer = newimage(width,height);
-        ege_enable_aa(true,layer);
-        ege_enable_aa(true,maskLayer);
 
         // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
         setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
@@ -152,6 +150,10 @@ void Panel::setScale(double s){
         setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
         ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
     }
+    
+    // 确保抗锯齿始终启用（即使图层未重建）
+    ege_enable_aa(true,layer);
+    ege_enable_aa(true,maskLayer);
 }
 
 double Panel::getScale(){
@@ -556,15 +558,19 @@ void Button::setScale(double s){
         btnLayer = newimage(width,height);
         if(bgLayer) delimage(bgLayer);
         bgLayer = newimage(width,height);
-        ege_enable_aa(true,bgLayer);
-        ege_enable_aa(true,maskLayer);
-        ege_enable_aa(true,btnLayer);
         // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
         setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
         cleardevice(maskLayer);
         setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
         ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
     }
+    
+    // 确保抗锯齿始终启用（即使图层未重建）
+    // 修复：点击后抗锯齿失效的问题
+    ege_enable_aa(true,bgLayer);
+    ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,btnLayer);
+    
     needRedraw = true;
 }
 
@@ -1017,15 +1023,19 @@ void InputBox::setScale(double s){
         btnLayer = newimage(width,height);
         if(bgLayer) delimage(bgLayer);
         bgLayer = newimage(width,height);
-        ege_enable_aa(true,bgLayer);
-        ege_enable_aa(true,maskLayer);
-        ege_enable_aa(true,btnLayer);
         // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
         setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
         cleardevice(maskLayer);
         setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
         ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
     }
+    
+    // 确保抗锯齿始终启用（即使图层未重建）
+    // 修复：点击后抗锯齿失效的问题
+    ege_enable_aa(true,bgLayer);
+    ege_enable_aa(true,maskLayer);
+    ege_enable_aa(true,btnLayer);
+    
     needRedraw = true;
     scaleChanged = true;
 }
@@ -1562,8 +1572,11 @@ void ProgressBar::setScale(double s) {
     if(needRecreateLayer) {
         if (barLayer) delimage(barLayer);
         barLayer = newimage(width, height);
-        ege_enable_aa(true, barLayer);
     }
+    
+    // 确保抗锯齿始终启用（即使图层未重建）
+    ege_enable_aa(true, barLayer);
+    
     needRedraw = true;
 }
 
