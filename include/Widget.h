@@ -110,7 +110,6 @@ public:
      */
     void addChild(Widget* child, double offsetX, double offsetY);
     void markDirty() { needRedraw = true; activeRedrawFrames = kDefaultActiveFrames; }
-    void markDirty() { needRedraw = true; activeRedrawFrames = kDefaultActiveFrames; }
 
     /**
      * @brief 绘制 Panel 到指定图层
