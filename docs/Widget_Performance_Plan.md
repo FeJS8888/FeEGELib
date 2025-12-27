@@ -17,7 +17,7 @@
 2. **分层缓存与静态背景复用**  
    - 将静态背景（圆角面板底色、按钮底板）与动态前景（文本、动画）分层缓存：静态层仅在尺寸/颜色/圆角/缩放变化时重绘，动态层按需叠加。  
    - 对 `Panel` 支持“冻结”模式：内容静态时直接复用上次合成结果，不再遍历子控件。
-   - 依据现有 `Button` 的懒标记思路，为 `Panel` 增加懒标记并复用已遮罩好的缓存层，复用时优先使用 `putimage_withalpha`（开销低于 `putimage_alphafilter`），仅在尺寸/圆角/缩放变化需要重新生成遮罩时再走 `alphafilter`。
+   - 依据现有 `Button` 的懒标记思路，为 `Panel` 增加懒标记并复用已遮罩好的缓存层，复用时优先使用 `putimage_withalpha`（开销低于 `putimage_alphafilter`），仅在尺寸/圆角/缩放变化需要重新生成遮罩时再走 `putimage_alphafilter`。
 
 3. **布局与尺寸缓存**  
    - 为 `Layout` 维护 `layoutDirty` 标记，在子控件增删、尺寸/缩放变化时才重算 offsets；`Panel::draw` 不再每帧调用 `apply`。  
