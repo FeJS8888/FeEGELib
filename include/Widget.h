@@ -74,10 +74,15 @@ public:
     double getHeight();
 
     virtual void deleteFocus();
+
+    void setParent(Widget* p);
+
+    Widget* getParent();
 protected:
     double cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
     double scale = 1;         ///< 缩放比例
+    Widget* parent = nullptr;
 };
 
 /**
@@ -196,6 +201,10 @@ public:
      * @return 布局对象
      */
     std::shared_ptr<Layout> getLayout() const { return layout; }
+
+    void setDirty() { this->needRedraw = true; }
+
+    void setAlwaysDirty(bool d) { this->needRedrawAlways = d; }
 private:
     double radius;
     double origin_width, origin_height;
@@ -204,7 +213,10 @@ private:
     double alpha = 255;
     PIMAGE layer = nullptr;
     PIMAGE maskLayer = nullptr;
+    PIMAGE drawLayer = nullptr;
     bool scaleChanged = true;
+    bool needRedraw = true;
+    bool needRedrawAlways = false;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
