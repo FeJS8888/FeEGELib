@@ -70,9 +70,10 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     childOffsets.push_back(Position{ offsetX, offsetY });
     child->is_global = false;
     needRedraw = true;
-    if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
