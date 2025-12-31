@@ -510,7 +510,9 @@ bool Button::handleEvent(const mouse_msg& msg) {
         needRedraw = true;
         if(this->parent != nullptr){
             Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (p != nullptr) {
+                p->setDirty();
+            }
         }
         m_clicking = true;
         mouseOwningFlag = this;
