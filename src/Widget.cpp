@@ -163,8 +163,9 @@ void Panel::setScale(double s){
 
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 
     // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
@@ -250,8 +251,9 @@ void Panel::setSize(double w,double h){
     ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -266,8 +268,9 @@ void Panel::setAlpha(double a) {
     alpha = alpha1;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -355,30 +358,34 @@ Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
 bool Ripple::alive() const {
     if (auto btn = dynamic_cast<Button*>(parent)){
         if(btn->getParent() != nullptr){
-            Panel* p = dynamic_cast<Panel*>(btn->getParent());
-            p->setAlwaysDirty(true);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            }
         }
         bool state = (btn->getClickState() && (btn->getMCounter() == counter)) || (age < life);
         if(!state){
             if(btn->getParent() != nullptr){
-                Panel* p = dynamic_cast<Panel*>(btn->getParent());
-                p->setAlwaysDirty(false);
+                if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
+                    p->setAlwaysDirty(false);
+                }
             }
         }
         return state;
     }
     if (auto ib = dynamic_cast<InputBox*>(parent)){
         if(ib->getParent() != nullptr){
-            Panel* p = dynamic_cast<Panel*>(ib->getParent());
-            p->setAlwaysDirty(true);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            }
         }
         bool state =  (ib->getClickState() && (ib->getMCounter() == counter)) || (age < life);
         if(!state){
             if(ib->getParent() != nullptr){
-                Panel* p = dynamic_cast<Panel*>(ib->getParent());
-                p->setAlwaysDirty(false);
+                if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
+                    p->setAlwaysDirty(false);
+                }
             }
         }
         return state;
@@ -579,8 +586,9 @@ void Button::setContent(const wstring& str){
 	content = str;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -594,8 +602,9 @@ void Button::setPosition(double x,double y){
 	top = y - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -624,8 +633,9 @@ void Button::setScale(double s){
     ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -904,8 +914,9 @@ void InputBox::deleteFocus(){
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     if(focusingWidget == this) focusingWidget = nullptr;
@@ -936,8 +947,9 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             on_focus = true;
             needRedraw = true;
             if(this->parent != nullptr){
-                Panel* p = dynamic_cast<Panel*>(this->parent);
-                p->setDirty();
+                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                    p->setDirty();
+                }
             }
             inv.setfocus();
             reflushCursorTick();
@@ -972,8 +984,9 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         inv.movecursor(best_pos, best_pos);
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
         if(focusingWidget != nullptr && focusingWidget != this){
             focusingWidget->deleteFocus();
@@ -1046,8 +1059,9 @@ void InputBox::setContent(const std::wstring& s) {
     content = s;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1061,8 +1075,9 @@ void InputBox::setPosition(double x,double y){
 	top = y - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1097,8 +1112,9 @@ void InputBox::setScale(double s){
     ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
     scaleChanged = true;
 }
@@ -1108,8 +1124,9 @@ void InputBox::setTextHeight(double height){
     text_height = height;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1122,8 +1139,9 @@ void InputBox::moveCursor(int pos){
     cursor_pos = pos;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1131,8 +1149,9 @@ void InputBox::setIMECompositionString(const std::wstring& str){
     IMECompositionString = str;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1140,8 +1159,9 @@ void InputBox::setIMECursorPos(int pos){
     IMECursorPos = pos;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1168,8 +1188,9 @@ void InputBox::adjustScrollForCursor() {
         scroll_offset = target_pos - (visible_width - padding);
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     }
     else if (cursor_pixel_pos - scroll_offset < padding) {
@@ -1177,16 +1198,18 @@ void InputBox::adjustScrollForCursor() {
         if (scroll_offset < 0) scroll_offset = 0;
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     }
     if (full_text_width <= visible_width) {
         scroll_offset = 0;
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     } else {
         float max_scroll = full_text_width - visible_width;
@@ -1194,8 +1217,9 @@ void InputBox::adjustScrollForCursor() {
             scroll_offset = max_scroll;
             needRedraw = true;
             if(this->parent != nullptr){
-                Panel* p = dynamic_cast<Panel*>(this->parent);
-                p->setDirty();
+                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                    p->setDirty();
+                }
             }
         }
     }
@@ -1583,8 +1607,9 @@ void ProgressBar::setProgress(double p) {
         targetProgress = p;
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     }
 }
@@ -1598,8 +1623,9 @@ void ProgressBar::setColor(color_t fg) {
         fgColor = fg;
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     }
 }
@@ -1609,8 +1635,9 @@ void ProgressBar::setBackground(color_t bg) {
         bgColor = bg;
         needRedraw = true;
         if(this->parent != nullptr){
-            Panel* p = dynamic_cast<Panel*>(this->parent);
-            p->setDirty();
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
     }
 }
@@ -1660,8 +1687,9 @@ void ProgressBar::setPosition(double x, double y) {
     top = cy - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
@@ -1677,8 +1705,9 @@ void ProgressBar::setScale(double s) {
     top = cy - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        Panel* p = dynamic_cast<Panel*>(this->parent);
-        p->setDirty();
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
     }
 }
 
