@@ -2,9 +2,9 @@ name: MinGW-w64 Build
 
 on:
   push:
-    branches: [ main, master, FeJS8888 ]
+    branches: ["**"]
   pull_request:
-    branches: [ main, master, FeJS8888 ]
+    branches: ["**"]
   workflow_dispatch:
 
 jobs:
@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
       
     - name: Setup MinGW-w64
       uses: msys2/setup-msys2@v2
