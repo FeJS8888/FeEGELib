@@ -2,9 +2,9 @@ name: MinGW-w64 Build
 
 on:
   push:
-    branches: [ main, master, FeJS8888 ]
+    branches: ["**"]
   pull_request:
-    branches: [ main, master, FeJS8888 ]
+    branches: ["**"]
   workflow_dispatch:
 
 jobs:
