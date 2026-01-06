@@ -2,3 +2,10 @@
 /.vscode/
 /_codeql_build_dir/
 /main.cpp
+# Build artifacts
+*.o
+*.a
+*.exe
+*.dll
+*.so
+*.dylib

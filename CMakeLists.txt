@@ -3,6 +3,12 @@ project(FeEGELib)
 
 set(CMAKE_CXX_STANDARD 23)
 
+# 添加 xege 子模块
+set(EGE_BUILD_DEMO OFF CACHE BOOL "Do not build xege demos" FORCE)
+set(EGE_BUILD_TEST OFF CACHE BOOL "Do not build xege tests" FORCE)
+set(EGE_BUILD_TEMP OFF CACHE BOOL "Do not build xege temp" FORCE)
+add_subdirectory(3rdparty/xege)
+
 # 库源文件
 set(LIB_SOURCES
     src/Base.cpp
@@ -17,7 +23,7 @@ set(LIB_SOURCES
 # 创建静态库以避免重复编译
 add_library(FeEGELib_core STATIC ${LIB_SOURCES})
 target_include_directories(FeEGELib_core PUBLIC include)
-target_link_libraries(FeEGELib_core PUBLIC ${CMAKE_SOURCE_DIR}/lib/libgraphics.a)
+target_link_libraries(FeEGELib_core PUBLIC xege)
 target_link_libraries(FeEGELib_core PUBLIC gdi32 gdiplus imm32)
 target_compile_options(FeEGELib_core PRIVATE -static)
 target_compile_definitions(FeEGELib_core PRIVATE FPS)
