@@ -1,0 +1,3 @@
+[submodule "3rdparty/xege"]
+	path = 3rdparty/xege
+	url = https://github.com/FeJS8888/xege.git
