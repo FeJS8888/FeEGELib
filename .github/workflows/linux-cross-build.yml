@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
       
     - name: Setup MinGW-w64 Cross-Compiler
       run: |
