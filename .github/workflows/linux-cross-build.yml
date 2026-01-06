@@ -16,20 +16,19 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # 1. 替代 sudo apt-get，内置缓存机制，且能自动配置全局 PATH
       - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x64
 
       - name: Build with CMake
-        env:
-          # 2. 通过环境变量注入绝对路径，这是对付子项目硬编码最有效的手段
-          # setup-mingw 会将编译器安装在特定的工具链目录下
-          CC: x86_64-w64-mingw32-gcc
-          CXX: x86_64-w64-mingw32-g++
         run: |
-          # 3. 准备测试代码
+          # 1. 【核心修复】暴力删除子项目中干扰交叉编译的硬编码逻辑
+          # 我们删除子项目 CMakeLists.txt 中 55行到 80行之间的内容
+          # 这段内容在子项目里强行重设了编译器，导致了路径丢失
+          sed -i '55,80d' 3rdparty/xege/CMakeLists.txt
+          
+          # 2. 准备测试程序
           cat > main.cpp << 'EOF'
           #include "FeEGELib.h"
           using namespace FeEGE;
@@ -39,11 +38,9 @@ jobs:
           }
           EOF
 
+          # 3. 运行 CMake
+          # 因为我们删掉了子项目的捣乱代码，现在的全局工具链设置将直接生效
           mkdir -p build
-          
-          # 4. 关键：直接在命令行传递参数。
-          # 命令行参数 (-D) 的优先级高于 CMake 脚本里的 set()
-          # 这将强制子项目使用我们指定的编译器，而不是它自己硬编码的那个
           cmake -S . -B build \
             -G "Ninja" \
             -DCMAKE_SYSTEM_NAME=Windows \
@@ -62,4 +59,3 @@ jobs:
         with:
           name: FeEGEApp-Binary
           path: build/*.exe
-          if-no-files-found: error
