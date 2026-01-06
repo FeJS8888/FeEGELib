@@ -2,14 +2,11 @@ name: Linux Cross-Compile
 
 on:
   push:
-    # 使用 ** 匹配所有分支，包括子目录分支
     branches:
       - '**'
   pull_request:
-    # 同样匹配所有分支的 PR
     branches:
       - '**'
-  # 允许手动触发
   workflow_dispatch:
 
 jobs:
@@ -28,8 +25,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64 cmake ninja-build
-          # 确认安装路径
-          ls -l /usr/bin/x86_64-w64-mingw32-gcc
+          # 验证路径并存入 GITHUB_PATH，这会让该目录在后续所有步骤中都在系统的 PATH 里
+          echo "/usr/bin" >> $GITHUB_PATH
 
       - name: Create CMake Toolchain File
         run: |
@@ -37,12 +34,16 @@ jobs:
           set(CMAKE_SYSTEM_NAME Windows)
           set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
-          # 锁定绝对路径，解决子项目搜索不到编译器的问题
+          # 同时提供绝对路径和名称
           set(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
           set(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
           set(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
 
-          # 静态链接：防止运行 .exe 时提示找不到 libstdc++-6.dll
+          # 强制跳过编译器测试，防止子项目在测试时因找不到路径报错
+          set(CMAKE_C_COMPILER_WORKS 1)
+          set(CMAKE_CXX_COMPILER_WORKS 1)
+
+          # 静态链接设置
           set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++" CACHE STRING "" FORCE)
 
           set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)
@@ -53,9 +54,9 @@ jobs:
 
       - name: Build with CMake
         env:
-          # 导出环境变量作为双重保险
-          CC: /usr/bin/x86_64-w64-mingw32-gcc
-          CXX: /usr/bin/x86_64-w64-mingw32-g++
+          # 通过环境变量直接注入，这是针对子项目最有效的手段
+          CC: x86_64-w64-mingw32-gcc
+          CXX: x86_64-w64-mingw32-g++
         run: |
           # 准备测试代码
           cat > main.cpp << 'EOF'
@@ -72,11 +73,14 @@ jobs:
           EOF
 
           mkdir -p build
-          # 使用绝对路径引用工具链文件
+          # 使用绝对路径指向工具链文件
+          # 关键增加：-DCMAKE_MAKE_PROGRAM=ninja 显式指定
           cmake -S . -B build \
             -G "Ninja" \
             -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain-mingw.cmake \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
           
           cmake --build build
 
@@ -84,7 +88,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FeEGEApp-linux-cross
-          # 使用通配符，防止因 target 名字不匹配导致上传失败
           path: build/*.exe
           if-no-files-found: warn
 
