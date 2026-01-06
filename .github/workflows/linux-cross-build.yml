@@ -23,10 +23,9 @@ jobs:
 
       - name: Build with CMake
         run: |
-          # 1. 【核心修复】暴力删除子项目中干扰交叉编译的硬编码逻辑
-          # 我们删除子项目 CMakeLists.txt 中 55行到 80行之间的内容
-          # 这段内容在子项目里强行重设了编译器，导致了路径丢失
-          sed -i '55,80d' 3rdparty/xege/CMakeLists.txt
+          # 1. 【精准修复】删除子项目中导致冲突的 if(CMAKE_HOST_UNIX) 块
+          # 使用 sed 匹配起始行和结束行，彻底移除这块逻辑，避免嵌套错误
+          sed -i '/if(CMAKE_HOST_UNIX)/,/endif()/d' 3rdparty/xege/CMakeLists.txt
           
           # 2. 准备测试程序
           cat > main.cpp << 'EOF'
@@ -39,7 +38,6 @@ jobs:
           EOF
 
           # 3. 运行 CMake
-          # 因为我们删掉了子项目的捣乱代码，现在的全局工具链设置将直接生效
           mkdir -p build
           cmake -S . -B build \
             -G "Ninja" \
