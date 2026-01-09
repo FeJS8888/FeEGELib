@@ -133,6 +133,12 @@ Panel::~Panel(){
 void Panel::setPosition(double x,double y){
 	cx = x;
 	cy = y;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 Position Panel::getPosition(){
