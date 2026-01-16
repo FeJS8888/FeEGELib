@@ -1,4 +1,5 @@
 ﻿#include "Widget.h"
+#include "../3rdparty/xege/src/feege.h"
 
 using namespace FeEGE;
 Widget* mouseOwningFlag = nullptr;
@@ -16,7 +17,6 @@ double Widget::getHeight(){
 }
 
 void Widget::deleteFocus(){
-
 }
 
 void Widget::setParent(Widget* p){
@@ -49,19 +49,10 @@ Panel::Panel(double cx, double cy, double w, double h, double r, color_t bg) {
     origin_width = width = w;
     origin_height = height = h;
     origin_radius = radius = r;
-    layer = newimage(w,h);
-    maskLayer = newimage(w,h);
-    drawLayer = newimage(w,h);
+    layer = newimage(w + 8,h + 8);
 	ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,drawLayer);
-	
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    // 这在PRGB32模式下更可靠，因为它依赖RGB值而非alpha值进行遮罩
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
 }
 
 void Panel::addChild(Widget* child, double offsetX, double offsetY) {
@@ -82,11 +73,14 @@ void Panel::draw() {
 }
 
 void Panel::draw(PIMAGE dst, double x, double y) {
-    double left = x - width / 2;
-    double top = y - height / 2;
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double width = this->width + 8;
+    double height = this->height + 8;
+
 
     if(!needRedraw && !needRedrawAlways){
-        putimage_withalpha(dst,drawLayer,left,top);
+        putimage_withalpha(dst,layer,left,top);
         return;
     }
 
@@ -96,12 +90,13 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
     cleardevice(layer);
-    setbkcolor_f(EGEARGB(0, 0, 0, 0), drawLayer);
-    cleardevice(drawLayer);
 
     // 绘制自身背景（圆角矩形）
-    setfillcolor(bgColor, layer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, layer);
+    ege_setclippath(&clippath,layer);
+    setfillcolor(EGEACOLOR(255,bgColor), layer);
+    setcolor(EGEACOLOR(255,RED), layer);
+    setlinewidth(1,layer);
+    ege_fillrect(0,0,width,height,layer);
 
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
@@ -118,16 +113,17 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     PanelScaleChanged = false;
     scaleChanged = false;
     
-    putimage_alphafilter(drawLayer, layer, 0, 0, maskLayer, 0, 0, -1, -1);
     // 粘贴到主窗口
-    putimage_withalpha(dst,drawLayer,left,top);
+    ege_resetclippath(layer);
+    setlinewidth(1,layer);
+    setlinecolor(EGEACOLOR(255,bgColor), layer);
+    ege_drawpath(&clippath,layer);
+    putimage_withalpha(dst,layer,left,top);
     needRedraw = false;
 }
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
-    if (maskLayer) delimage(maskLayer);
-    if (drawLayer) delimage(drawLayer);
 }
 
 void Panel::setPosition(double x,double y){
@@ -157,15 +153,11 @@ void Panel::setScale(double s){
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
     }
 	
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
     if(layer) delimage(layer);
-    layer = newimage(width,height);
-    if(drawLayer) delimage(drawLayer);
-    drawLayer = newimage(width,height);
-    ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,drawLayer);
+    layer = newimage(width + 8,height + 8);
+	ege_enable_aa(true,layer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
 
     needRedraw = true;
     if(this->parent != nullptr){
@@ -173,12 +165,6 @@ void Panel::setScale(double s){
             p->setDirty();
         }
     }
-
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
 }
 
 double Panel::getScale(){
@@ -241,21 +227,13 @@ void Panel::setSize(double w,double h){
     origin_width = width = w;
     origin_height = height = h;
     if(layer) delimage(layer);
-    if(maskLayer) delimage(maskLayer);
-    if(drawLayer) delimage(drawLayer);
     layer = newimage(width,height);
-    maskLayer = newimage(width,height);
-    drawLayer = newimage(width,height);
     ege_enable_aa(true,layer);
-    ege_enable_aa(true,maskLayer);
-    ege_enable_aa(true,drawLayer);
-	
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-	setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB((int)alpha, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0.25, 0.25, width - 0.5, height - 0.5, radius, radius, radius, radius, maskLayer);
-    needRedraw = true;
+    ege_path p;
+    ege_path_addroundrect(&p,0,0,width,height,radius);
+    ege_setclippath(&p,layer);
+
+	needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
@@ -290,7 +268,6 @@ void Panel::setChildrenOffset(int index,Position pos){
     }
 }
 
-// Ripple 结构体实现
 PanelBuilder& PanelBuilder::setIdentifier(const wstring& id) {
     identifier = id;
     return *this;
@@ -361,11 +338,14 @@ Panel* PanelBuilder::build() {
 Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
     : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}
 
-bool Ripple::alive() const {
+bool Ripple::alive() const {    
     if (auto btn = dynamic_cast<Button*>(parent)){
         if(btn->getParent() != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
-                p->setAlwaysDirty(true);
+                if(!m_setDirtyState){
+                    p->setAlwaysDirty(true);
+                    m_setDirtyState = true;
+                }
                 p->setDirty();
             }
         }
@@ -382,7 +362,10 @@ bool Ripple::alive() const {
     if (auto ib = dynamic_cast<InputBox*>(parent)){
         if(ib->getParent() != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
-                p->setAlwaysDirty(true);
+                if(!m_setDirtyState){
+                    p->setAlwaysDirty(true);
+                    m_setDirtyState = true;
+                }
                 p->setDirty();
             }
         }
@@ -429,6 +412,14 @@ void Ripple::draw(PIMAGE dst) const {
     ege_fillellipse(x - r, y - r, r * 2, r * 2, dst);
 }
 
+void Ripple::draw_aa(PIMAGE dst) const {
+    double progress = (double)age / life;
+    double r = maxRadius * progress;
+    int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
+    setlinecolor(EGEARGB(alpha, 30, 30, 30), dst);
+    ege_ellipse(x - r, y - r, r * 2, r * 2, dst);
+}
+
 // Button 类实现
 Button::Button(double cx, double cy, double w, double h, double r): radius(r) {
     this->cx = cx;
@@ -439,40 +430,34 @@ Button::Button(double cx, double cy, double w, double h, double r): radius(r) {
     left = cx - width / 2;
     top = cy - height / 2;
 
-    btnLayer = newimage(width, height);
-    bgLayer = newimage(width, height);
-    maskLayer = newimage(width, height);
+    btnLayer = newimage(width + 8, height + 8);
     ege_enable_aa(true, btnLayer);
-    ege_enable_aa(true, maskLayer);
-    ege_enable_aa(true, bgLayer);
-    
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGERGBA(255,255,255,255), maskLayer);
-    ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
 }
 
 Button::~Button() {
     if (btnLayer) delimage(btnLayer);
-    if (maskLayer) delimage(maskLayer);
-    if (bgLayer) delimage(bgLayer);
 }
 
 void Button::draw(PIMAGE dst,double x,double y){
-    double left = x - width / 2;
-    double top = y - height / 2;
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double width = this->width + 8;
+    double height = this->height + 8;
     if(!ripples.size() && !needRedraw){
-        putimage_withalpha(dst,bgLayer,left,top);
+        putimage_withalpha(dst,btnLayer,left,top);
         return;
     }
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
+    
+    ege_setclippath(&clippath,btnLayer);
 
     // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
-    setfillcolor(color, btnLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+    setfillcolor(EGEACOLOR(255,color), btnLayer);
+    ege_fillrect(0, 0, width, height, btnLayer);
                  
     if(icon != nullptr){
 	    double iconW = getwidth(icon) * scale * iconSize / 100;
@@ -485,7 +470,6 @@ void Button::draw(PIMAGE dst,double x,double y){
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
@@ -501,12 +485,18 @@ void Button::draw(PIMAGE dst,double x,double y){
                  height / 2 - h / 2, 
                  content.c_str(), btnLayer);
     
-    // 应用遮罩绘制
-    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
-    setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
-    cleardevice(bgLayer);
-    putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
-    putimage_withalpha(dst,bgLayer,left,top);
+    ege_resetclippath(btnLayer);
+    setlinewidth(1,btnLayer);
+    setlinecolor(EGEACOLOR(255,color), btnLayer);
+    ege_drawpath(&clippath,btnLayer);
+
+    ege_setclippath(&clippath,btnLayer);
+    for (auto& r : ripples) {
+        r.draw(btnLayer);
+    }
+
+    putimage_withalpha(dst,btnLayer,left,top);
+    
     needRedraw = false;
 }
 
@@ -622,21 +612,13 @@ void Button::setScale(double s){
     scale = s;
     left = cx - width / 2;
     top = cy - height / 2;
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
+
     if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
+    btnLayer = newimage(width + 8,height + 8);
     ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0,0,width,height, radius, radius, radius, radius, maskLayer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
+
     needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -922,6 +904,7 @@ void InputBox::deleteFocus(){
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
+            p->setAlwaysDirty(false);
         }
     }
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
@@ -954,7 +937,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             needRedraw = true;
             if(this->parent != nullptr){
                 if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                    p->setDirty();
+                    p->setAlwaysDirty(true);
                 }
             }
             inv.setfocus();
@@ -1002,14 +985,9 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         return true;
     }
     // 鼠标左键按下且不在输入框内
-    else if (msg.is_left() && msg.is_down()) {
+    else if (msg.is_left() && msg.is_down() && on_focus) {
         deleteFocus();
     }
-
-    if(msg.is_left() && msg.is_up() && mouseOwningFlag == this){
-        mouseOwningFlag = nullptr;
-    }
-
     return false;
 }
 

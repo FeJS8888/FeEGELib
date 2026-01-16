@@ -204,7 +204,9 @@ public:
 
     void setDirty() { this->needRedraw = true; }
 
-    void setAlwaysDirty(bool d) { this->needRedrawAlways = d; }
+    void setAlwaysDirty(bool d) { this->needRedrawAlways += ((int)d + d - 1); }
+
+    int getAlwaysDirtyState() { return this->needRedrawAlways; }
 private:
     double radius;
     double origin_width, origin_height;
@@ -216,7 +218,8 @@ private:
     PIMAGE drawLayer = nullptr;
     bool scaleChanged = true;
     bool needRedraw = true;
-    bool needRedrawAlways = false;
+    int needRedrawAlways = 0;
+    ege_path clippath;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
@@ -259,6 +262,7 @@ struct Ripple{
     int life;           ///< 生命周期
     int age = 0;        ///< 当前年龄
     int counter = -1;
+    mutable bool m_setDirtyState = false;
     Widget* parent;
 
     /**
@@ -284,9 +288,14 @@ struct Ripple{
     /**
      * @brief 绘制波纹
      * @param dst 目标图像
-     * @param scale 缩放比例
      */
     void draw(PIMAGE dst) const;
+
+    /**
+     * @brief 绘制波纹抗锯齿补偿
+     * @param dst 目标图像
+     */
+    void draw_aa(PIMAGE dst) const;
 };
 
 /**
@@ -311,6 +320,7 @@ private:
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
+    ege_path clippath;
 
 public:
     /**
