@@ -525,7 +525,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
         mouseOwningFlag = this;
         return true;
     }
-    else if(msg.is_left() && msg.is_up()){
+    else if(msg.is_left() && msg.is_up() && m_clicking){
         if(inside && on_click_event != nullptr) on_click_event();
         m_clicking = false;
         mouseOwningFlag = nullptr;
