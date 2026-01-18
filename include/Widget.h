@@ -478,6 +478,7 @@ private:
     color_t color = EGERGB(245, 245, 235);
     bool needRedraw = true;
     bool scaleChanged = true;
+    ege_path clippath;
 
     int cursor_pos = 0;
     double text_height = 23;

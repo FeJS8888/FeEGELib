@@ -485,15 +485,18 @@ void Button::draw(PIMAGE dst,double x,double y){
                  height / 2 - h / 2, 
                  content.c_str(), btnLayer);
     
-    ege_resetclippath(btnLayer);
-    setlinewidth(1,btnLayer);
-    setlinecolor(EGEACOLOR(255,color), btnLayer);
-    ege_drawpath(&clippath,btnLayer);
+    // ege_resetclippath(btnLayer);
+    
 
-    ege_setclippath(&clippath,btnLayer);
+    // ege_setclippath(&clippath,btnLayer);
     for (auto& r : ripples) {
         r.draw(btnLayer);
     }
+
+    ege_resetclippath(btnLayer);
+    setlinewidth(0.5,btnLayer);
+    setlinecolor(EGEACOLOR(255,color), btnLayer);
+    ege_drawpath(&clippath,btnLayer);
 
     putimage_withalpha(dst,btnLayer,left,top);
     
@@ -726,17 +729,11 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
     origin_radius = radius = r;
     left = cx - width / 2;
     top = cy - height / 2;
-    btnLayer = newimage(width, height);
-    maskLayer = newimage(width, height);
-    bgLayer = newimage(width,height);
+    btnLayer = newimage(width + 8, height + 8);
     ege_enable_aa(true, btnLayer);
-    ege_enable_aa(true, maskLayer);
-    ege_enable_aa(true, bgLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGERGBA(255,255,255,255), maskLayer);
-    ege_fillroundrect(0.25,0.25,width - 0.5,height - 0.5, radius, radius, radius, radius, maskLayer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
+
     inv.create(false, 2);
     inv.visible(false);
     inv.move(-1, -1);
@@ -750,8 +747,6 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
 
 InputBox::~InputBox() {
     if (btnLayer) delimage(btnLayer);
-    if (maskLayer) delimage(maskLayer);
-    if (bgLayer) delimage(bgLayer);
 }
 
 const double BLINK_FREQUENCY = 0.65;
@@ -768,11 +763,13 @@ double InputBoxSinDoubleForCursor(double time) {
 }
 
 void InputBox::draw(PIMAGE dst, double x, double y) {
-    double left = x - width / 2;
-    double top = y - height / 2;
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double width = this->width + 8;
+    double height = this->height + 8;
     
     if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
-        putimage_withalpha(dst, bgLayer, left, top);
+        putimage_withalpha(dst, btnLayer, left, top);
         return;
     }
 
@@ -793,14 +790,15 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     setbkcolor_f(EGEARGB(0, 0, 0, 0), btnLayer);
     cleardevice(btnLayer);
 
-    // 按钮背景
-    setfillcolor(EGEACOLOR(255, color), btnLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+    ege_setclippath(&clippath,btnLayer);
+
+    // 优化：只绘制一次背景到btnLayer，稍后复制到bgLayer
+    setfillcolor(EGEACOLOR(255,color), btnLayer);
+    ege_fillrect(0, 0, width, height, btnLayer);
 
     // 更新并绘制 ripples
     for (auto& r : ripples) {
         r.update();
-        r.draw(btnLayer);
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
@@ -850,9 +848,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
                     displayContent.c_str(), btnLayer);
         
         if (on_focus) {
-            // 聚焦状态遮罩 - 使用圆角矩形匹配输入框形状
             setfillcolor(EGEARGB(50,30,30,30), btnLayer);
-            ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, btnLayer);
+            ege_fillrect(0, 0, width, height, btnLayer);
 
             // 绘制光标
             std::chrono::_V2::system_clock::time_point current_time = std::chrono::high_resolution_clock::now();
@@ -883,12 +880,16 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         }
     }
     
-    // 应用遮罩绘制
-    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
-    setbkcolor_f(EGEARGB(0, 0, 0, 0), bgLayer);
-    cleardevice(bgLayer);
-    putimage_alphafilter(bgLayer, btnLayer, 0, 0, maskLayer, 0, 0, -1, -1);
-    putimage_withalpha(dst,bgLayer,left,top);
+    for (auto& r : ripples) {
+        r.draw(btnLayer);
+    }
+
+    ege_resetclippath(btnLayer);
+    setlinewidth(1,btnLayer);
+    setlinecolor(EGEACOLOR(255,color), btnLayer);
+    ege_drawpath(&clippath,btnLayer);
+
+    putimage_withalpha(dst,btnLayer,left,top);
     needRedraw = false;
     scaleChanged = false;
 }
@@ -1079,21 +1080,13 @@ void InputBox::setScale(double s){
     if (old_scale > 0) {
         scroll_offset = scroll_offset * (s / old_scale);
     }
-    // 遮罩
-    if(maskLayer) delimage(maskLayer);
-    maskLayer = newimage(width,height);
+
     if(btnLayer) delimage(btnLayer);
-    btnLayer = newimage(width,height);
-    if(bgLayer) delimage(bgLayer);
-    bgLayer = newimage(width,height);
-    ege_enable_aa(true,bgLayer);
-    ege_enable_aa(true,maskLayer);
+    btnLayer = newimage(width + 8,height + 8);
     ege_enable_aa(true,btnLayer);
-    // 遮罩使用不透明颜色：黑色背景(隐藏)和白色填充(显示)
-    setbkcolor_f(EGEARGB(255, 0, 0, 0), maskLayer);
-    cleardevice(maskLayer);
-    setfillcolor(EGEARGB(255, 255, 255, 255), maskLayer);
-    ege_fillroundrect(0, 0, width, height, radius, radius, radius, radius, maskLayer);
+    ege_path_reset(&clippath);
+    ege_path_addroundrect(&clippath,4,4,width,height,radius);
+    
     needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
