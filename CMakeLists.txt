@@ -33,7 +33,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-defin
 if(EXISTS "${CMAKE_SOURCE_DIR}/main.cpp")
     add_executable(FeEGEApp main.cpp)
     target_link_libraries(FeEGEApp PRIVATE FeEGELib_core)
-    # set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
+    set_target_properties(FeEGEApp PROPERTIES WIN32_EXECUTABLE TRUE)
     target_link_options(FeEGEApp PRIVATE -static)
 endif()
 
