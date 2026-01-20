@@ -1666,4 +1666,17 @@ extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Wi
  */
 Widget* getWidgetById(const std::wstring& identifier);
 
+/**
+ * @brief 将指定的 Widget 序列赋值给内部容器。
+ * * @details 该函数会清除原有的 Widget 排序或记录，并使用传入的 vector 
+ * 进行覆盖。通常用于重新排列或完全替换当前的 Widget 集合。
+ * * @param widgetWithOrder 包含 Widget 指针的向量，代表了新的排列顺序。
+ * * @note 调用者需确保 vector 中的指针在 Widget 生命周期内有效。
+ */
 void assignOrder(std::vector<Widget*> widgetWithOrder);
+
+/**
+ * @brief 在当前序列中就地插入或追加 Widget 排序。
+ * * @param widgetWithOrder 包含待处理 Widget 指针的向量。
+ */
+void emplaceOrder(std::vector<Widget*> widgetWithOrder);

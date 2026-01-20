@@ -3150,3 +3150,7 @@ Widget* getWidgetById(const std::wstring& identifier){
 void assignOrder(std::vector<Widget*> widgetWithOrder){
     swap(widgetWithOrder,widgets);
 }
+
+void emplaceOrder(std::vector<Widget*> widgetWithOrder){
+    widgetWithOrder.emplace_back(widgetWithOrder);
+}
