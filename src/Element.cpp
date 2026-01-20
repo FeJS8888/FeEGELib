@@ -1399,10 +1399,10 @@ void reflush() {
         msg = getmouse();
         reflushMouseStatu(msg);
 		bool state = true;
-		if(mouseOwningFlag != nullptr){
-			state = mouseOwningFlag->handleEvent(msg);
-			if(state) continue;
-		}
+		// if(mouseOwningFlag != nullptr){
+		// 	state = mouseOwningFlag->handleEvent(msg);
+		// 	if(state) continue;
+		// }
 		for(Widget* w : widgets){
 			bool state = w->handleEvent(msg);
 			if(state) break;

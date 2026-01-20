@@ -513,7 +513,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
         int localX = msg.x - left;
         int localY = msg.y - top;
         m_counter++;
-        ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70,dynamic_cast<Widget*>(this),m_counter);
+        ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70, dynamic_cast<Widget*>(this), m_counter);
         needRedraw = true;
         if(this->parent != nullptr){
             Panel* p = dynamic_cast<Panel*>(this->parent);
@@ -996,7 +996,6 @@ bool InputBox::isInside(double x, double y) const {
     // 转换为按钮内部坐标系
     double localX = x - left;
     double localY = y - top;
-    // wcout<<L"IS localX: "<<localX<<L" localY: "<<localY<<L"WHICH is " <<EGEGET_A(getpixel(localX, localY, btnLayer))<<endl;
 
     // 先检查是否在按钮矩形框外
     if (localX < 0 || localX >= width || localY < 0 || localY >= height)
@@ -1450,8 +1449,9 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         m_pressed = false;
         m_finalprogress = fixProgress();
         if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+        m_dragOffset = 0;
     }
-    return false;
+    return m_hover;
 }
 
 void Slider::setProgress(double v) {
