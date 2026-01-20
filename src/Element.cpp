@@ -1438,7 +1438,7 @@ void init(int x,int y,int mode){
 	ege_enable_aa(true);
 
 	// Font
-	fontManager.LoadFont("./resources/fonts/fzxs12.ttf");
+	// fontManager.LoadFont("./resources/fonts/fzxs12.ttf");
 
 	// Hook
 	g_oldWndProc = (WNDPROC)::SetWindowLongPtrW(getHWnd(), GWLP_WNDPROC, (LONG_PTR)FeEGEProc);
