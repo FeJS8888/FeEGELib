@@ -2835,7 +2835,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
         float textWidth,textHeight;
         measuretext(valueText,&textWidth,&textHeight,dst);
         
-        outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
+        ege_outtextxy(x - textWidth / 2, y - textHeight / 2, valueText, dst);
     }
 }
 
@@ -2846,11 +2846,6 @@ void Knob::draw() {
 bool Knob::handleEvent(const mouse_msg& msg) {
     // 检查是否在旋钮内
     hovered = isInside(msg.x, msg.y);
-    
-    // 如果禁用或只读，不响应交互
-    if (disabled || readonly) {
-        return false;
-    }
     
     // 按下鼠标左键开始拖动
     if (msg.is_left() && msg.is_down() && hovered) {
@@ -2925,7 +2920,7 @@ bool Knob::handleEvent(const mouse_msg& msg) {
             mouseOwningFlag = nullptr;
         }
     }
-    return false;
+    return hovered;
 }
 
 // ===================== KnobBuilder Implementation =====================
@@ -3151,6 +3146,6 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
     swap(widgetWithOrder,widgets);
 }
 
-void emplaceOrder(std::vector<Widget*> widgetWithOrder){
-    widgetWithOrder.emplace_back(widgetWithOrder);
+void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
+    widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
 }

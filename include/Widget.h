@@ -1679,4 +1679,4 @@ void assignOrder(std::vector<Widget*> widgetWithOrder);
  * @brief 在当前序列中就地插入或追加 Widget 排序。
  * * @param widgetWithOrder 包含待处理 Widget 指针的向量。
  */
-void emplaceOrder(std::vector<Widget*> widgetWithOrder);
+void emplaceOrder(const std::vector<Widget*>& widgetWithOrder);
