@@ -3169,7 +3169,7 @@ void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
 // ============ Box 实现 ============
 
 Box::Box(double cx, double cy, double w, double h) 
-    : Panel(cx, cy, w, h, 0, EGEACOLOR(0, 0, 0, 0)) {  // 透明背景，无圆角
+    : Panel(cx, cy, w, h, 0, EGEARGB(0, 0, 0, 0)) {  // 透明背景，无圆角
     // 创建并设置内置的FlexLayout
     auto flexLayout = std::make_shared<FlexLayout>();
     setLayout(flexLayout);

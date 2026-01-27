@@ -208,7 +208,7 @@ public:
     void setAlwaysDirty(bool d) { this->needRedrawAlways += ((int)d + d - 1); }
 
     int getAlwaysDirtyState() { return this->needRedrawAlways; }
-private:
+protected:
     double radius;
     double origin_width, origin_height;
     double origin_radius;
@@ -241,7 +241,7 @@ public:
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
     Panel* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 50;
@@ -304,7 +304,7 @@ struct Ripple{
  */
 
 class Button : public Widget {
-private:
+protected:
     double radius;                              ///< 圆角半径
     double origin_width, origin_height;         ///< 原始宽高
     double origin_radius;                       ///< 原始圆角半径
@@ -447,7 +447,7 @@ public:
     ButtonBuilder& setIconSize(int size);
     Button* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 50;
@@ -464,7 +464,7 @@ private:
  * @brief 输入框控件类
  */
 class InputBox : public Widget {
-private:
+protected:
     double radius;            ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
@@ -589,7 +589,7 @@ public:
     InputBoxBuilder& setScale(double s);
     InputBox* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 160, height = 40;
@@ -611,7 +611,7 @@ enum class Orientation {
  */
 
 class Slider : public Widget {
-private:
+protected:
     double left, top;
     double radius;              ///< 滑块半径
     double origin_width, origin_height;
@@ -806,7 +806,7 @@ public:
      */
     Slider* build();
 
-private:
+protected:
     std::wstring identifier;
     double x = 0, y = 0;
     double width = 200, height = 20;
@@ -822,7 +822,7 @@ private:
 
 
 class ProgressBar : public Widget {
-private:
+protected:
     double origin_width, origin_height;
     double radius = 6;
     double left, top;
@@ -864,7 +864,7 @@ public:
     ProgressBarBuilder& setBackground(color_t bg);
     ProgressBar* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 200, height = 20;
@@ -892,7 +892,7 @@ public:
     bool isInside(double x, double y) const;
 
 
-private:
+protected:
     Button* mainButton;
     Panel* dropdownPanel;
     std::vector<Button*> options;
@@ -924,7 +924,7 @@ public:
     DropdownBuilder& addOption(const std::wstring& text, std::function<void()> onClick);
     Dropdown* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 40;
@@ -958,7 +958,7 @@ public:
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     double cx, cy;
     double radius, scale = 1.0;
     double origin_radius;
@@ -994,7 +994,7 @@ public:
     RadioBuilder& setStyle(RadioStyle s);
     Radio* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 12;
@@ -1017,7 +1017,7 @@ public:
     std::wstring getValue();
     void build();
 
-private:
+protected:
     std::wstring identifier;
     double cx, cy;
     double radius, scale, gap;
@@ -1041,7 +1041,7 @@ public:
     RadioControllerBuilder& setOnChange(std::function<void(const std::wstring&)> cb);
     RadioController* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 12;
@@ -1073,7 +1073,7 @@ public:
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     double cx, cy;
     double width, height, scale = 1.0;
 
@@ -1105,7 +1105,7 @@ public:
     ToggleBuilder& setBaseColor(color_t col);
     Toggle* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double w = 60, h = 30, scale = 1.0;
@@ -1146,7 +1146,7 @@ public:
     void setPosition(double x, double y) override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     void updateLayout();
 
     int posX = 0, posY = 0;
@@ -1180,7 +1180,7 @@ public:
     TextBuilder& setLineSpacing(int px);
     Text* build();
 
-private:
+protected:
     std::wstring identifier;
     double x = 0, y = 0;
     int maxWidth = 0;
@@ -1289,7 +1289,7 @@ public:
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     double cx, cy;                      ///< 中心坐标
     double radius;                   ///< 半径
     double origin_radius;            ///< 原始半径（用于缩放）
@@ -1488,7 +1488,7 @@ public:
      */
     Knob* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 60;
@@ -1589,7 +1589,7 @@ public:
      */
     ~Sidebar();
 
-private:
+protected:
     Panel* container;                    ///< 内部使用 Panel 来承载子控件
     std::vector<Widget*> items;          ///< 子项列表
     double origin_width, origin_height;  ///< 原始宽高
@@ -1649,7 +1649,7 @@ public:
      */
     Sidebar* build();
 
-private:
+protected:
     double cx = 0, cy = 0;                  ///< 中心坐标
     double width = 200, height = 400;    ///< 宽高
     double radius = 8;                   ///< 圆角半径
@@ -1710,7 +1710,7 @@ public:
     BoxBuilder& addChild(const std::vector<Widget*>& children);
     Box* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 50;
