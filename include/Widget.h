@@ -1657,16 +1657,69 @@ private:
     std::vector<Widget*> items;          ///< 子项列表
 };
 
-class Box : public Widget {
+/**
+ * @brief Box布局容器
+ * 
+ * Box是一个自带FlexLayout的透明容器，继承自Panel但不显示任何背景和边框，
+ * 仅用于对子控件进行排版和显示
+ */
+class Box : public Panel {
 public:
+    /**
+     * @brief 构造函数
+     * @param cx 中心 x 坐标
+     * @param cy 中心 y 坐标
+     * @param w 宽度
+     * @param h 高度
+     */
+    Box(double cx, double cy, double w, double h);
+    
+    /**
+     * @brief 析构函数
+     */
+    ~Box();
 
-private:
+    /**
+     * @brief 绘制 Box 到指定图层（仅绘制子控件，不绘制背景）
+     * @param dst 目标图像
+     * @param x 粘贴到 dst 中的中心 x 坐标
+     * @param y 粘贴到 dst 中的中心 y 坐标
+     */
+    void draw(PIMAGE dst, double x, double y) override;
+    
+    /**
+     * @brief 绘制 Box 到默认图像
+     */
+    void draw() override;
 };
 
+/**
+ * @brief Box构建器
+ */
 class BoxBuilder {
 public:
+    BoxBuilder& setIdentifier(const std::wstring& identifier);
+    BoxBuilder& setCenter(double x, double y);
+    BoxBuilder& setSize(double w, double h);
+    BoxBuilder& setScale(double s);
+    BoxBuilder& setDirection(LayoutDirection dir);
+    BoxBuilder& setAlign(LayoutAlign align);
+    BoxBuilder& setSpacing(double s);
+    BoxBuilder& setPadding(double p);
+    BoxBuilder& addChild(Widget* child);
+    BoxBuilder& addChild(const std::vector<Widget*>& children);
+    Box* build();
 
 private:
+    std::wstring identifier;
+    double cx = 0, cy = 0;
+    double width = 100, height = 50;
+    double scale = 1.0;
+    LayoutDirection direction = LayoutDirection::Row;
+    LayoutAlign align = LayoutAlign::Start;
+    double spacing = 0;
+    double padding = 0;
+    std::vector<Widget*> children;
 };
 
 extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）

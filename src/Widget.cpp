@@ -3165,3 +3165,120 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
 }
+
+// ============ Box 实现 ============
+
+Box::Box(double cx, double cy, double w, double h) 
+    : Panel(cx, cy, w, h, 0, EGEACOLOR(0, 0, 0, 0)) {  // 透明背景，无圆角
+    // 创建并设置内置的FlexLayout
+    auto flexLayout = std::make_shared<FlexLayout>();
+    setLayout(flexLayout);
+}
+
+Box::~Box(){
+    // Panel的析构函数会处理清理
+}
+
+void Box::draw(PIMAGE dst, double x, double y) {
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double width = this->width + 8;
+    double height = this->height + 8;
+
+    // 应用布局
+    if (layout) layout->apply(*this);
+    
+    // Box不绘制背景，只绘制子控件
+    if(scaleChanged) PanelScaleChanged = true;
+    for (size_t i = 0; i < children.size(); ++i) {
+        double childX = x + childOffsets[i].x * scale;
+        double childY = y + childOffsets[i].y * scale;
+        children[i]->draw(dst, childX, childY);
+    }
+    if(scaleChanged) PanelScaleChanged = false;
+    scaleChanged = false;
+    needRedraw = false;
+}
+
+void Box::draw() {
+    draw(nullptr, cx, cy);
+}
+
+// ============ BoxBuilder 实现 ============
+
+BoxBuilder& BoxBuilder::setIdentifier(const std::wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setCenter(double x, double y) {
+    cx = x; 
+    cy = y;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSize(double w, double h) {
+    width = w; 
+    height = h;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setDirection(LayoutDirection dir) {
+    direction = dir;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setAlign(LayoutAlign a) {
+    align = a;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSpacing(double s) {
+    spacing = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setPadding(double p) {
+    padding = p;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(Widget* child) {
+    children.push_back(child);
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(const std::vector<Widget*>& childList) {
+    children.insert(children.end(), childList.begin(), childList.end());
+    return *this;
+}
+
+Box* BoxBuilder::build() {
+    auto box = new Box(cx, cy, width, height);
+    box->setScale(scale);
+    
+    // 配置内置的FlexLayout
+    auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(box->getLayout());
+    if (flexLayout) {
+        flexLayout->setDirection(direction);
+        flexLayout->setAlign(align);
+        flexLayout->setSpacing(spacing);
+        flexLayout->setPadding(padding);
+    }
+    
+    // 添加子控件
+    for (auto* child : children) {
+        box->addChild(child, 0, 0);  // 初始偏移为0，由layout计算
+    }
+    
+    if (!identifier.empty()) {
+        IdToWidget[identifier] = box;
+    }
+    
+    return box;
+}
