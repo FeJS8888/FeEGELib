@@ -1661,7 +1661,7 @@ class Box : public Widget {
 public:
 
 private:
-}
+};
 
 class BoxBuilder{
 public:
