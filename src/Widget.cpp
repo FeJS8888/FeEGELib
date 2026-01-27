@@ -3184,14 +3184,19 @@ void Box::draw(PIMAGE dst, double x, double y) {
     if (layout) layout->apply(*this);
     
     // Box不使用layer缓存，因为它是透明的，直接绘制子控件到dst
-    // 但需要正确设置absolutPosDelta以便子控件获取正确的绝对位置
+    // 由于没有layer，absolutPosDelta的计算与Panel不同：
+    // Panel使用layer的左上角位置，Box直接使用绘制位置减去半宽/半高
+    double left = x - width / 2;
+    double top = y - height / 2;
+    
+    // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
         double childX = x + childOffsets[i].x * scale;
         double childY = y + childOffsets[i].y * scale;
-        // 设置绝对位置增量（用于子控件计算其绝对位置）
-        absolutPosDeltaX = x;
-        absolutPosDeltaY = y;
+        // 设置绝对位置增量（用于子控件计算其绝对位置，如IME位置）
+        absolutPosDeltaX = left;
+        absolutPosDeltaY = top;
         // 更新子控件位置
         children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
         // 绘制子控件
