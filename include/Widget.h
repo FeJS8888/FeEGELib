@@ -1657,6 +1657,18 @@ private:
     std::vector<Widget*> items;          ///< 子项列表
 };
 
+class Box : public Widget {
+public:
+
+private:
+}
+
+class BoxBuilder{
+public:
+
+private:
+}
+
 extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
 extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
 
