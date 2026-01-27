@@ -3180,20 +3180,25 @@ Box::~Box(){
 }
 
 void Box::draw(PIMAGE dst, double x, double y) {
-    double left = x - width / 2 - 4;
-    double top = y - height / 2 - 4;
-    double width = this->width + 8;
-    double height = this->height + 8;
-
     // 应用布局
     if (layout) layout->apply(*this);
     
-    // Box不绘制背景，只绘制子控件
+    // Box不使用layer缓存，因为它是透明的，直接绘制子控件到dst
+    // 但需要正确设置absolutPosDelta以便子控件获取正确的绝对位置
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
         double childX = x + childOffsets[i].x * scale;
         double childY = y + childOffsets[i].y * scale;
+        // 设置绝对位置增量（用于子控件计算其绝对位置）
+        absolutPosDeltaX = x;
+        absolutPosDeltaY = y;
+        // 更新子控件位置
+        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
+        // 绘制子控件
         children[i]->draw(dst, childX, childY);
+        // 重置绝对位置增量
+        absolutPosDeltaX = 0;
+        absolutPosDeltaY = 0;
     }
     if(scaleChanged) PanelScaleChanged = false;
     scaleChanged = false;
