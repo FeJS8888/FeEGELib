@@ -73,7 +73,8 @@ public:
      */
     double getHeight();
 
-    virtual void deleteFocus();
+    virtual void deleteFocus(const mouse_msg& msg);
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg);
 
     void setParent(Widget* p);
 
@@ -425,6 +426,8 @@ public:
      * @return 计数器值
      */
     int getMCounter();
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override ;
 };
 
 /**
@@ -570,7 +573,7 @@ public:
 
     int getMCounter();
 
-    virtual void deleteFocus();
+    virtual void deleteFocus(const mouse_msg& msg) override ;
 };
 
 
@@ -1653,7 +1656,6 @@ private:
     color_t bg = EGERGB(240, 240, 240);  ///< 背景颜色
     std::vector<Widget*> items;          ///< 子项列表
 };
-
 
 extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
 extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）

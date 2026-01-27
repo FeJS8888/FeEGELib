@@ -1,7 +1,7 @@
 ﻿#include "Widget.h"
 #include "../3rdparty/xege/src/feege.h"
 
-using namespace FeEGE;
+using namespace FeEGE; 
 Widget* mouseOwningFlag = nullptr;
 Widget* focusingWidget = nullptr;
 
@@ -16,7 +16,12 @@ double Widget::getHeight(){
     return height;
 }
 
-void Widget::deleteFocus(){
+void Widget::deleteFocus(const mouse_msg& msg){
+
+}
+
+void Widget::releaseMouseOwningFlag(const mouse_msg& msg){
+
 }
 
 void Widget::setParent(Widget* p){
@@ -195,7 +200,7 @@ bool Panel::handleEvent(const mouse_msg& msg){
         // When clicking outside the Panel, remove focus from any descendant widget that has focus
         if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
             if(isDescendant(focusingWidget, children)) {
-                focusingWidget->deleteFocus();
+                focusingWidget->deleteFocus(msg);
             }
         }
         return false;
@@ -203,7 +208,7 @@ bool Panel::handleEvent(const mouse_msg& msg){
     // When clicking inside this Panel, if the focused widget is in another Panel, remove its focus
     if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
         if(!isDescendant(focusingWidget, children)) {
-            focusingWidget->deleteFocus();
+            focusingWidget->deleteFocus(msg);
         }
     }
 	for(Widget* w : children){
@@ -218,9 +223,12 @@ bool Panel::handleEvent(const mouse_msg& msg){
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
         }
-        return false;
+        else if(mouseOwningFlag != nullptr){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+        return true;
     }
-    return false;
+    return true;
 }
 
 void Panel::setSize(double w,double h){
@@ -507,6 +515,14 @@ void Button::draw(){
     draw(nullptr,cx,cy);
 }
 
+void Button::releaseMouseOwningFlag(const mouse_msg& msg){
+    if(!msg.is_left() || !msg.is_up() || !m_clicking) return;
+    bool inside = isInside(msg.x, msg.y);
+    if(inside && on_click_event != nullptr) on_click_event();
+    m_clicking = false;
+    mouseOwningFlag = nullptr;
+}
+
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
     if (msg.is_left() && msg.is_down() && inside) {
@@ -529,9 +545,9 @@ bool Button::handleEvent(const mouse_msg& msg) {
         if(inside && on_click_event != nullptr) on_click_event();
         m_clicking = false;
         mouseOwningFlag = nullptr;
-        return false;
+        return true;
     }
-    return false;
+    return inside;
 }
 
 bool Button::isInside(double x, double y) const {
@@ -898,7 +914,7 @@ void InputBox::draw(){
     draw(nullptr,cx,cy);
 }
 
-void InputBox::deleteFocus(){
+void InputBox::deleteFocus(const mouse_msg& msg){
     on_focus = false;
     inv.killfocus();
     needRedraw = true;
@@ -979,15 +995,14 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             }
         }
         if(focusingWidget != nullptr && focusingWidget != this){
-            focusingWidget->deleteFocus();
+            focusingWidget->deleteFocus(msg);
         }
         focusingWidget = this;
-        mouseOwningFlag = this;
         return true;
     }
     // 鼠标左键按下且不在输入框内
     else if (msg.is_left() && msg.is_down() && on_focus) {
-        deleteFocus();
+        deleteFocus(msg);
     }
     return false;
 }
@@ -2753,10 +2768,11 @@ bool Knob::isInside(double x, double y) const {
     double dx = x - cx;
     double dy = y - cy;
     double dist = std::sqrt(dx * dx + dy * dy);
-    return dist <= radius;
+    return dist <= radius * 1.075;
 }
 
 void Knob::draw(PIMAGE dst, double x, double y) {
+    ege_enable_aa(true,dst);
     double r = radius;
     
     // 缓动到目标值（类似Slider的实现）
@@ -2782,7 +2798,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // === 绘制前景进度弧（当前值，使用displayValue实现缓动）===
     setlinecolor(currentFgColor, dst);
-    setlinewidth((int)arcThickness, dst);
+    setlinewidth(arcThickness, dst);
     
     double startAngle = -90.0 + offsetAngle;
     double currentAngle = valueToAngle(displayValue);
@@ -2809,7 +2825,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     setfillcolor(centerColor, dst);
     setlinecolor(disabled ? EGERGB(200, 200, 200) : EGERGB(220, 220, 220), dst);
     setlinewidth(2, dst);
-    ege_fillcircle((int)x, (int)y, (int)(r * 0.7), dst);
+    ege_fillcircle(x, y, (r * 0.7), dst);
     
     // === 显示当前值 ===
     if (showValue) {

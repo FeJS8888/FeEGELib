@@ -1398,22 +1398,29 @@ void reflush() {
     while (mousemsg()) {
         msg = getmouse();
         reflushMouseStatu(msg);
-		bool state = true;
+		bool state = false;
 		// if(mouseOwningFlag != nullptr){
 		// 	state = mouseOwningFlag->handleEvent(msg);
 		// 	if(state) continue;
 		// }
 		for(Widget* w : widgets){
-			bool state = w->handleEvent(msg);
+			state = w->handleEvent(msg);
 			if(state) break;
 		}
 		
 		if(needReflushCursor){
+			state = false;
 			for(Widget* w : widgets){
-				bool state = w->handleEvent(msg);
+				state = w->handleEvent(msg);
 				if(state) break;
 			}
 			needReflushCursor = false;
+		}
+
+		if(!state){
+			if(mouseOwningFlag != nullptr){
+				mouseOwningFlag->releaseMouseOwningFlag(msg);
+			}
 		}
     }
 	
