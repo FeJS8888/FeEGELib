@@ -1693,7 +1693,7 @@ public:
     void draw() override;
     
     /**
-     * @brief 设置缩放比例（Box特殊缩放：子控件在自己位置上缩放，不缩放Box本身）
+     * @brief 设置缩放比例（Box特殊缩放：子控件相对于自己的中心缩放，位置保持不变）
      * @param s 缩放比例
      */
     void setScale(double s) override;

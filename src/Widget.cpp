@@ -3182,8 +3182,8 @@ Box::~Box(){
 void Box::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
-    double width = this->width + 8;
-    double height = this->height + 8;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
 
     if(!needRedraw && !needRedrawAlways){
         putimage_withalpha(dst,layer,left,top);
@@ -3197,14 +3197,14 @@ void Box::draw(PIMAGE dst, double x, double y) {
     cleardevice(layer);
 
     // Box不绘制背景，直接绘制子控件
-    // 绘制子控件
+    // 绘制子控件 - 子控件相对于自己的中心缩放，位置不随scale变化
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
-        double childX = width / 2 + childOffsets[i].x * scale;
-        double childY = height / 2 + childOffsets[i].y * scale;
+        double childX = layerWidth / 2 + childOffsets[i].x;
+        double childY = layerHeight / 2 + childOffsets[i].y;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
         children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
@@ -3226,11 +3226,11 @@ void Box::setScale(double s){
     scaleChanged = true;
     
     // Box特殊缩放行为：不缩放Box自身的宽高，只缩放子控件
-    // 子控件在自己的位置上缩放
+    // 子控件相对于自己的中心缩放，位置保持不变
     scale = s;
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setScale(s);
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
     }
 
     needRedraw = true;
