@@ -1691,6 +1691,12 @@ public:
      * @brief 绘制 Box 到默认图像
      */
     void draw() override;
+    
+    /**
+     * @brief 设置缩放比例（Box特殊缩放：子控件在自己位置上缩放，不缩放Box本身）
+     * @param s 缩放比例
+     */
+    void setScale(double s) override;
 };
 
 /**

@@ -3180,38 +3180,65 @@ Box::~Box(){
 }
 
 void Box::draw(PIMAGE dst, double x, double y) {
-    // 应用布局
-    if (layout) layout->apply(*this);
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double width = this->width + 8;
+    double height = this->height + 8;
+
+    if(!needRedraw && !needRedrawAlways){
+        putimage_withalpha(dst,layer,left,top);
+        return;
+    }
+
+    if (layout) layout->apply(*this);  // 自动计算子控件位置
     
-    // Box不使用layer缓存，因为它是透明的，直接绘制子控件到dst
-    // 由于没有layer，absolutPosDelta的计算与Panel不同：
-    // Panel使用layer的左上角位置，Box直接使用绘制位置减去半宽/半高
-    double left = x - width / 2;
-    double top = y - height / 2;
-    
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
+    cleardevice(layer);
+
+    // Box不绘制背景，直接绘制子控件
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
-        double childX = x + childOffsets[i].x * scale;
-        double childY = y + childOffsets[i].y * scale;
-        // 设置绝对位置增量（用于子控件计算其绝对位置，如IME位置）
+        double childX = width / 2 + childOffsets[i].x * scale;
+        double childY = height / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
-        // 更新子控件位置
-        children[i]->setPosition(cx + childOffsets[i].x * scale, cy + childOffsets[i].y * scale);
-        // 绘制子控件
-        children[i]->draw(dst, childX, childY);
-        // 重置绝对位置增量
+        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
-    if(scaleChanged) PanelScaleChanged = false;
+    PanelScaleChanged = false;
     scaleChanged = false;
+    
+    // 粘贴到主窗口
+    putimage_withalpha(dst,layer,left,top);
     needRedraw = false;
 }
 
 void Box::draw() {
     draw(nullptr, cx, cy);
+}
+
+void Box::setScale(double s){
+    if(sgn(s - scale) == 0) return;
+    scaleChanged = true;
+    
+    // Box特殊缩放行为：不缩放Box自身的宽高，只缩放子控件
+    // 子控件在自己的位置上缩放
+    scale = s;
+    for (size_t i = 0; i < children.size(); ++i) {
+        children[i]->setScale(s);
+        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+    }
+
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 // ============ BoxBuilder 实现 ============
