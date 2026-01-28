@@ -80,8 +80,8 @@ void Panel::draw() {
 void Panel::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
-    double width = this->width + 8;
-    double height = this->height + 8;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
 
 
     if(!needRedraw && !needRedrawAlways){
@@ -101,13 +101,13 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setfillcolor(EGEACOLOR(255,bgColor), layer);
     setcolor(EGEACOLOR(255,RED), layer);
     setlinewidth(1,layer);
-    ege_fillrect(0,0,width,height,layer);
+    ege_fillrect(0,0,layerWidth,layerHeight,layer);
 
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
-        double childX = width / 2 + childOffsets[i].x * scale;
-        double childY = height / 2 + childOffsets[i].y * scale;
+        double childX = layerWidth / 2 + childOffsets[i].x * scale;
+        double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
