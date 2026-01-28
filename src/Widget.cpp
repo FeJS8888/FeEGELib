@@ -80,8 +80,8 @@ void Panel::draw() {
 void Panel::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
-    double width = this->width + 8;
-    double height = this->height + 8;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
 
 
     if(!needRedraw && !needRedrawAlways){
@@ -101,13 +101,13 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setfillcolor(EGEACOLOR(255,bgColor), layer);
     setcolor(EGEACOLOR(255,RED), layer);
     setlinewidth(1,layer);
-    ege_fillrect(0,0,width,height,layer);
+    ege_fillrect(0,0,layerWidth,layerHeight,layer);
 
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (size_t i = 0; i < children.size(); ++i) {
-        double childX = width / 2 + childOffsets[i].x * scale;
-        double childY = height / 2 + childOffsets[i].y * scale;
+        double childX = layerWidth / 2 + childOffsets[i].x * scale;
+        double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
@@ -3164,4 +3164,158 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
+}
+
+// ============ Box 实现 ============
+
+Box::Box(double cx, double cy, double w, double h) 
+    : Panel(cx, cy, w, h, 0, EGEARGB(0, 0, 0, 0)) {  // 透明背景，无圆角
+    // 创建并设置内置的FlexLayout
+    auto flexLayout = std::make_shared<FlexLayout>();
+    setLayout(flexLayout);
+}
+
+Box::~Box(){
+    // Panel的析构函数会处理清理
+}
+
+void Box::draw(PIMAGE dst, double x, double y) {
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
+
+    if(!needRedraw && !needRedrawAlways){
+        putimage_withalpha(dst,layer,left,top);
+        return;
+    }
+
+    if (layout) layout->apply(*this);  // 自动计算子控件位置
+    
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
+    cleardevice(layer);
+
+    // Box不绘制背景，直接绘制子控件
+    // 绘制子控件 - 子控件相对于自己的中心缩放，位置不随scale变化
+    if(scaleChanged) PanelScaleChanged = true;
+    for (size_t i = 0; i < children.size(); ++i) {
+        double childX = layerWidth / 2 + childOffsets[i].x;
+        double childY = layerHeight / 2 + childOffsets[i].y;
+        absolutPosDeltaX = left;
+        absolutPosDeltaY = top;
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
+        children[i]->draw(layer, childX, childY);
+        absolutPosDeltaX = 0;
+        absolutPosDeltaY = 0;
+    }
+    PanelScaleChanged = false;
+    scaleChanged = false;
+    
+    // 粘贴到主窗口
+    putimage_withalpha(dst,layer,left,top);
+    needRedraw = false;
+}
+
+void Box::draw() {
+    draw(nullptr, cx, cy);
+}
+
+void Box::setScale(double s){
+    if(sgn(s - scale) == 0) return;
+    scaleChanged = true;
+    
+    // Box特殊缩放行为：不缩放Box自身的宽高，只缩放子控件
+    // 子控件相对于自己的中心缩放，位置保持不变
+    scale = s;
+    for (size_t i = 0; i < children.size(); ++i) {
+        children[i]->setScale(s);
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
+    }
+
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+// ============ BoxBuilder 实现 ============
+
+BoxBuilder& BoxBuilder::setIdentifier(const std::wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setCenter(double x, double y) {
+    cx = x; 
+    cy = y;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSize(double w, double h) {
+    width = w; 
+    height = h;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setDirection(LayoutDirection dir) {
+    direction = dir;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setAlign(LayoutAlign a) {
+    align = a;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSpacing(double s) {
+    spacing = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setPadding(double p) {
+    padding = p;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(Widget* child) {
+    children.push_back(child);
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(const std::vector<Widget*>& childList) {
+    children.insert(children.end(), childList.begin(), childList.end());
+    return *this;
+}
+
+Box* BoxBuilder::build() {
+    auto box = new Box(cx, cy, width, height);
+    box->setScale(scale);
+    
+    // 配置内置的FlexLayout
+    auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(box->getLayout());
+    if (flexLayout) {
+        flexLayout->setDirection(direction);
+        flexLayout->setAlign(align);
+        flexLayout->setSpacing(spacing);
+        flexLayout->setPadding(padding);
+    }
+    
+    // 添加子控件
+    for (auto* child : children) {
+        box->addChild(child, 0, 0);  // 初始偏移为0，由layout计算
+    }
+    
+    if (!identifier.empty()) {
+        IdToWidget[identifier] = box;
+    }
+    
+    return box;
 }
