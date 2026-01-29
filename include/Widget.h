@@ -195,19 +195,19 @@ public:
      * @brief 设置布局管理器
      * @param l 布局对象
      */
-    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
+    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); };
     
     /**
      * @brief 获取布局管理器
      * @return 布局对象
      */
-    std::shared_ptr<Layout> getLayout() const { return layout; }
+    std::shared_ptr<Layout> getLayout() const { return layout; };
 
-    void setDirty() { this->needRedraw = true; }
+    void setDirty();
 
-    void setAlwaysDirty(bool d) { this->needRedrawAlways += ((int)d + d - 1); }
+    void setAlwaysDirty(bool d);
 
-    int getAlwaysDirtyState() { return this->needRedrawAlways; }
+    int getAlwaysDirtyState();
 protected:
     double radius;
     double origin_width, origin_height;

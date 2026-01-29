@@ -131,6 +131,28 @@ Panel::~Panel(){
 	if (layer) delimage(layer);
 }
 
+void Panel::setAlwaysDirty(bool d) {
+    this->needRedrawAlways += ((int)d + d - 1); 
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setAlwaysDirty(d);
+        }
+    }
+}
+
+void Panel::setDirty() {
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+int Panel::getAlwaysDirtyState() {
+    return this->needRedrawAlways;
+}
+
 void Panel::setPosition(double x,double y){
 	cx = x;
 	cy = y;
