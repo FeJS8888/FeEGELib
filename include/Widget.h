@@ -447,7 +447,7 @@ public:
     ButtonBuilder& setIconSize(int size);
     Button* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 50;
@@ -589,7 +589,7 @@ public:
     InputBoxBuilder& setScale(double s);
     InputBox* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 160, height = 40;
@@ -806,7 +806,7 @@ public:
      */
     Slider* build();
 
-protected:
+private:
     std::wstring identifier;
     double x = 0, y = 0;
     double width = 200, height = 20;
@@ -864,7 +864,7 @@ public:
     ProgressBarBuilder& setBackground(color_t bg);
     ProgressBar* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 200, height = 20;
@@ -924,7 +924,7 @@ public:
     DropdownBuilder& addOption(const std::wstring& text, std::function<void()> onClick);
     Dropdown* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 40;
@@ -994,7 +994,7 @@ public:
     RadioBuilder& setStyle(RadioStyle s);
     Radio* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 12;
@@ -1041,7 +1041,7 @@ public:
     RadioControllerBuilder& setOnChange(std::function<void(const std::wstring&)> cb);
     RadioController* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 12;
@@ -1105,7 +1105,7 @@ public:
     ToggleBuilder& setBaseColor(color_t col);
     Toggle* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double w = 60, h = 30, scale = 1.0;
@@ -1180,7 +1180,7 @@ public:
     TextBuilder& setLineSpacing(int px);
     Text* build();
 
-protected:
+private:
     std::wstring identifier;
     double x = 0, y = 0;
     int maxWidth = 0;
@@ -1488,7 +1488,7 @@ public:
      */
     Knob* build();
 
-protected:
+private:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double radius = 60;
@@ -1649,7 +1649,7 @@ public:
      */
     Sidebar* build();
 
-protected:
+private:
     double cx = 0, cy = 0;                  ///< 中心坐标
     double width = 200, height = 400;    ///< 宽高
     double radius = 8;                   ///< 圆角半径
