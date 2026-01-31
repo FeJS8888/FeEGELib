@@ -1447,9 +1447,10 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
-        // 通知父容器需要重绘
+        // 通知父容器需要持续重绘（用于平滑动画）
         if(this->parent != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setAlwaysDirty(true);
                 p->setDirty();
             }
         }
@@ -1468,6 +1469,13 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             knobX = left + static_cast<int>(m_progress * width);
             knobY = top + height / 2;
             m_dragOffset = msg.x - knobX;
+        }
+        // 通知父容器需要持续重绘（用于平滑动画）
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            }
         }
         mouseOwningFlag = this;
         return true;
@@ -1499,6 +1507,12 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         m_finalprogress = fixProgress();
         if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
         m_dragOffset = 0;
+        // 停止持续重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setAlwaysDirty(false);
+            }
+        }
     }
     return m_hover;
 }
@@ -2902,6 +2916,13 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         dragging = true;
         lastMouseX = msg.x;
         lastMouseY = msg.y;
+        // 通知父容器需要持续重绘（用于平滑动画）
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            }
+        }
         mouseOwningFlag = this;
         return true;
     }
@@ -2974,6 +2995,12 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         dragging = false;
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
+        }
+        // 停止持续重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setAlwaysDirty(false);
+            }
         }
     }
     return hovered;
