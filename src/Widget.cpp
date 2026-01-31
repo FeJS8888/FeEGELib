@@ -1447,6 +1447,12 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
+        }
         mouseOwningFlag = this;
         return true;
     }
@@ -1478,6 +1484,12 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         {
             m_value = fixProgress();
             m_onChange(m_value);
+        }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
         return true;
     } 
@@ -2944,6 +2956,12 @@ bool Knob::handleEvent(const mouse_msg& msg) {
             value = newValue;
             if (onChange) {
                 onChange(value);
+            }
+            // 通知父容器需要重绘
+            if(this->parent != nullptr){
+                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                    p->setDirty();
+                }
             }
         }
         
