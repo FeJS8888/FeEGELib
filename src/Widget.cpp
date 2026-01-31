@@ -1339,6 +1339,21 @@ void Slider::draw(PIMAGE dst,double x,double y){
     if (fabs(m_progress - m_finalprogress) < 0.005)
         m_progress = m_finalprogress;
 
+    // 检查是否有动画正在进行，需要持续重绘
+    bool isAnimating = (fabs(m_scale - (m_pressed ? 0.8f : 1.0f)) > 0.01) || 
+                       (fabs(m_progress - m_finalprogress) > 0.005);
+    
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(isAnimating){
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            } else {
+                p->setAlwaysDirty(false);
+            }
+        }
+    }
+
     // 背景轨道
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
@@ -1447,10 +1462,9 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
-        // 通知父容器需要持续重绘（用于平滑动画）
+        // 通知父容器需要重绘
         if(this->parent != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                p->setAlwaysDirty(true);
                 p->setDirty();
             }
         }
@@ -1469,13 +1483,6 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             knobX = left + static_cast<int>(m_progress * width);
             knobY = top + height / 2;
             m_dragOffset = msg.x - knobX;
-        }
-        // 通知父容器需要持续重绘（用于平滑动画）
-        if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                p->setAlwaysDirty(true);
-                p->setDirty();
-            }
         }
         mouseOwningFlag = this;
         return true;
@@ -1507,12 +1514,6 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         m_finalprogress = fixProgress();
         if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
         m_dragOffset = 0;
-        // 停止持续重绘
-        if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                p->setAlwaysDirty(false);
-            }
-        }
     }
     return m_hover;
 }
@@ -2829,6 +2830,20 @@ void Knob::draw(PIMAGE dst, double x, double y) {
         displayValue = value;
     }
     
+    // 检查是否有动画正在进行，需要持续重绘
+    bool isAnimating = fabs(displayValue - value) >= 0.01;
+    
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(isAnimating){
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            } else {
+                p->setAlwaysDirty(false);
+            }
+        }
+    }
+    
     // 如果禁用，使用灰色
     color_t currentFgColor = disabled ? EGERGB(180, 180, 180) : fgColor;
     color_t currentBgColor = disabled ? EGERGB(240, 240, 240) : bgColor;
@@ -2916,13 +2931,6 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         dragging = true;
         lastMouseX = msg.x;
         lastMouseY = msg.y;
-        // 通知父容器需要持续重绘（用于平滑动画）
-        if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                p->setAlwaysDirty(true);
-                p->setDirty();
-            }
-        }
         mouseOwningFlag = this;
         return true;
     }
@@ -2995,12 +3003,6 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         dragging = false;
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
-        }
-        // 停止持续重绘
-        if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
-                p->setAlwaysDirty(false);
-            }
         }
     }
     return hovered;
