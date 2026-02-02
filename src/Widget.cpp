@@ -24,6 +24,10 @@ void Widget::releaseMouseOwningFlag(const mouse_msg& msg){
 
 }
 
+void Widget::catchMouseOwningFlag(const mouse_msg& msg){
+
+}
+
 void Widget::setParent(Widget* p){
     this->parent = p;
 }
@@ -105,7 +109,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
-    for (size_t i = 0; i < children.size(); ++i) {
+    for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
@@ -249,6 +253,11 @@ bool Panel::handleEvent(const mouse_msg& msg){
             mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
         return true;
+    }
+    else{
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->catchMouseOwningFlag(msg);
+        }
     }
     return true;
 }
@@ -2680,6 +2689,8 @@ Knob::Knob(double cx, double cy, double r)
     innerMax = maxValue;
     // 初始化displayValue与value相同
     displayValue = value;
+    height = r * 2;
+    width = r * 2;
 }
 
 void Knob::setRange(double minVal, double maxVal) {
@@ -2749,6 +2760,8 @@ void Knob::setReadonly(bool ro) {
 void Knob::setScale(double s) {
     scale = s;
     radius = origin_radius * s;
+    height = radius * 2;
+    width = radius * 2;
 }
 
 void Knob::setPosition(double x, double y) {
@@ -2920,6 +2933,75 @@ void Knob::draw(PIMAGE dst, double x, double y) {
 
 void Knob::draw() {
     draw(nullptr, cx, cy);
+}
+
+void Knob::releaseMouseOwningFlag(const mouse_msg& msg){
+    dragging = false;
+    mouseOwningFlag = nullptr;
+}
+
+void Knob::catchMouseOwningFlag(const mouse_msg& msg){
+    if(!msg.is_move()) return;
+    // 计算鼠标相对于中心的角度
+    double dx = msg.x - cx;
+    double dy = msg.y - cy;
+    
+    // 使用 atan2 计算角度 (屏幕坐标系：Y向下为正)
+    // 在屏幕坐标系中：
+    // 0° = 右侧 (3点钟方向)
+    // 90° = 下方 (6点钟方向) 
+    // -90° = 上方 (12点钟方向，起始位置)
+    // ±180° = 左侧 (9点钟方向)
+    double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
+    
+    // Knob 的值范围映射到完整的 -90° 到 +270° (360度，从顶部开始)
+    // 整个360度圆都可以交互，完整映射到值范围
+    
+    // 应用偏移角度
+    angle -= offsetAngle;
+    
+    // 标准化到 [-180, 180]
+    while (angle > 180) angle -= 360;
+    while (angle < -180) angle += 360;
+    
+    // 定义值范围对应的角度（从顶部-90°开始）
+    double startAngle = -90.0;   // 对应 minValue (顶部)
+    double endAngle = 270.0;     // 对应 maxValue (顶部)
+    
+    // 处理跨越180°边界的情况
+    double normalizedAngle = angle;
+    if (normalizedAngle < startAngle) {
+        normalizedAngle += 360.0;  // 转换到正值范围
+    }
+    
+    double totalSweep = 360.0;
+    
+    // 将整个360度圆线性映射到值范围
+    double ratio = (normalizedAngle - startAngle) / totalSweep;
+    double newValue = minValue + ratio * (maxValue - minValue);
+    
+    // 限制和应用步进
+    newValue = clamp(newValue);
+    if (step > 0) {
+        newValue = applyStep(newValue);
+    }
+    
+    // 更新值并触发回调
+    if (newValue != value) {
+        value = newValue;
+        if (onChange) {
+            onChange(value);
+        }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
+        }
+    }
+    
+    lastMouseX = msg.x;
+    lastMouseY = msg.y;
 }
 
 bool Knob::handleEvent(const mouse_msg& msg) {
@@ -3268,7 +3350,7 @@ void Box::draw(PIMAGE dst, double x, double y) {
     // Box不绘制背景，直接绘制子控件
     // 绘制子控件 - 子控件相对于自己的中心缩放，位置不随scale变化
     if(scaleChanged) PanelScaleChanged = true;
-    for (size_t i = 0; i < children.size(); ++i) {
+    for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
         absolutPosDeltaX = left;

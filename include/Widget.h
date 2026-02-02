@@ -75,6 +75,7 @@ public:
 
     virtual void deleteFocus(const mouse_msg& msg);
     virtual void releaseMouseOwningFlag(const mouse_msg& msg);
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) ;
 
     void setParent(Widget* p);
 
@@ -1288,6 +1289,8 @@ public:
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
 protected:
     double cx, cy;                      ///< 中心坐标
