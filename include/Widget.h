@@ -428,7 +428,8 @@ public:
      */
     int getMCounter();
 
-    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override ;
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 };
 
 /**
@@ -533,6 +534,9 @@ public:
      * @param msg 鼠标消息
      */
     virtual bool handleEvent(const mouse_msg& msg);
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     /**
      * @brief 检查点是否在输入框内
@@ -678,6 +682,9 @@ public:
      * @param msg 鼠标消息
      */
     virtual bool handleEvent(const mouse_msg& msg);
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     /**
      * @brief 设置进度值
@@ -1073,6 +1080,9 @@ public:
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
 protected:
     double cx, cy;

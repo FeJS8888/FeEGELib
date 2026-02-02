@@ -554,6 +554,11 @@ void Button::releaseMouseOwningFlag(const mouse_msg& msg){
     mouseOwningFlag = nullptr;
 }
 
+void Button::catchMouseOwningFlag(const mouse_msg& msg){
+    // Button不需要处理拖动中的移动事件
+    // 只需要在releaseMouseOwningFlag中处理点击即可
+}
+
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
     if (msg.is_left() && msg.is_down() && inside) {
@@ -1263,6 +1268,17 @@ int InputBox::getMCounter(){
     return m_counter;
 }
 
+void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理拖动选择状态
+    dragging = false;
+    mouseOwningFlag = nullptr;
+}
+
+void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
+    // InputBox的拖动选择逻辑已在handleEvent的move事件中处理
+    // 这里不需要额外处理，因为拖动选择是基于内部状态而非mouseOwning机制
+}
+
 // Slider 类实现
 InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
     identifier = id;
@@ -1525,6 +1541,39 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         m_dragOffset = 0;
     }
     return m_hover;
+}
+
+void Slider::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理拖动状态
+    m_dragging = false;
+    m_pressed = false;
+    m_finalprogress = fixProgress();
+    mouseOwningFlag = nullptr;
+    m_dragOffset = 0;
+}
+
+void Slider::catchMouseOwningFlag(const mouse_msg& msg){
+    // 处理持续拖动
+    if(!msg.is_move() || !m_dragging) return;
+    
+    if (m_orientation == Orientation::Column) {
+        int my = clamp(msg.y - m_dragOffset, top, top + height);
+        m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
+    } else { // Row
+        int mx = clamp(msg.x - m_dragOffset, left, left + width);
+        m_finalprogress = (mx - left) / static_cast<double>(width);
+    }
+    if (m_value != fixProgress() && m_onChange != nullptr)
+    {
+        m_value = fixProgress();
+        m_onChange(m_value);
+    }
+    // 通知父容器需要重绘
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Slider::setProgress(double v) {
@@ -2338,6 +2387,17 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
         }
     }
     return false;
+}
+
+void Toggle::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理按下状态
+    pressedIn = false;
+    mouseOwningFlag = nullptr;
+}
+
+void Toggle::catchMouseOwningFlag(const mouse_msg& msg){
+    // Toggle不需要处理拖动中的移动事件
+    // 只需要在releaseMouseOwningFlag和handleEvent中处理状态即可
 }
 
 color_t removeAlpha(color_t c) {
