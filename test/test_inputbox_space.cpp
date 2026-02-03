@@ -59,6 +59,8 @@ int main() {
     assignOrder({testInput, displayText, instructions, charCount});
     
     // 主循环 - 实时显示输入框内容
+    std::wstring lastContent;  // 缓存上一次的内容
+    
     while (is_run()) {
         std::wstring content = testInput->getContent();
         
@@ -78,13 +80,14 @@ int main() {
         std::wstring countText = L"字符数: " + std::to_wstring(content.length());
         charCount->setContent(countText);
         
-        // 输出到控制台进行调试
-        if (testInput->getMCounter() > 0) {
+        // 输出到控制台进行调试（只在内容改变时输出）
+        if (content != lastContent && testInput->getMCounter() > 0) {
             std::wcout << L"内容: [" << content << L"] 长度: " << content.length() << std::endl;
             for (size_t i = 0; i < content.length(); i++) {
                 std::wcout << L"  [" << i << L"]: " << (int)content[i] << L" (0x" 
                           << std::hex << (int)content[i] << std::dec << L")" << std::endl;
             }
+            lastContent = content;
         }
         
         delay_fps(60);
