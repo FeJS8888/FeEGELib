@@ -1049,6 +1049,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             focusingWidget->deleteFocus(msg);
         }
         focusingWidget = this;
+        mouseOwningFlag = this;
         return true;
     }
     // 鼠标左键按下且不在输入框内
@@ -1486,6 +1487,13 @@ double Slider::fixProgress() {
 bool Slider::handleEvent(const mouse_msg& msg) {
     m_hover = isInside(msg.x, msg.y);
     m_skip = isInsideBar(msg.x, msg.y);
+
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
 
     if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
         m_dragging = true;
@@ -2969,7 +2977,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // === 绘制中心填充圆 ===
     color_t centerColor = WHITE;
-    if (hovered && !disabled && !readonly) {
+    if (hovered && !disabled && !readonly && !(mouseOwningFlag != nullptr && mouseOwningFlag != this)) {
         centerColor = EGERGB(250, 250, 250);
     }
     
@@ -3082,6 +3090,13 @@ void Knob::catchMouseOwningFlag(const mouse_msg& msg){
 bool Knob::handleEvent(const mouse_msg& msg) {
     // 检查是否在旋钮内
     hovered = isInside(msg.x, msg.y);
+
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
     
     // 按下鼠标左键开始拖动
     if (msg.is_left() && msg.is_down() && hovered) {
