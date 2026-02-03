@@ -9,16 +9,12 @@ vector<Widget*> widgets;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 bool PanelScaleChanged = false;
 
-// 辅助函数：将普通空格转换为不间断空格
-// 用于解决 Windows GDI 不渲染普通空格的问题
-inline std::wstring convertSpacesToNBSP(const std::wstring& str) {
-    std::wstring result = str;
-    for (size_t i = 0; i < result.length(); ++i) {
-        if (result[i] == L' ') {
-            result[i] = L'\u00A0';  // 不间断空格（Non-Breaking Space）
-        }
-    }
-    return result;
+// 辅助函数：强制 GDI 渲染空格（包括尾随空格）
+// 通过在字符串末尾添加零宽字符来实现
+inline std::wstring forceSpaceRendering(const std::wstring& str) {
+    // 在字符串末尾添加零宽连接符（Zero-Width Joiner, U+200D）
+    // 这样可以保留普通空格的正常宽度，同时强制 GDI 渲染尾随空格
+    return str + L'\u200D';
 }
 
 double Widget::getWidth(){
@@ -890,11 +886,11 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             
-            // 将普通空格转换为不间断空格以确保测量与渲染一致
-            measuretext(convertSpacesToNBSP(displayContent.substr(0, cursor_pos)).c_str(), &cursor_pos_width, &tmp, btnLayer);
-            measuretext(convertSpacesToNBSP(cursor_before_cursor).c_str(), &cursor_with_ime_width, &tmp, btnLayer);
-            measuretext(convertSpacesToNBSP(cursor_before_text).c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
-            measuretext(convertSpacesToNBSP(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
+            // 通过添加零宽字符强制 GDI 渲染所有空格（包括尾随空格）
+            measuretext(forceSpaceRendering(displayContent.substr(0, cursor_pos)).c_str(), &cursor_pos_width, &tmp, btnLayer);
+            measuretext(forceSpaceRendering(cursor_before_cursor).c_str(), &cursor_with_ime_width, &tmp, btnLayer);
+            measuretext(forceSpaceRendering(cursor_before_text).c_str(), &cursor_with_full_ime_width, &tmp, btnLayer);
+            measuretext(forceSpaceRendering(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
             
             // 缓存所有测量值
             cachedCursorPosWidth = cursor_pos_width;
@@ -908,8 +904,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             cursor_pos_width = cachedCursorPosWidth;
             cursor_with_ime_width = cachedCursorWithImeWidth;
             cursor_with_full_ime_width = cachedCursorWithFullImeWidth;
-            // 将普通空格转换为不间断空格以确保测量与渲染一致
-            measuretext(convertSpacesToNBSP(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
+            // 通过添加零宽字符强制 GDI 渲染所有空格
+            measuretext(forceSpaceRendering(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
         }
         
         float _w,_h;
@@ -917,9 +913,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         float textRealHeight = tmp ? tmp : _h;
         float text_start_x = padding - scroll_offset;
         
-        // 修复空格显示问题：将普通空格替换为不间断空格用于渲染
-        // Windows GDI 默认不渲染尾随空格和某些场景下的空格，使用不间断空格（U+00A0）强制显示
-        std::wstring renderContent = convertSpacesToNBSP(displayContent);
+        // 修复空格显示问题：通过添加零宽字符强制 GDI 渲染尾随空格
+        // Windows GDI 默认不渲染尾随空格，添加零宽连接符（U+200D）可强制显示，同时保持正常空格宽度
+        std::wstring renderContent = forceSpaceRendering(displayContent);
         
         // 绘制文本
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
@@ -1039,8 +1035,8 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
         while (l <= r) {
             int mid = (l + r) / 2;
-            // 将空格转换为不间断空格以确保测量准确（与渲染时一致）
-            measuretext(convertSpacesToNBSP(content.substr(0, mid)).c_str(), &char_x, &tmp, btnLayer);
+            // 通过添加零宽字符确保测量准确（与渲染时一致）
+            measuretext(forceSpaceRendering(content.substr(0, mid)).c_str(), &char_x, &tmp, btnLayer);
             float dist = fabs(char_x - click_x);
             if (dist < min_dist) {
                 min_dist = dist;

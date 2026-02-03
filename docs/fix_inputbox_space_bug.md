@@ -30,11 +30,20 @@ InputBox 控件在处理空格字符输入时存在异常行为：
 - `measuretext` 函数在测量包含空格的文本时，返回的宽度可能不包括空格
 - 这是 Windows GDI 的已知行为，不是 bug
 
-**解决方案**：
-将所有普通空格（U+0020）替换为不间断空格（U+00A0，Non-Breaking Space）：
-1. **渲染时替换**：在 `ege_outtextxy` 绘制文本前替换空格
-2. **测量时替换**：在所有 `measuretext` 调用时也替换空格，确保测量与渲染一致
-3. **鼠标定位时替换**：在计算鼠标点击位置时也替换空格，确保准确定位
+**解决方案（迭代优化）**：
+
+**第一版方案（已废弃）**：将所有普通空格（U+0020）替换为不间断空格（U+00A0）
+- ❌ **问题**：不间断空格在某些字体下宽度与普通空格不同，导致空格显示过宽
+
+**最终方案（当前实现）**：在字符串末尾添加零宽连接符（U+200D）
+- ✅ **优点**：保留普通空格的正常宽度
+- ✅ **原理**：零宽字符不可见，但能强制 GDI 渲染所有前面的字符（包括尾随空格）
+- ✅ **效果**：空格正常显示，宽度正确，鼠标定位准确
+
+具体实现：
+1. **渲染时添加**：在 `ege_outtextxy` 绘制文本前在字符串末尾添加 U+200D
+2. **测量时添加**：在所有 `measuretext` 调用时也添加 U+200D，确保测量与渲染一致
+3. **鼠标定位时添加**：在计算鼠标点击位置时也添加 U+200D，确保准确定位
 
 ## 修复内容
 
@@ -44,53 +53,41 @@ InputBox 控件在处理空格字符输入时存在异常行为：
 
 ### 具体修改
 
-1. **文本渲染**（第 906-930 行）：
+1. **文本渲染**（第 912-922 行）：
    ```cpp
-   // 修复空格显示问题：将普通空格替换为不间断空格用于渲染
-   std::wstring renderContent = displayContent;
-   for (size_t i = 0; i < renderContent.length(); ++i) {
-       if (renderContent[i] == L' ') {
-           renderContent[i] = L'\u00A0';  // 不间断空格
-       }
-   }
+   // 修复空格显示问题：通过添加零宽字符强制 GDI 渲染尾随空格
+   std::wstring renderContent = forceSpaceRendering(displayContent);
    ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
                 renderContent.c_str(), btnLayer);
    ```
 
-2. **文本宽度测量**（第 875-917 行）：
-   添加 `convertSpaces` lambda 函数，在所有 `measuretext` 调用时转换空格：
+2. **文本宽度测量**（第 883-909 行）：
+   添加 `forceSpaceRendering` 辅助函数，在所有 `measuretext` 调用时添加零宽字符：
    ```cpp
-   auto convertSpaces = [](const std::wstring& str) -> std::wstring {
-       std::wstring result = str;
-       for (size_t i = 0; i < result.length(); ++i) {
-           if (result[i] == L' ') {
-               result[i] = L'\u00A0';
-           }
-       }
-       return result;
-   };
-   measuretext(convertSpaces(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
+   inline std::wstring forceSpaceRendering(const std::wstring& str) {
+       // 在字符串末尾添加零宽连接符（Zero-Width Joiner, U+200D）
+       return str + L'\u200D';
+   }
+   measuretext(forceSpaceRendering(displayContent).c_str(), &full_text_width, &tmp, btnLayer);
    ```
 
 3. **鼠标点击定位**（第 1024-1057 行）：
-   在二分查找计算点击位置时也转换空格：
+   在二分查找计算点击位置时也添加零宽字符：
    ```cpp
-   std::wstring measureStr = content.substr(0, mid);
-   for (size_t i = 0; i < measureStr.length(); ++i) {
-       if (measureStr[i] == L' ') {
-           measureStr[i] = L'\u00A0';
-       }
-   }
-   measuretext(measureStr.c_str(), &char_x, &tmp, btnLayer);
+   measuretext(forceSpaceRendering(content.substr(0, mid)).c_str(), &char_x, &tmp, btnLayer);
    ```
 
-## 为什么使用不间断空格（U+00A0）
+## 为什么使用零宽连接符（U+200D）
 
-不间断空格（Non-Breaking Space, NBSP）是 Unicode 字符 U+00A0：
-- **视觉上**与普通空格完全相同（宽度、外观一致）
-- **渲染时**强制 Windows GDI 显示，不会被优化掉
-- **语义上**防止在该位置换行（但在 InputBox 单行模式下无影响）
-- **兼容性**所有现代字体都支持
+零宽连接符（Zero-Width Joiner, ZWJ）是 Unicode 字符 U+200D：
+- **不可见**：宽度为 0，不占据任何空间
+- **强制渲染**：使 Windows GDI 渲染所有前面的字符，包括尾随空格
+- **保持原样**：不改变普通空格的宽度和外观
+- **兼容性**：所有现代字体和渲染引擎都支持
+
+相比之前使用不间断空格（U+00A0）的方案：
+- ❌ 不间断空格在某些字体下宽度与普通空格不同
+- ✅ 零宽连接符完全不可见，不影响空格宽度
 
 ## 影响范围
 
