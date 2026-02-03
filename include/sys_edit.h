@@ -78,10 +78,10 @@ public:
         msg.hEvent           = ::CreateEvent(NULL, TRUE, FALSE, NULL);
         msg.classname        = L"EDIT";
         msg.id               = egeControlBase::allocId();
-        msg.style            = WS_CHILD | WS_BORDER | ES_LEFT | ES_WANTRETURN;
+        msg.style            = WS_CHILD | WS_BORDER | ES_LEFT;
 
         if (multiline) {
-            msg.style |= ES_MULTILINE | WS_VSCROLL;
+            msg.style |= ES_MULTILINE | WS_VSCROLL | ES_WANTRETURN;
         } else {
             msg.style |= ES_AUTOHSCROLL;
         }

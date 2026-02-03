@@ -5,6 +5,15 @@ using namespace FeEGE;
  * 测试 InputBox 空格输入问题
  * 
  * 本测试专门用于测试和诊断 InputBox 对空格字符的处理
+ * 
+ * 问题分析：
+ * - 之前的 sys_edit 创建时对所有 EDIT 控件都使用了 ES_WANTRETURN 标志
+ * - ES_WANTRETURN 标志应该只用于多行编辑框，不应用于单行编辑框
+ * - 在单行编辑框中使用该标志可能导致空格等字符输入异常
+ * 
+ * 修复方法：
+ * - 将 ES_WANTRETURN 标志从默认样式中移除
+ * - 只在 multiline=true 时添加 ES_WANTRETURN 标志
  */
 int main() {
     SetProcessDPIAware();
