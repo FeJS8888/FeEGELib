@@ -561,6 +561,14 @@ void Button::catchMouseOwningFlag(const mouse_msg& msg){
 
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
+    
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
@@ -975,6 +983,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             setCursor(IDC_ARROW);
             needReflushCursor = true;
             lastInside = false;
+        }
+    }
+
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
     }
 
