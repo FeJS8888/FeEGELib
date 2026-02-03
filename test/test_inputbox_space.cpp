@@ -61,7 +61,7 @@ int main() {
     // 主循环 - 实时显示输入框内容
     std::wstring lastContent;  // 缓存上一次的内容
     
-    while (is_run()) {
+    globalListen(EventType.frame,"test",[&](){
         std::wstring content = testInput->getContent();
         
         // 更新显示文本，用特殊字符显示空格
@@ -89,9 +89,9 @@ int main() {
             }
             lastContent = content;
         }
-        
-        delay_fps(60);
-    }
+    });
+
+    start();
     
     return 0;
 }
