@@ -24,6 +24,10 @@ void Widget::releaseMouseOwningFlag(const mouse_msg& msg){
 
 }
 
+void Widget::catchMouseOwningFlag(const mouse_msg& msg){
+
+}
+
 void Widget::setParent(Widget* p){
     this->parent = p;
 }
@@ -80,8 +84,8 @@ void Panel::draw() {
 void Panel::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
-    double width = this->width + 8;
-    double height = this->height + 8;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
 
 
     if(!needRedraw && !needRedrawAlways){
@@ -101,13 +105,13 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setfillcolor(EGEACOLOR(255,bgColor), layer);
     setcolor(EGEACOLOR(255,RED), layer);
     setlinewidth(1,layer);
-    ege_fillrect(0,0,width,height,layer);
+    ege_fillrect(0,0,layerWidth,layerHeight,layer);
 
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
-    for (size_t i = 0; i < children.size(); ++i) {
-        double childX = width / 2 + childOffsets[i].x * scale;
-        double childY = height / 2 + childOffsets[i].y * scale;
+    for (int i = children.size() - 1; i >= 0; -- i) {
+        double childX = layerWidth / 2 + childOffsets[i].x * scale;
+        double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
@@ -129,6 +133,28 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
+}
+
+void Panel::setAlwaysDirty(bool d) {
+    this->needRedrawAlways += ((int)d + d - 1); 
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setAlwaysDirty(d);
+        }
+    }
+}
+
+void Panel::setDirty() {
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+int Panel::getAlwaysDirtyState() {
+    return this->needRedrawAlways;
 }
 
 void Panel::setPosition(double x,double y){
@@ -227,6 +253,11 @@ bool Panel::handleEvent(const mouse_msg& msg){
             mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
         return true;
+    }
+    else{
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->catchMouseOwningFlag(msg);
+        }
     }
     return true;
 }
@@ -523,8 +554,21 @@ void Button::releaseMouseOwningFlag(const mouse_msg& msg){
     mouseOwningFlag = nullptr;
 }
 
+void Button::catchMouseOwningFlag(const mouse_msg& msg){
+    // Button不需要处理拖动中的移动事件
+    // 只需要在releaseMouseOwningFlag中处理点击即可
+}
+
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
+    
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
@@ -942,6 +986,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
     }
 
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
     // 鼠标左键按下且在输入框内部
     if (msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
@@ -998,6 +1049,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             focusingWidget->deleteFocus(msg);
         }
         focusingWidget = this;
+        mouseOwningFlag = this;
         return true;
     }
     // 鼠标左键按下且不在输入框内
@@ -1232,6 +1284,17 @@ int InputBox::getMCounter(){
     return m_counter;
 }
 
+void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理拖动选择状态
+    dragging = false;
+    mouseOwningFlag = nullptr;
+}
+
+void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
+    // InputBox的拖动选择逻辑已在handleEvent的move事件中处理
+    // 这里不需要额外处理，因为拖动选择是基于内部状态而非mouseOwning机制
+}
+
 // Slider 类实现
 InputBoxBuilder& InputBoxBuilder::setIdentifier(const wstring& id) {
     identifier = id;
@@ -1316,6 +1379,21 @@ void Slider::draw(PIMAGE dst,double x,double y){
     m_progress += (m_finalprogress - m_progress) * 0.15;
     if (fabs(m_progress - m_finalprogress) < 0.005)
         m_progress = m_finalprogress;
+
+    // 检查是否有动画正在进行，需要持续重绘
+    bool isAnimating = (fabs(m_scale - (m_pressed ? 0.8f : 1.0f)) > 0.01) || 
+                       (fabs(m_progress - m_finalprogress) > 0.005);
+    
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(isAnimating){
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            } else {
+                p->setAlwaysDirty(false);
+            }
+        }
+    }
 
     // 背景轨道
     setfillcolor(m_bgColor,dst);
@@ -1410,6 +1488,13 @@ bool Slider::handleEvent(const mouse_msg& msg) {
     m_hover = isInside(msg.x, msg.y);
     m_skip = isInsideBar(msg.x, msg.y);
 
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
     if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
         m_dragging = true;
         m_pressed = true;
@@ -1424,6 +1509,12 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         {
             m_value = fixProgress();
             m_onChange(m_value);
+        }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
         }
         mouseOwningFlag = this;
         return true;
@@ -1457,6 +1548,12 @@ bool Slider::handleEvent(const mouse_msg& msg) {
             m_value = fixProgress();
             m_onChange(m_value);
         }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
+        }
         return true;
     } 
     else if (msg.is_left() && msg.is_up()) {
@@ -1467,6 +1564,39 @@ bool Slider::handleEvent(const mouse_msg& msg) {
         m_dragOffset = 0;
     }
     return m_hover;
+}
+
+void Slider::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理拖动状态
+    m_dragging = false;
+    m_pressed = false;
+    m_finalprogress = fixProgress();
+    mouseOwningFlag = nullptr;
+    m_dragOffset = 0;
+}
+
+void Slider::catchMouseOwningFlag(const mouse_msg& msg){
+    // 处理持续拖动
+    if(!msg.is_move() || !m_dragging) return;
+    
+    if (m_orientation == Orientation::Column) {
+        int my = clamp(msg.y - m_dragOffset, top, top + height);
+        m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
+    } else { // Row
+        int mx = clamp(msg.x - m_dragOffset, left, left + width);
+        m_finalprogress = (mx - left) / static_cast<double>(width);
+    }
+    if (m_value != fixProgress() && m_onChange != nullptr)
+    {
+        m_value = fixProgress();
+        m_onChange(m_value);
+    }
+    // 通知父容器需要重绘
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Slider::setProgress(double v) {
@@ -2282,6 +2412,17 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
     return false;
 }
 
+void Toggle::releaseMouseOwningFlag(const mouse_msg& msg){
+    // 清理按下状态
+    pressedIn = false;
+    mouseOwningFlag = nullptr;
+}
+
+void Toggle::catchMouseOwningFlag(const mouse_msg& msg){
+    // Toggle不需要处理拖动中的移动事件
+    // 只需要在releaseMouseOwningFlag和handleEvent中处理状态即可
+}
+
 color_t removeAlpha(color_t c) {
     return EGERGB(GetRValue(c), GetGValue(c), GetBValue(c));
 }
@@ -2631,6 +2772,8 @@ Knob::Knob(double cx, double cy, double r)
     innerMax = maxValue;
     // 初始化displayValue与value相同
     displayValue = value;
+    height = r * 2;
+    width = r * 2;
 }
 
 void Knob::setRange(double minVal, double maxVal) {
@@ -2700,6 +2843,8 @@ void Knob::setReadonly(bool ro) {
 void Knob::setScale(double s) {
     scale = s;
     radius = origin_radius * s;
+    height = radius * 2;
+    width = radius * 2;
 }
 
 void Knob::setPosition(double x, double y) {
@@ -2781,6 +2926,20 @@ void Knob::draw(PIMAGE dst, double x, double y) {
         displayValue = value;
     }
     
+    // 检查是否有动画正在进行，需要持续重绘
+    bool isAnimating = fabs(displayValue - value) >= 0.01;
+    
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(isAnimating){
+                p->setAlwaysDirty(true);
+                p->setDirty();
+            } else {
+                p->setAlwaysDirty(false);
+            }
+        }
+    }
+    
     // 如果禁用，使用灰色
     color_t currentFgColor = disabled ? EGERGB(180, 180, 180) : fgColor;
     color_t currentBgColor = disabled ? EGERGB(240, 240, 240) : bgColor;
@@ -2818,7 +2977,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // === 绘制中心填充圆 ===
     color_t centerColor = WHITE;
-    if (hovered && !disabled && !readonly) {
+    if (hovered && !disabled && !readonly && !(mouseOwningFlag != nullptr && mouseOwningFlag != this)) {
         centerColor = EGERGB(250, 250, 250);
     }
     
@@ -2859,9 +3018,85 @@ void Knob::draw() {
     draw(nullptr, cx, cy);
 }
 
+void Knob::releaseMouseOwningFlag(const mouse_msg& msg){
+    dragging = false;
+    mouseOwningFlag = nullptr;
+}
+
+void Knob::catchMouseOwningFlag(const mouse_msg& msg){
+    if(!msg.is_move()) return;
+    // 计算鼠标相对于中心的角度
+    double dx = msg.x - cx;
+    double dy = msg.y - cy;
+    
+    // 使用 atan2 计算角度 (屏幕坐标系：Y向下为正)
+    // 在屏幕坐标系中：
+    // 0° = 右侧 (3点钟方向)
+    // 90° = 下方 (6点钟方向) 
+    // -90° = 上方 (12点钟方向，起始位置)
+    // ±180° = 左侧 (9点钟方向)
+    double angle = std::atan2(dy, dx) * 180.0 / 3.14159265359;
+    
+    // Knob 的值范围映射到完整的 -90° 到 +270° (360度，从顶部开始)
+    // 整个360度圆都可以交互，完整映射到值范围
+    
+    // 应用偏移角度
+    angle -= offsetAngle;
+    
+    // 标准化到 [-180, 180]
+    while (angle > 180) angle -= 360;
+    while (angle < -180) angle += 360;
+    
+    // 定义值范围对应的角度（从顶部-90°开始）
+    double startAngle = -90.0;   // 对应 minValue (顶部)
+    double endAngle = 270.0;     // 对应 maxValue (顶部)
+    
+    // 处理跨越180°边界的情况
+    double normalizedAngle = angle;
+    if (normalizedAngle < startAngle) {
+        normalizedAngle += 360.0;  // 转换到正值范围
+    }
+    
+    double totalSweep = 360.0;
+    
+    // 将整个360度圆线性映射到值范围
+    double ratio = (normalizedAngle - startAngle) / totalSweep;
+    double newValue = minValue + ratio * (maxValue - minValue);
+    
+    // 限制和应用步进
+    newValue = clamp(newValue);
+    if (step > 0) {
+        newValue = applyStep(newValue);
+    }
+    
+    // 更新值并触发回调
+    if (newValue != value) {
+        value = newValue;
+        if (onChange) {
+            onChange(value);
+        }
+        // 通知父容器需要重绘
+        if(this->parent != nullptr){
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                p->setDirty();
+            }
+        }
+    }
+    
+    lastMouseX = msg.x;
+    lastMouseY = msg.y;
+}
+
 bool Knob::handleEvent(const mouse_msg& msg) {
     // 检查是否在旋钮内
     hovered = isInside(msg.x, msg.y);
+
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
     
     // 按下鼠标左键开始拖动
     if (msg.is_left() && msg.is_down() && hovered) {
@@ -2922,6 +3157,12 @@ bool Knob::handleEvent(const mouse_msg& msg) {
             value = newValue;
             if (onChange) {
                 onChange(value);
+            }
+            // 通知父容器需要重绘
+            if(this->parent != nullptr){
+                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                    p->setDirty();
+                }
             }
         }
         
@@ -3164,4 +3405,158 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
+}
+
+// ============ Box 实现 ============
+
+Box::Box(double cx, double cy, double w, double h) 
+    : Panel(cx, cy, w, h, 0, EGEARGB(0, 0, 0, 0)) {  // 透明背景，无圆角
+    // 创建并设置内置的FlexLayout
+    auto flexLayout = std::make_shared<FlexLayout>();
+    setLayout(flexLayout);
+}
+
+Box::~Box(){
+    // Panel的析构函数会处理清理
+}
+
+void Box::draw(PIMAGE dst, double x, double y) {
+    double left = x - width / 2 - 4;
+    double top = y - height / 2 - 4;
+    double layerWidth = this->width + 8;
+    double layerHeight = this->height + 8;
+
+    if(!needRedraw && !needRedrawAlways){
+        putimage_withalpha(dst,layer,left,top);
+        return;
+    }
+
+    if (layout) layout->apply(*this);  // 自动计算子控件位置
+    
+    // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
+    setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
+    cleardevice(layer);
+
+    // Box不绘制背景，直接绘制子控件
+    // 绘制子控件 - 子控件相对于自己的中心缩放，位置不随scale变化
+    if(scaleChanged) PanelScaleChanged = true;
+    for (int i = children.size() - 1; i >= 0; -- i) {
+        double childX = layerWidth / 2 + childOffsets[i].x;
+        double childY = layerHeight / 2 + childOffsets[i].y;
+        absolutPosDeltaX = left;
+        absolutPosDeltaY = top;
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
+        children[i]->draw(layer, childX, childY);
+        absolutPosDeltaX = 0;
+        absolutPosDeltaY = 0;
+    }
+    PanelScaleChanged = false;
+    scaleChanged = false;
+    
+    // 粘贴到主窗口
+    putimage_withalpha(dst,layer,left,top);
+    needRedraw = false;
+}
+
+void Box::draw() {
+    draw(nullptr, cx, cy);
+}
+
+void Box::setScale(double s){
+    if(sgn(s - scale) == 0) return;
+    scaleChanged = true;
+    
+    // Box特殊缩放行为：不缩放Box自身的宽高，只缩放子控件
+    // 子控件相对于自己的中心缩放，位置保持不变
+    scale = s;
+    for (size_t i = 0; i < children.size(); ++i) {
+        children[i]->setScale(s);
+        children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
+    }
+
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+// ============ BoxBuilder 实现 ============
+
+BoxBuilder& BoxBuilder::setIdentifier(const std::wstring& id) {
+    identifier = id;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setCenter(double x, double y) {
+    cx = x; 
+    cy = y;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSize(double w, double h) {
+    width = w; 
+    height = h;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setScale(double s) {
+    scale = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setDirection(LayoutDirection dir) {
+    direction = dir;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setAlign(LayoutAlign a) {
+    align = a;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setSpacing(double s) {
+    spacing = s;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::setPadding(double p) {
+    padding = p;
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(Widget* child) {
+    children.push_back(child);
+    return *this;
+}
+
+BoxBuilder& BoxBuilder::addChild(const std::vector<Widget*>& childList) {
+    children.insert(children.end(), childList.begin(), childList.end());
+    return *this;
+}
+
+Box* BoxBuilder::build() {
+    auto box = new Box(cx, cy, width, height);
+    box->setScale(scale);
+    
+    // 配置内置的FlexLayout
+    auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(box->getLayout());
+    if (flexLayout) {
+        flexLayout->setDirection(direction);
+        flexLayout->setAlign(align);
+        flexLayout->setSpacing(spacing);
+        flexLayout->setPadding(padding);
+    }
+    
+    // 添加子控件
+    for (auto* child : children) {
+        box->addChild(child, 0, 0);  // 初始偏移为0，由layout计算
+    }
+    
+    if (!identifier.empty()) {
+        IdToWidget[identifier] = box;
+    }
+    
+    return box;
 }

@@ -75,6 +75,7 @@ public:
 
     virtual void deleteFocus(const mouse_msg& msg);
     virtual void releaseMouseOwningFlag(const mouse_msg& msg);
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) ;
 
     void setParent(Widget* p);
 
@@ -195,20 +196,20 @@ public:
      * @brief 设置布局管理器
      * @param l 布局对象
      */
-    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); }
+    void setLayout(std::shared_ptr<Layout> l) { layout = std::move(l); };
     
     /**
      * @brief 获取布局管理器
      * @return 布局对象
      */
-    std::shared_ptr<Layout> getLayout() const { return layout; }
+    std::shared_ptr<Layout> getLayout() const { return layout; };
 
-    void setDirty() { this->needRedraw = true; }
+    void setDirty();
 
-    void setAlwaysDirty(bool d) { this->needRedrawAlways += ((int)d + d - 1); }
+    void setAlwaysDirty(bool d);
 
-    int getAlwaysDirtyState() { return this->needRedrawAlways; }
-private:
+    int getAlwaysDirtyState();
+protected:
     double radius;
     double origin_width, origin_height;
     double origin_radius;
@@ -241,7 +242,7 @@ public:
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
     Panel* build();
 
-private:
+protected:
     std::wstring identifier;
     double cx = 0, cy = 0;
     double width = 100, height = 50;
@@ -304,7 +305,7 @@ struct Ripple{
  */
 
 class Button : public Widget {
-private:
+protected:
     double radius;                              ///< 圆角半径
     double origin_width, origin_height;         ///< 原始宽高
     double origin_radius;                       ///< 原始圆角半径
@@ -427,7 +428,8 @@ public:
      */
     int getMCounter();
 
-    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override ;
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 };
 
 /**
@@ -464,7 +466,7 @@ private:
  * @brief 输入框控件类
  */
 class InputBox : public Widget {
-private:
+protected:
     double radius;            ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
@@ -532,6 +534,9 @@ public:
      * @param msg 鼠标消息
      */
     virtual bool handleEvent(const mouse_msg& msg);
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     /**
      * @brief 检查点是否在输入框内
@@ -611,7 +616,7 @@ enum class Orientation {
  */
 
 class Slider : public Widget {
-private:
+protected:
     double left, top;
     double radius;              ///< 滑块半径
     double origin_width, origin_height;
@@ -677,6 +682,9 @@ public:
      * @param msg 鼠标消息
      */
     virtual bool handleEvent(const mouse_msg& msg);
+
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     /**
      * @brief 设置进度值
@@ -822,7 +830,7 @@ private:
 
 
 class ProgressBar : public Widget {
-private:
+protected:
     double origin_width, origin_height;
     double radius = 6;
     double left, top;
@@ -892,7 +900,7 @@ public:
     bool isInside(double x, double y) const;
 
 
-private:
+protected:
     Button* mainButton;
     Panel* dropdownPanel;
     std::vector<Button*> options;
@@ -958,7 +966,7 @@ public:
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     double cx, cy;
     double radius, scale = 1.0;
     double origin_radius;
@@ -1017,7 +1025,7 @@ public:
     std::wstring getValue();
     void build();
 
-private:
+protected:
     std::wstring identifier;
     double cx, cy;
     double radius, scale, gap;
@@ -1073,7 +1081,10 @@ public:
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
+
+protected:
     double cx, cy;
     double width, height, scale = 1.0;
 
@@ -1146,7 +1157,7 @@ public:
     void setPosition(double x, double y) override;
     bool handleEvent(const mouse_msg& msg) override;
 
-private:
+protected:
     void updateLayout();
 
     int posX = 0, posY = 0;
@@ -1288,8 +1299,10 @@ public:
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
     bool handleEvent(const mouse_msg& msg) override;
+    virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
+    virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
-private:
+protected:
     double cx, cy;                      ///< 中心坐标
     double radius;                   ///< 半径
     double origin_radius;            ///< 原始半径（用于缩放）
@@ -1589,7 +1602,7 @@ public:
      */
     ~Sidebar();
 
-private:
+protected:
     Panel* container;                    ///< 内部使用 Panel 来承载子控件
     std::vector<Widget*> items;          ///< 子项列表
     double origin_width, origin_height;  ///< 原始宽高
@@ -1657,16 +1670,75 @@ private:
     std::vector<Widget*> items;          ///< 子项列表
 };
 
-class Box : public Widget {
+/**
+ * @brief Box布局容器
+ * 
+ * Box是一个自带FlexLayout的透明容器，继承自Panel但不显示任何背景和边框，
+ * 仅用于对子控件进行排版和显示
+ */
+class Box : public Panel {
 public:
+    /**
+     * @brief 构造函数
+     * @param cx 中心 x 坐标
+     * @param cy 中心 y 坐标
+     * @param w 宽度
+     * @param h 高度
+     */
+    Box(double cx, double cy, double w, double h);
+    
+    /**
+     * @brief 析构函数
+     */
+    ~Box();
 
-private:
+    /**
+     * @brief 绘制 Box 到指定图层（仅绘制子控件，不绘制背景）
+     * @param dst 目标图像
+     * @param x 粘贴到 dst 中的中心 x 坐标
+     * @param y 粘贴到 dst 中的中心 y 坐标
+     */
+    void draw(PIMAGE dst, double x, double y) override;
+    
+    /**
+     * @brief 绘制 Box 到默认图像
+     */
+    void draw() override;
+    
+    /**
+     * @brief 设置缩放比例（Box特殊缩放：子控件相对于自己的中心缩放，位置保持不变）
+     * @param s 缩放比例
+     */
+    void setScale(double s) override;
 };
 
+/**
+ * @brief Box构建器
+ */
 class BoxBuilder {
 public:
+    BoxBuilder& setIdentifier(const std::wstring& identifier);
+    BoxBuilder& setCenter(double x, double y);
+    BoxBuilder& setSize(double w, double h);
+    BoxBuilder& setScale(double s);
+    BoxBuilder& setDirection(LayoutDirection dir);
+    BoxBuilder& setAlign(LayoutAlign align);
+    BoxBuilder& setSpacing(double s);
+    BoxBuilder& setPadding(double p);
+    BoxBuilder& addChild(Widget* child);
+    BoxBuilder& addChild(const std::vector<Widget*>& children);
+    Box* build();
 
-private:
+protected:
+    std::wstring identifier;
+    double cx = 0, cy = 0;
+    double width = 100, height = 50;
+    double scale = 1.0;
+    LayoutDirection direction = LayoutDirection::Row;
+    LayoutAlign align = LayoutAlign::Start;
+    double spacing = 0;
+    double padding = 0;
+    std::vector<Widget*> children;
 };
 
 extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
