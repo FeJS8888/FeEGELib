@@ -2584,6 +2584,8 @@ void Text::setScale(double s) {
 void Text::setPosition(double x, double y) {
     posX = x;
     posY = y;
+    cx = x;
+    cy = y;
 }
 
 int Text::getTextWidth() const {
@@ -2652,38 +2654,51 @@ void Text::draw() {
     draw(nullptr, posX, posY);
 }
 
-// 绘制到目标图像
 void Text::draw(PIMAGE dst, double x, double y) {
-    // 重要：每次都设置字体，因为dst可能是不同的图像上下文
-    // updateLayout()在默认上下文中设置字体，但draw()可能在不同的dst上
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
+
+    double totalWidth = 0.00f;
+    double totalHeight = 0.00f;
 
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
         
-        // 优化：使用缓存的行宽度，避免重复测量
         float lineW = (i < cachedLineWidths.size()) ? cachedLineWidths[i] : 0;
         if (lineW == 0) {
-            // 如果缓存失效，重新测量
             float w = 0, h = 0;
             measuretext(lines[i].c_str(), &w, &h, dst);
             lineW = w;
         }
+
+        // --- 更新 totalWidth ---
+        if (lineW > totalWidth) totalWidth = lineW;
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
         else if (align == TextAlign::Right)
             x_draw = x + (maxWidth - lineW);
 
-        // 使用缓存的行高
-        float tmp,_h;
-        measuretext("A",&tmp,&_h,dst);
+        float tmp, _h;
+        measuretext("A", &tmp, &_h, dst);
         double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
             (textHeight / lines.size()) : _h;
+        
         double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
+
+        // --- 更新 totalHeight ---
+        // 逻辑：每一行占据 (lineHeight + lineSpacing)，最后一行通常不加最后的间距
+        totalHeight += lineHeight;
+        if (i < lines.size() - 1) {
+            totalHeight += lineSpacing;
+        }
     }
+    
+    // 此时 totalWidth 和 totalHeight 已计算完成
+    width = totalWidth;
+    height = totalHeight;
+    wcout<<width<<L" "<<height<<L"\n";
 }
 
 bool Text::handleEvent(const mouse_msg& msg) {
@@ -3290,103 +3305,6 @@ Knob* KnobBuilder::build() {
     }
     
     return knob;
-}
-
-
-Sidebar::Sidebar(double cx, double cy, double w, double h, double r, color_t bg) {
-    this->cx = cx;
-    this->cy = cy;
-    origin_width = width = w;
-    origin_height = height = h;
-    radius = r;
-    bgColor = bg;
-
-    container = new Panel(cx, cy, w, h, r, bg);
-}
-
-void Sidebar::addItem(Widget* child, double offsetY) {
-    double y = -origin_height / 2 + 40 + items.size() * 60 + offsetY;
-    container->addChild(child, 0, y);
-    items.push_back(child);
-}
-
-void Sidebar::toggle() {
-    setExpanded(!expanded);
-}
-
-void Sidebar::setExpanded(bool exp) {
-    expanded = exp;
-    if (expanded) {
-        container->setSize(origin_width, origin_height);
-    } else {
-        container->setSize(collapsedWidth, origin_height);
-    }
-}
-
-bool Sidebar::isExpanded() const {
-    return expanded;
-}
-
-void Sidebar::draw(PIMAGE dst, double x, double y) {
-    container->draw(dst, x, y);
-}
-
-void Sidebar::draw() {
-    container->draw();
-}
-
-bool Sidebar::handleEvent(const mouse_msg& msg) {
-    return container->handleEvent(msg);
-}
-
-void Sidebar::setPosition(double x, double y) {
-    cx = x; cy = y;
-    container->setPosition(x, y);
-}
-
-void Sidebar::setScale(double s) {
-    width = origin_width * s;
-    height = origin_height * s;
-    container->setScale(s);
-}
-
-Sidebar::~Sidebar(){
-    if (container) delete container;
-}
-
-// Builder 实现
-SidebarBuilder& SidebarBuilder::setCenter(double x, double y) {
-    cx = x; cy = y;
-    return *this;
-}
-
-SidebarBuilder& SidebarBuilder::setSize(double w, double h) {
-    width = w; height = h;
-    return *this;
-}
-
-SidebarBuilder& SidebarBuilder::setRadius(double r) {
-    radius = r;
-    return *this;
-}
-
-SidebarBuilder& SidebarBuilder::setBackground(color_t color) {
-    bg = color;
-    return *this;
-}
-
-SidebarBuilder& SidebarBuilder::addItem(Widget* item) {
-    items.push_back(item);
-    return *this;
-}
-
-Sidebar* SidebarBuilder::build() {
-    auto sidebar = new Sidebar(cx, cy, width, height, radius, bg);
-    for (auto* item : items) {
-        sidebar->addItem(item);
-    }
-    //widgets.insert(sidebar);
-    return sidebar;
 }
 
 std::map<std::wstring,Widget*> IdToWidget;
