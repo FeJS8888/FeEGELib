@@ -2646,7 +2646,7 @@ void Text::updateLayout() {
     textHeight = lines.size() * _h;
 
     height = textHeight;
-    width = textWidth;
+    width = (maxWidth > 0) ? maxWidth : textWidth;
 }
 
 // 默认绘制
@@ -2658,9 +2658,6 @@ void Text::draw(PIMAGE dst, double x, double y) {
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
-    double totalWidth = 0.00f;
-    double totalHeight = 0.00f;
-
     for (size_t i = 0; i < lines.size(); ++i) {
         double x_draw = x;
         
@@ -2670,9 +2667,6 @@ void Text::draw(PIMAGE dst, double x, double y) {
             measuretext(lines[i].c_str(), &w, &h, dst);
             lineW = w;
         }
-
-        // --- 更新 totalWidth ---
-        if (lineW > totalWidth) totalWidth = lineW;
 
         if (align == TextAlign::Center)
             x_draw = x + (maxWidth - lineW) / 2;
@@ -2686,19 +2680,7 @@ void Text::draw(PIMAGE dst, double x, double y) {
         
         double y_draw = y + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
-
-        // --- 更新 totalHeight ---
-        // 逻辑：每一行占据 (lineHeight + lineSpacing)，最后一行通常不加最后的间距
-        totalHeight += lineHeight;
-        if (i < lines.size() - 1) {
-            totalHeight += lineSpacing;
-        }
     }
-    
-    // 此时 totalWidth 和 totalHeight 已计算完成
-    width = totalWidth;
-    height = totalHeight;
-    wcout<<width<<L" "<<height<<L"\n";
 }
 
 bool Text::handleEvent(const mouse_msg& msg) {
