@@ -2658,8 +2658,12 @@ void Text::draw(PIMAGE dst, double x, double y) {
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
+    // 将中心坐标转换为左上角坐标，与其他控件（Button、Panel等）保持一致
+    double originX = x - width / 2;
+    double originY = y - height / 2;
+
     for (size_t i = 0; i < lines.size(); ++i) {
-        double x_draw = x;
+        double x_draw = originX;
         
         float lineW = (i < cachedLineWidths.size()) ? cachedLineWidths[i] : 0;
         if (lineW == 0) {
@@ -2669,16 +2673,16 @@ void Text::draw(PIMAGE dst, double x, double y) {
         }
 
         if (align == TextAlign::Center)
-            x_draw = x + (maxWidth - lineW) / 2;
+            x_draw = originX + (width - lineW) / 2;
         else if (align == TextAlign::Right)
-            x_draw = x + (maxWidth - lineW);
+            x_draw = originX + (width - lineW);
 
         float tmp, _h;
         measuretext("A", &tmp, &_h, dst);
         double lineHeight = (textHeight > 0 && lines.size() > 0) ? 
             (textHeight / lines.size()) : _h;
         
-        double y_draw = y + i * (lineHeight + lineSpacing);
+        double y_draw = originY + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
 }
