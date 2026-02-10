@@ -106,7 +106,9 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         // 计算滚动偏移
         if (scrollBar_->isNeeded()) {
             double maxScroll = contentH - viewH;
-            scrollOffset_ = scrollBar_->getScrollPosition() * maxScroll;
+            // 初始偏移：让内容顶部对齐视口顶部
+            double initialOffset = contentMinY_ * scale + viewH / 2.0;
+            scrollOffset_ = initialOffset + scrollBar_->getScrollPosition() * maxScroll;
         } else {
             scrollOffset_ = 0;
         }
@@ -3661,8 +3663,8 @@ void Panel::updateContentExtent() {
         return;
     }
 
-    double minY = 1e9;
-    double maxY = -1e9;
+    double minY = std::numeric_limits<double>::max();
+    double maxY = std::numeric_limits<double>::lowest();
 
     for (size_t i = 0; i < children.size(); ++i) {
         double childCenterY = childOffsets[i].y;
