@@ -3419,6 +3419,38 @@ void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double siz
 void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     if (!isNeeded()) return;
 
+    // 长按按钮时持续滚动
+    if (topBtnPressed_) {
+        double step = 0.008;
+        scrollPos_ -= step;
+        if (scrollPos_ < 0) scrollPos_ = 0;
+        targetScrollPos_ = scrollPos_;
+        if (parentPanel_) {
+            if (!btnScrollActive_) {
+                parentPanel_->setAlwaysDirty(true);
+                btnScrollActive_ = true;
+            }
+            parentPanel_->setDirty();
+        }
+    } else if (bottomBtnPressed_) {
+        double step = 0.008;
+        scrollPos_ += step;
+        if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+        targetScrollPos_ = scrollPos_;
+        if (parentPanel_) {
+            if (!btnScrollActive_) {
+                parentPanel_->setAlwaysDirty(true);
+                btnScrollActive_ = true;
+            }
+            parentPanel_->setDirty();
+        }
+    } else if (btnScrollActive_) {
+        if (parentPanel_) {
+            parentPanel_->setAlwaysDirty(false);
+        }
+        btnScrollActive_ = false;
+    }
+
     double btnSize = getButtonSize(scale);
     double w = barWidth_;
 
@@ -3534,11 +3566,21 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     bool inThumb = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
                    my >= absoluteThumbTop && my <= absoluteThumbTop + thumbH;
 
-    // 更新悬停状态
-    topBtnHovered_ = inTopBtn && !thumbDragging_;
-    bottomBtnHovered_ = inBottomBtn && !thumbDragging_;
-    thumbHovered_ = inThumb && !thumbDragging_;
-    if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
+    // 更新悬停状态（按钮按下或滑块拖动时不更新其他元素的悬停）
+    bool anyBtnPressed = topBtnPressed_ || bottomBtnPressed_;
+    if (thumbDragging_) {
+        topBtnHovered_ = false;
+        bottomBtnHovered_ = false;
+        thumbHovered_ = true;
+    } else if (anyBtnPressed) {
+        topBtnHovered_ = inTopBtn && topBtnPressed_;
+        bottomBtnHovered_ = inBottomBtn && bottomBtnPressed_;
+        thumbHovered_ = false;
+    } else {
+        topBtnHovered_ = inTopBtn;
+        bottomBtnHovered_ = inBottomBtn;
+        thumbHovered_ = inThumb;
+    }
 
     // 处理事件
     if (msg.is_left() && msg.is_down()) {
@@ -3608,6 +3650,28 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
                 if (scrollPos_ > 1.0) scrollPos_ = 1.0;
                 targetScrollPos_ = scrollPos_;
             }
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        // 按钮长按持续滚动：鼠标按住按钮并移动时持续滚动
+        if (topBtnPressed_ && inTopBtn) {
+            double step = 0.02;
+            scrollPos_ -= step;
+            if (scrollPos_ < 0) scrollPos_ = 0;
+            targetScrollPos_ = scrollPos_;
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        if (bottomBtnPressed_ && inBottomBtn) {
+            double step = 0.02;
+            scrollPos_ += step;
+            if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+            targetScrollPos_ = scrollPos_;
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        // 按钮按下但鼠标移出按钮区域，仍然消费事件（不开始拖动）
+        if (anyBtnPressed) {
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
