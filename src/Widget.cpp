@@ -3486,6 +3486,10 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     setlinecolor(EGEARGB(255, 218, 218, 218), dst);
     ege_line(x, y + btnSize, x + w, y + btnSize, dst);
     ege_line(x, bottomBtnY, x + w, bottomBtnY, dst);
+
+    // 左边界线（分隔滚动条与面板内容）
+    setlinecolor(EGEARGB(255, 210, 210, 210), dst);
+    ege_line(x, y, x, y + barHeight_, dst);
 }
 
 bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double scrollBarTop, double scale) {
