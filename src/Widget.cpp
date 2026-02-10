@@ -127,6 +127,15 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setlinewidth(1,layer);
     ege_fillrect(0,0,layerWidth,layerHeight,layer);
 
+    // 设置GDI级别裁剪区域（用于裁剪子控件的putimage_withalpha调用）
+    // ege_setclippath仅影响GDI+绘图，putimage_withalpha使用GDI的AlphaBlend，
+    // 需要通过SelectClipRgn设置GDI裁剪区域
+    int ellipseSize = static_cast<int>(radius * 2);
+    HRGN hRgn = CreateRoundRectRgn(4, 4, static_cast<int>(4 + width) + 1,
+        static_cast<int>(4 + height) + 1, ellipseSize, ellipseSize);
+    HDC layerDC = getHDC(layer);
+    SelectClipRgn(layerDC, hRgn);
+
     // 绘制子控件
     if(scaleChanged) PanelScaleChanged = true;
     for (int i = children.size() - 1; i >= 0; -- i) {
@@ -148,6 +157,10 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         double sbY = 4;
         scrollBar_->draw(layer, sbX, sbY, scale);
     }
+
+    // 移除GDI裁剪区域
+    SelectClipRgn(layerDC, NULL);
+    DeleteObject(hRgn);
     
     // 粘贴到主窗口
     ege_resetclippath(layer);
