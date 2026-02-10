@@ -13,6 +13,7 @@
 using namespace FeEGE;
 
 class Layout;
+class ScrollBar;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
@@ -209,7 +210,32 @@ public:
     void setAlwaysDirty(bool d);
 
     int getAlwaysDirtyState();
+
+    /**
+     * @brief 启用或禁用滚动条
+     * @param enable 是否启用
+     * @param scrollBarWidth 滚动条宽度（默认16）
+     */
+    void enableScrollBar(bool enable, double scrollBarWidth = 16);
+
+    /**
+     * @brief 获取滚动条指针
+     * @return 滚动条指针（未启用时为nullptr）
+     */
+    ScrollBar* getScrollBar();
+
+    /**
+     * @brief 获取滚动偏移量（像素）
+     * @return 当前滚动偏移量
+     */
+    double getScrollOffset() const;
+
 protected:
+    /**
+     * @brief 计算子控件内容的总高度范围
+     */
+    void updateContentExtent();
+
     double radius;
     double origin_width, origin_height;
     double origin_radius;
@@ -225,7 +251,13 @@ protected:
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
-    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象}
+    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象
+
+    ScrollBar* scrollBar_ = nullptr;   ///< 滚动条（启用时非空）
+    bool scrollBarEnabled_ = false;     ///< 是否启用了滚动条
+    double scrollOffset_ = 0.0;         ///< 当前滚动偏移（像素）
+    double contentMinY_ = 0.0;          ///< 内容最上端（相对于面板中心）
+    double contentMaxY_ = 0.0;          ///< 内容最下端（相对于面板中心）
 };
 
 
@@ -240,6 +272,7 @@ public:
     PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
     PanelBuilder& addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX = {}, const std::vector<double>& offsetY = {});
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
+    PanelBuilder& setScrollBar(bool enable, double scrollBarWidth = 16);
     Panel* build();
 
 protected:
@@ -252,6 +285,8 @@ protected:
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
     std::shared_ptr<Layout> layout = nullptr;
+    bool scrollBarEnabled = false;
+    double scrollBarWidth = 16;
 };
 
 
@@ -1521,6 +1556,132 @@ private:
     double scale = 1.0;
     std::function<void(double)> onChange = nullptr;
 };
+
+/**
+ * @brief 垂直滚动条控件类，用于Panel内容滚动
+ * 
+ * 显示在Panel右侧，包含顶部和底部箭头按钮以及中间可拖动的滑块。
+ * 滑块的相对长度与Panel内部子控件占据的总高度相关。
+ */
+class ScrollBar {
+public:
+    /**
+     * @brief 构造函数
+     * @param barWidth 滚动条宽度
+     * @param barHeight 滚动条高度（等于Panel高度）
+     */
+    ScrollBar(double barWidth, double barHeight);
+
+    /**
+     * @brief 绘制滚动条
+     * @param dst 目标图像
+     * @param x 滚动条左上角x坐标（相对于Panel layer）
+     * @param y 滚动条左上角y坐标（相对于Panel layer）
+     * @param scale 缩放比例
+     */
+    void draw(PIMAGE dst, double x, double y, double scale);
+
+    /**
+     * @brief 处理鼠标事件
+     * @param msg 鼠标消息
+     * @param scrollBarLeft 滚动条在屏幕坐标中的左边界
+     * @param scrollBarTop 滚动条在屏幕坐标中的上边界
+     * @param scale 缩放比例
+     * @return 是否消费了事件
+     */
+    bool handleEvent(const mouse_msg& msg, double scrollBarLeft, double scrollBarTop, double scale);
+
+    /**
+     * @brief 设置内容范围（子控件的最小Y到最大Y的跨度）
+     * @param contentHeight 内容总高度
+     * @param viewHeight 可见区域高度
+     */
+    void setContentRange(double contentHeight, double viewHeight);
+
+    /**
+     * @brief 设置滚动位置（0.0 ~ 1.0）
+     * @param pos 滚动位置
+     */
+    void setScrollPosition(double pos);
+
+    /**
+     * @brief 获取滚动位置（0.0 ~ 1.0）
+     * @return 当前滚动位置
+     */
+    double getScrollPosition() const;
+
+    /**
+     * @brief 获取滚动条宽度
+     * @return 宽度
+     */
+    double getWidth() const;
+
+    /**
+     * @brief 设置尺寸
+     * @param w 宽度
+     * @param h 高度
+     */
+    void setSize(double w, double h);
+
+    /**
+     * @brief 是否需要显示滚动条（内容高度 > 可见高度）
+     * @return 是否需要显示
+     */
+    bool isNeeded() const;
+
+    /**
+     * @brief 设置关联的Panel（用于通知重绘）
+     * @param p Panel指针
+     */
+    void setParentPanel(Panel* p);
+
+private:
+    double barWidth_;             ///< 滚动条宽度
+    double barHeight_;            ///< 滚动条总高度
+    double contentHeight_ = 0;    ///< 内容总高度
+    double viewHeight_ = 0;       ///< 可见区域高度
+    double scrollPos_ = 0.0;      ///< 滚动位置(0.0~1.0)
+    double targetScrollPos_ = 0.0;///< 目标滚动位置
+    
+    // 按钮状态
+    bool topBtnHovered_ = false;
+    bool topBtnPressed_ = false;
+    bool bottomBtnHovered_ = false;
+    bool bottomBtnPressed_ = false;
+
+    // 滑块状态
+    bool thumbHovered_ = false;
+    bool thumbPressed_ = false;
+    bool thumbDragging_ = false;
+    double dragOffset_ = 0;       ///< 拖动偏移
+
+    Panel* parentPanel_ = nullptr;
+
+    /**
+     * @brief 获取按钮区域高度（正方形按钮）
+     */
+    double getButtonSize(double scale) const;
+
+    /**
+     * @brief 获取滑块的Y位置和高度
+     * @param scale 缩放比例
+     * @param outY 输出滑块Y位置（相对于轨道顶部）
+     * @param outH 输出滑块高度
+     */
+    void getThumbRect(double scale, double& outY, double& outH) const;
+
+    /**
+     * @brief 绘制三角形箭头
+     * @param dst 目标图像
+     * @param centerX 中心X
+     * @param centerY 中心Y
+     * @param size 三角形大小
+     * @param up 是否朝上
+     * @param color 颜色
+     */
+    void drawArrow(PIMAGE dst, double centerX, double centerY, double size, bool up, color_t color);
+};
+
 
 /**
  * @brief Box布局容器

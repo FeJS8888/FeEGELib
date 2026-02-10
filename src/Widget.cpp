@@ -94,6 +94,24 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     }
 
     if (layout) layout->apply(*this);  // 自动计算子控件位置
+
+    // 更新滚动条内容范围
+    if (scrollBarEnabled_ && scrollBar_) {
+        updateContentExtent();
+        double contentH = (contentMaxY_ - contentMinY_) * scale;
+        double viewH = height;
+        scrollBar_->setSize(scrollBar_->getWidth(), height);
+        scrollBar_->setContentRange(contentH, viewH);
+
+        // 计算滚动偏移
+        if (scrollBar_->isNeeded()) {
+            double maxScroll = contentH - viewH;
+            scrollOffset_ = scrollBar_->getScrollPosition() * maxScroll;
+        } else {
+            scrollOffset_ = 0;
+        }
+    }
+
     // 总是清空并重绘（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
@@ -111,16 +129,23 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     if(scaleChanged) PanelScaleChanged = true;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
-        double childY = layerHeight / 2 + childOffsets[i].y * scale;
+        double childY = layerHeight / 2 + childOffsets[i].y * scale - scrollOffset_;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
+        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale - scrollOffset_);
         children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
     PanelScaleChanged = false;
     scaleChanged = false;
+
+    // 绘制滚动条（在clip path内）
+    if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
+        double sbX = layerWidth - 4 - scrollBar_->getWidth();
+        double sbY = 4;
+        scrollBar_->draw(layer, sbX, sbY, scale);
+    }
     
     // 粘贴到主窗口
     ege_resetclippath(layer);
@@ -133,6 +158,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
 Panel::~Panel(){
 	if (layer) delimage(layer);
+    if (scrollBar_) delete scrollBar_;
 }
 
 void Panel::setAlwaysDirty(bool d) {
@@ -190,6 +216,10 @@ void Panel::setScale(double s){
     ege_path_reset(&clippath);
     ege_path_addroundrect(&clippath,4,4,width,height,radius);
 
+    if (scrollBar_) {
+        scrollBar_->setSize(scrollBar_->getWidth(), height);
+    }
+
     needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -222,6 +252,17 @@ bool Panel::handleEvent(const mouse_msg& msg){
     double left = cx - width / 2;
     double top = cy - height / 2;
     bool isin = mx >= left && mx <= left + width && my >= top && my <= top + height;
+
+    // 处理滚动条拖动（即使鼠标在面板外也要处理）
+    if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
+        double sbLeft = left + width - scrollBar_->getWidth();
+        double sbTop = top;
+        // 拖动时始终处理
+        if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
+            return true;
+        }
+    }
+
     if(!isin) {
         // When clicking outside the Panel, remove focus from any descendant widget that has focus
         if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
@@ -369,6 +410,9 @@ Panel* PanelBuilder::build() {
     if (layout) panel->setLayout(layout);
     for(size_t i = 0;i < children.size();++ i){
         panel->addChild(children[i],childOffsets[i].x,childOffsets[i].y);
+    }
+    if (scrollBarEnabled) {
+        panel->enableScrollBar(true, scrollBarWidth);
     }
     return panel;
 }
@@ -3309,6 +3353,334 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
+}
+
+// ============ ScrollBar 实现 ============
+
+ScrollBar::ScrollBar(double barWidth, double barHeight)
+    : barWidth_(barWidth), barHeight_(barHeight) {
+}
+
+double ScrollBar::getButtonSize(double scale) const {
+    return barWidth_;  // 正方形按钮
+}
+
+void ScrollBar::getThumbRect(double scale, double& outY, double& outH) const {
+    double btnSize = getButtonSize(scale);
+    double trackHeight = barHeight_ - btnSize * 2;  // 轨道高度
+
+    if (contentHeight_ <= viewHeight_ || contentHeight_ <= 0) {
+        outY = 0;
+        outH = trackHeight;
+        return;
+    }
+
+    // 滑块高度与可见比例成正比，最小高度为20像素
+    double ratio = viewHeight_ / contentHeight_;
+    outH = trackHeight * ratio;
+    if (outH < 20) outH = 20;
+
+    // 滑块位置
+    double scrollRange = trackHeight - outH;
+    outY = scrollPos_ * scrollRange;
+}
+
+void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double size, bool up, color_t color) {
+    // 绘制三角形箭头
+    ege_point points[3];
+    if (up) {
+        points[0] = {static_cast<float>(centerX), static_cast<float>(centerY - size * 0.4)};
+        points[1] = {static_cast<float>(centerX - size * 0.4), static_cast<float>(centerY + size * 0.3)};
+        points[2] = {static_cast<float>(centerX + size * 0.4), static_cast<float>(centerY + size * 0.3)};
+    } else {
+        points[0] = {static_cast<float>(centerX), static_cast<float>(centerY + size * 0.4)};
+        points[1] = {static_cast<float>(centerX - size * 0.4), static_cast<float>(centerY - size * 0.3)};
+        points[2] = {static_cast<float>(centerX + size * 0.4), static_cast<float>(centerY - size * 0.3)};
+    }
+    setfillcolor(color, dst);
+    ege_fillpoly(3, points, dst);
+}
+
+void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
+    if (!isNeeded()) return;
+
+    double btnSize = getButtonSize(scale);
+    double w = barWidth_;
+
+    // 滚动条背景
+    setfillcolor(EGEARGB(255, 240, 240, 240), dst);
+    ege_fillrect(x, y, w, barHeight_, dst);
+
+    // === 顶部按钮 ===
+    if (topBtnPressed_) {
+        setfillcolor(EGEARGB(255, 96, 96, 96), dst);
+    } else if (topBtnHovered_) {
+        setfillcolor(EGEARGB(255, 218, 218, 218), dst);
+    } else {
+        setfillcolor(EGEARGB(255, 240, 240, 240), dst);
+    }
+    ege_fillrect(x, y, w, btnSize, dst);
+
+    // 顶部按钮阴影效果
+    if (topBtnHovered_ && !topBtnPressed_) {
+        setfillcolor(EGEARGB(30, 0, 0, 0), dst);
+        ege_fillrect(x, y, w, btnSize, dst);
+    }
+
+    // 顶部三角
+    color_t arrowColor = topBtnPressed_ ? EGEARGB(255, 255, 255, 255) : EGEARGB(255, 96, 96, 96);
+    drawArrow(dst, x + w / 2, y + btnSize / 2, w * 0.6, true, arrowColor);
+
+    // === 底部按钮 ===
+    double bottomBtnY = y + barHeight_ - btnSize;
+    if (bottomBtnPressed_) {
+        setfillcolor(EGEARGB(255, 96, 96, 96), dst);
+    } else if (bottomBtnHovered_) {
+        setfillcolor(EGEARGB(255, 218, 218, 218), dst);
+    } else {
+        setfillcolor(EGEARGB(255, 240, 240, 240), dst);
+    }
+    ege_fillrect(x, bottomBtnY, w, btnSize, dst);
+
+    // 底部按钮阴影效果
+    if (bottomBtnHovered_ && !bottomBtnPressed_) {
+        setfillcolor(EGEARGB(30, 0, 0, 0), dst);
+        ege_fillrect(x, bottomBtnY, w, btnSize, dst);
+    }
+
+    // 底部三角
+    arrowColor = bottomBtnPressed_ ? EGEARGB(255, 255, 255, 255) : EGEARGB(255, 96, 96, 96);
+    drawArrow(dst, x + w / 2, bottomBtnY + btnSize / 2, w * 0.6, false, arrowColor);
+
+    // === 轨道区域 ===
+    double trackY = y + btnSize;
+    double trackHeight = barHeight_ - btnSize * 2;
+    setfillcolor(EGEARGB(255, 234, 234, 234), dst);
+    ege_fillrect(x, trackY, w, trackHeight, dst);
+
+    // === 滑块 ===
+    double thumbY, thumbH;
+    getThumbRect(scale, thumbY, thumbH);
+
+    if (thumbPressed_) {
+        setfillcolor(EGEARGB(255, 136, 136, 136), dst);
+    } else if (thumbHovered_) {
+        setfillcolor(EGEARGB(255, 168, 168, 168), dst);
+    } else {
+        setfillcolor(EGEARGB(255, 205, 205, 205), dst);
+    }
+    ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
+
+    // 滑块阴影效果
+    if (thumbHovered_ && !thumbPressed_) {
+        setfillcolor(EGEARGB(25, 0, 0, 0), dst);
+        ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
+    } else if (thumbPressed_) {
+        setfillcolor(EGEARGB(40, 0, 0, 0), dst);
+        ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
+    }
+
+    // 轨道分隔线
+    setlinecolor(EGEARGB(255, 218, 218, 218), dst);
+    ege_line(x, y + btnSize, x + w, y + btnSize, dst);
+    ege_line(x, bottomBtnY, x + w, bottomBtnY, dst);
+}
+
+bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double scrollBarTop, double scale) {
+    if (!isNeeded()) return false;
+
+    double mx = msg.x;
+    double my = msg.y;
+    double w = barWidth_;
+    double btnSize = getButtonSize(scale);
+
+    // 检查鼠标是否在滚动条区域内
+    bool inScrollBar = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
+                       my >= scrollBarTop && my <= scrollBarTop + barHeight_;
+
+    // 顶部按钮区域
+    bool inTopBtn = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
+                    my >= scrollBarTop && my <= scrollBarTop + btnSize;
+
+    // 底部按钮区域
+    double bottomBtnY = scrollBarTop + barHeight_ - btnSize;
+    bool inBottomBtn = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
+                       my >= bottomBtnY && my <= bottomBtnY + btnSize;
+
+    // 滑块区域
+    double trackTop = scrollBarTop + btnSize;
+    double thumbY, thumbH;
+    getThumbRect(scale, thumbY, thumbH);
+    double absoluteThumbTop = trackTop + thumbY;
+    bool inThumb = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
+                   my >= absoluteThumbTop && my <= absoluteThumbTop + thumbH;
+
+    // 更新悬停状态
+    topBtnHovered_ = inTopBtn && !thumbDragging_;
+    bottomBtnHovered_ = inBottomBtn && !thumbDragging_;
+    thumbHovered_ = inThumb && !thumbDragging_;
+    if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
+
+    // 处理事件
+    if (msg.is_left() && msg.is_down()) {
+        if (inTopBtn) {
+            topBtnPressed_ = true;
+            double step = 0.05;
+            targetScrollPos_ = scrollPos_ - step;
+            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
+            scrollPos_ = targetScrollPos_;
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        if (inBottomBtn) {
+            bottomBtnPressed_ = true;
+            double step = 0.05;
+            targetScrollPos_ = scrollPos_ + step;
+            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            scrollPos_ = targetScrollPos_;
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        if (inThumb) {
+            thumbPressed_ = true;
+            thumbDragging_ = true;
+            dragOffset_ = my - absoluteThumbTop;
+            mouseOwningFlag = nullptr;  // 滚动条自行管理拖动
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        // 点击轨道空白区域，跳转到对应位置
+        if (inScrollBar && !inTopBtn && !inBottomBtn) {
+            double trackHeight = barHeight_ - btnSize * 2;
+            double ratio = viewHeight_ / contentHeight_;
+            double thumbHeight = trackHeight * ratio;
+            if (thumbHeight < 20) thumbHeight = 20;
+            double scrollRange = trackHeight - thumbHeight;
+            if (scrollRange > 0) {
+                double clickPos = my - trackTop - thumbHeight / 2;
+                scrollPos_ = clickPos / scrollRange;
+                if (scrollPos_ < 0) scrollPos_ = 0;
+                if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+                targetScrollPos_ = scrollPos_;
+            }
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+    }
+    else if (msg.is_left() && msg.is_up()) {
+        topBtnPressed_ = false;
+        bottomBtnPressed_ = false;
+        thumbPressed_ = false;
+        thumbDragging_ = false;
+        if (parentPanel_) parentPanel_->setDirty();
+        return inScrollBar;
+    }
+    else if (msg.is_move()) {
+        if (thumbDragging_) {
+            double trackHeight = barHeight_ - btnSize * 2;
+            double ratio = viewHeight_ / contentHeight_;
+            double thumbHeight = trackHeight * ratio;
+            if (thumbHeight < 20) thumbHeight = 20;
+            double scrollRange = trackHeight - thumbHeight;
+            if (scrollRange > 0) {
+                double newThumbTop = my - dragOffset_ - trackTop;
+                scrollPos_ = newThumbTop / scrollRange;
+                if (scrollPos_ < 0) scrollPos_ = 0;
+                if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+                targetScrollPos_ = scrollPos_;
+            }
+            if (parentPanel_) parentPanel_->setDirty();
+            return true;
+        }
+        if (parentPanel_ && inScrollBar) parentPanel_->setDirty();
+        return inScrollBar;
+    }
+
+    return inScrollBar;
+}
+
+void ScrollBar::setContentRange(double contentHeight, double viewHeight) {
+    contentHeight_ = contentHeight;
+    viewHeight_ = viewHeight;
+}
+
+void ScrollBar::setScrollPosition(double pos) {
+    if (pos < 0) pos = 0;
+    if (pos > 1.0) pos = 1.0;
+    scrollPos_ = pos;
+    targetScrollPos_ = pos;
+}
+
+double ScrollBar::getScrollPosition() const {
+    return scrollPos_;
+}
+
+double ScrollBar::getWidth() const {
+    return barWidth_;
+}
+
+void ScrollBar::setSize(double w, double h) {
+    barWidth_ = w;
+    barHeight_ = h;
+}
+
+bool ScrollBar::isNeeded() const {
+    return contentHeight_ > viewHeight_ && contentHeight_ > 0;
+}
+
+void ScrollBar::setParentPanel(Panel* p) {
+    parentPanel_ = p;
+}
+
+// ============ Panel ScrollBar 集成 ============
+
+void Panel::enableScrollBar(bool enable, double scrollBarWidth) {
+    scrollBarEnabled_ = enable;
+    if (enable && !scrollBar_) {
+        scrollBar_ = new ScrollBar(scrollBarWidth, height);
+        scrollBar_->setParentPanel(this);
+    } else if (!enable && scrollBar_) {
+        delete scrollBar_;
+        scrollBar_ = nullptr;
+    }
+    needRedraw = true;
+}
+
+ScrollBar* Panel::getScrollBar() {
+    return scrollBar_;
+}
+
+double Panel::getScrollOffset() const {
+    return scrollOffset_;
+}
+
+void Panel::updateContentExtent() {
+    if (children.empty()) {
+        contentMinY_ = 0;
+        contentMaxY_ = 0;
+        return;
+    }
+
+    double minY = 1e9;
+    double maxY = -1e9;
+
+    for (size_t i = 0; i < children.size(); ++i) {
+        double childCenterY = childOffsets[i].y;
+        double childHalfH = children[i]->getHeight() / (2.0 * scale);
+        double top = childCenterY - childHalfH;
+        double bottom = childCenterY + childHalfH;
+        if (top < minY) minY = top;
+        if (bottom > maxY) maxY = bottom;
+    }
+
+    contentMinY_ = minY;
+    contentMaxY_ = maxY;
+}
+
+PanelBuilder& PanelBuilder::setScrollBar(bool enable, double w) {
+    scrollBarEnabled = enable;
+    scrollBarWidth = w;
+    return *this;
 }
 
 // ============ Box 实现 ============
