@@ -3699,6 +3699,15 @@ void Panel::updateContentExtent() {
         if (bottom > maxY) maxY = bottom;
     }
 
+    // 考虑Layout的padding：内容区域应包含padding
+    if (layout) {
+        if (auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(layout)) {
+            double pad = flexLayout->getPadding();
+            minY -= pad;
+            maxY += pad;
+        }
+    }
+
     contentMinY_ = minY;
     contentMaxY_ = maxY;
 }
