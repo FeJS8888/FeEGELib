@@ -1648,7 +1648,6 @@ private:
     bool topBtnPressed_ = false;
     bool bottomBtnHovered_ = false;
     bool bottomBtnPressed_ = false;
-    bool btnScrollActive_ = false;  ///< 按钮长按持续滚动是否已激活setAlwaysDirty
 
     // 滑块状态
     bool thumbHovered_ = false;
