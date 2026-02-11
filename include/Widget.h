@@ -231,11 +231,6 @@ public:
     double getScrollOffset() const;
 
 protected:
-    /**
-     * @brief 计算子控件内容的总高度范围
-     */
-    void updateContentExtent();
-
     double radius;
     double origin_width, origin_height;
     double origin_radius;
@@ -256,8 +251,6 @@ protected:
     ScrollBar* scrollBar_ = nullptr;   ///< 滚动条（启用时非空）
     bool scrollBarEnabled_ = false;     ///< 是否启用了滚动条
     double scrollOffset_ = 0.0;         ///< 当前滚动偏移（像素）
-    double contentMinY_ = 0.0;          ///< 内容最上端（相对于面板中心）
-    double contentMaxY_ = 0.0;          ///< 内容最下端（相对于面板中心）
 };
 
 

@@ -30,14 +30,26 @@ enum class LayoutAlign {
 };
 
 /**
+ * @brief 布局计算结果
+ * 
+ * 包含内容区域的实际范围信息，用于滚动条等需要了解内容大小的场景。
+ */
+struct LayoutResult {
+    double contentMinY = 0;   ///< 内容区域最上端（包含padding，相对于Panel中心，未缩放坐标系）
+    double contentMaxY = 0;   ///< 内容区域最下端（包含padding，相对于Panel中心，未缩放坐标系）
+};
+
+/**
  * @brief 布局基类
  * 
  * 仅负责计算位置，不负责绘制。
+ * @param parent 父Panel
+ * @param scrollOffset 滚动偏移量（未缩放坐标系），布局时直接应用到子控件的偏移中
  */
 class Layout {
 public:
     virtual ~Layout() = default;
-    virtual void apply(Panel& parent) = 0;
+    virtual LayoutResult apply(Panel& parent, double scrollOffset = 0) = 0;
 };
 
 /**
@@ -54,7 +66,7 @@ public:
     FlexLayout& align(LayoutAlign align);
 
     // 应用布局
-    void apply(Panel& parent) override;
+    LayoutResult apply(Panel& parent, double scrollOffset = 0) override;
 
     // --- Getter (供 Builder 使用) ---
     LayoutDirection getDirection() const { return direction_; }

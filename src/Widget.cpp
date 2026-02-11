@@ -93,26 +93,29 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         return;
     }
 
-    if (layout) layout->apply(*this);  // 自动计算子控件位置
-
-    // 更新滚动条内容范围
-    if (scrollBarEnabled_ && scrollBar_) {
-        updateContentExtent();
-        double contentH = (contentMaxY_ - contentMinY_) * scale;
+    // 计算滚动偏移（未缩放坐标系），传递给Layout
+    double layoutScrollOffset = 0;
+    if (scrollBarEnabled_ && scrollBar_ && layout) {
+        // 先不带偏移执行一次布局，获取内容范围
+        LayoutResult extentResult = layout->apply(*this, 0);
+        double contentH = (extentResult.contentMaxY - extentResult.contentMinY) * scale;
         double viewH = height;
         scrollBar_->setSize(scrollBar_->getWidth(), height);
         scrollBar_->setContentRange(contentH, viewH);
 
-        // 计算滚动偏移
         if (scrollBar_->isNeeded()) {
             double maxScroll = contentH - viewH;
             // 初始偏移：让内容顶部对齐视口顶部
-            double initialOffset = contentMinY_ * scale + viewH / 2.0;
+            double initialOffset = extentResult.contentMinY * scale + viewH / 2.0;
             scrollOffset_ = initialOffset + scrollBar_->getScrollPosition() * maxScroll;
+            layoutScrollOffset = scrollOffset_ / scale;  // 转换到未缩放坐标系
         } else {
             scrollOffset_ = 0;
         }
     }
+
+    // 应用布局（带滚动偏移）
+    if (layout) layout->apply(*this, layoutScrollOffset);
 
     // 总是清空并重绘（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
@@ -136,14 +139,14 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     HDC layerDC = getHDC(layer);
     SelectClipRgn(layerDC, hRgn);
 
-    // 绘制子控件
+    // 绘制子控件（偏移已由Layout处理，无需手动减scrollOffset_）
     if(scaleChanged) PanelScaleChanged = true;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
-        double childY = layerHeight / 2 + childOffsets[i].y * scale - scrollOffset_;
+        double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
-        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale - scrollOffset_);
+        children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
         children[i]->draw(layer, childX, childY);
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
@@ -3678,38 +3681,6 @@ ScrollBar* Panel::getScrollBar() {
 
 double Panel::getScrollOffset() const {
     return scrollOffset_;
-}
-
-void Panel::updateContentExtent() {
-    if (children.empty()) {
-        contentMinY_ = 0;
-        contentMaxY_ = 0;
-        return;
-    }
-
-    double minY = std::numeric_limits<double>::max();
-    double maxY = std::numeric_limits<double>::lowest();
-
-    for (size_t i = 0; i < children.size(); ++i) {
-        double childCenterY = childOffsets[i].y;
-        double childHalfH = children[i]->getHeight() / (2.0 * scale);
-        double top = childCenterY - childHalfH;
-        double bottom = childCenterY + childHalfH;
-        if (top < minY) minY = top;
-        if (bottom > maxY) maxY = bottom;
-    }
-
-    // 考虑Layout的padding：内容区域应包含padding
-    if (layout) {
-        if (auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(layout)) {
-            double pad = flexLayout->getPadding();
-            minY -= pad;
-            maxY += pad;
-        }
-    }
-
-    contentMinY_ = minY;
-    contentMaxY_ = maxY;
 }
 
 PanelBuilder& PanelBuilder::setScrollBar(bool enable, double w) {
