@@ -3540,6 +3540,13 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     thumbHovered_ = inThumb && !thumbDragging_;
     if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
 
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
     // 处理事件
     if (msg.is_left() && msg.is_down()) {
         if (inTopBtn) {
