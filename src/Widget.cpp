@@ -3537,11 +3537,14 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     bool inThumb = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
                    my >= absoluteThumbTop && my <= absoluteThumbTop + thumbH;
 
-    // 更新悬停状态
+    // 更新悬停状态，并检测是否发生变化以触发重绘
+    bool oldTopHover = topBtnHovered_, oldBottomHover = bottomBtnHovered_, oldThumbHover = thumbHovered_;
     topBtnHovered_ = inTopBtn && !thumbDragging_;
     bottomBtnHovered_ = inBottomBtn && !thumbDragging_;
     thumbHovered_ = inThumb && !thumbDragging_;
     if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
+    bool hoverChanged = (topBtnHovered_ != oldTopHover) || (bottomBtnHovered_ != oldBottomHover) || (thumbHovered_ != oldThumbHover);
+    if (hoverChanged && parentPanel_) parentPanel_->setDirty();
 
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
