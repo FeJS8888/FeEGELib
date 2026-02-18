@@ -3529,6 +3529,18 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     bool inBottomBtn = mx >= scrollBarLeft && mx <= scrollBarLeft + w &&
                        my >= bottomBtnY && my <= bottomBtnY + btnSize;
 
+    // 处理其它控件焦点
+    if(msg.is_left() && msg.is_up()){
+        if(mouseOwningFlag != nullptr){
+            mouseOwningFlag->releaseMouseOwningFlag(msg);
+        }
+    }
+
+    if(mouseOwningFlag != nullptr){
+        // 如果当前事件被其他控件捕获，则不处理
+        return inScrollBar;
+    }
+
     // 滑块区域
     double trackTop = scrollBarTop + btnSize;
     double thumbY, thumbH;
@@ -3545,13 +3557,6 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
     bool hoverChanged = (topBtnHovered_ != oldTopHover) || (bottomBtnHovered_ != oldBottomHover) || (thumbHovered_ != oldThumbHover);
     if (hoverChanged && parentPanel_) parentPanel_->setDirty();
-
-    // 处理其它控件焦点
-    if(msg.is_left() && msg.is_up()){
-        if(mouseOwningFlag != nullptr){
-            mouseOwningFlag->releaseMouseOwningFlag(msg);
-        }
-    }
 
     // 处理事件
     if (msg.is_left() && msg.is_down()) {
