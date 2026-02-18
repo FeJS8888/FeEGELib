@@ -1648,6 +1648,7 @@ private:
 
     // 持续滚动时的setAlwaysDirty管理
     bool btnScrollActive_ = false;
+    double pressStartTime_ = 0;      ///< 按钮/轨道按下的时间戳(ms)
 
     // 滑块状态
     bool thumbHovered_ = false;

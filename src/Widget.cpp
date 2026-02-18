@@ -3422,26 +3422,38 @@ void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double siz
 void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     if (!isNeeded()) return;
 
-    // 长按按钮或轨道时持续滚动
+    // 长按按钮或轨道时持续滚动（带延迟和加速）
     bool anyPressed = topBtnPressed_ || bottomBtnPressed_ || trackPressed_;
     if (anyPressed) {
-        double step = 0.008;
-        if (topBtnPressed_) {
-            scrollPos_ -= step;
-        } else if (bottomBtnPressed_) {
-            scrollPos_ += step;
-        } else if (trackPressed_) {
-            scrollPos_ += step * trackScrollDir_;
+        double elapsed = getMs() - pressStartTime_;
+        // 阶段1: 0~300ms 延迟期，不滚动（首次点击已在handleEvent中移动了一步）
+        // 阶段2: 300~800ms 慢速滚动
+        // 阶段3: 800ms+ 快速滚动
+        double step = 0;
+        if (elapsed > 800) {
+            step = 0.012;
+        } else if (elapsed > 300) {
+            step = 0.005;
         }
-        if (scrollPos_ < 0) scrollPos_ = 0;
-        if (scrollPos_ > 1.0) scrollPos_ = 1.0;
-        targetScrollPos_ = scrollPos_;
-        if (parentPanel_) {
-            if (!btnScrollActive_) {
-                parentPanel_->setAlwaysDirty(true);
-                btnScrollActive_ = true;
+        // 延迟期内 step=0，不滚动
+
+        if (step > 0) {
+            if (topBtnPressed_) {
+                scrollPos_ -= step;
+            } else if (bottomBtnPressed_) {
+                scrollPos_ += step;
+            } else if (trackPressed_) {
+                scrollPos_ += step * trackScrollDir_;
             }
-            parentPanel_->setDirty();
+            if (scrollPos_ < 0) scrollPos_ = 0;
+            if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+            targetScrollPos_ = scrollPos_;
+            if (parentPanel_) parentPanel_->setDirty();
+        }
+
+        if (parentPanel_ && !btnScrollActive_) {
+            parentPanel_->setAlwaysDirty(true);
+            btnScrollActive_ = true;
         }
     } else if (btnScrollActive_) {
         if (parentPanel_) {
@@ -3590,6 +3602,7 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     if (msg.is_left() && msg.is_down()) {
         if (inTopBtn) {
             topBtnPressed_ = true;
+            pressStartTime_ = getMs();
             double step = 0.05;
             targetScrollPos_ = scrollPos_ - step;
             if (targetScrollPos_ < 0) targetScrollPos_ = 0;
@@ -3599,6 +3612,7 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
         }
         if (inBottomBtn) {
             bottomBtnPressed_ = true;
+            pressStartTime_ = getMs();
             double step = 0.05;
             targetScrollPos_ = scrollPos_ + step;
             if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
@@ -3617,6 +3631,7 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
         // 点击轨道空白区域，开始持续滚动
         if (inScrollBar && !inTopBtn && !inBottomBtn) {
             trackPressed_ = true;
+            pressStartTime_ = getMs();
             // 判断点击在滑块上方还是下方
             trackScrollDir_ = (my < absoluteThumbTop) ? -1 : 1;
             // 首次点击立即滚动一步
