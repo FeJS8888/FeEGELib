@@ -3422,20 +3422,20 @@ void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double siz
 void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     if (!isNeeded()) return;
 
-    // 长按按钮或轨道时持续滚动（带延迟和加速）
+    // 长按按钮或轨道时持续滚动（三阶段）
     bool anyPressed = topBtnPressed_ || bottomBtnPressed_ || trackPressed_;
     if (anyPressed) {
         double elapsed = getMs() - pressStartTime_;
-        // 阶段1: 0~300ms 延迟期，不滚动（首次点击已在handleEvent中移动了一步）
-        // 阶段2: 300~800ms 慢速滚动
-        // 阶段3: 800ms+ 快速滚动
+        // 阶段1: 0~100ms 初始慢速滚动（首次点击已在handleEvent中移动了一步）
+        // 阶段2: 100~400ms 停顿，不滚动
+        // 阶段3: 400ms+ 快速持续滚动
         double step = 0;
-        if (elapsed > 800) {
+        if (elapsed > 400) {
             step = 0.012;
-        } else if (elapsed > 300) {
-            step = 0.005;
+        } else if (elapsed <= 100) {
+            step = 0.004;
         }
-        // 延迟期内 step=0，不滚动
+        // 100~400ms 停顿期 step=0
 
         if (step > 0) {
             if (topBtnPressed_) {
