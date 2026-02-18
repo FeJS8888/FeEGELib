@@ -3422,6 +3422,34 @@ void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double siz
 void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     if (!isNeeded()) return;
 
+    // 长按按钮或轨道时持续滚动
+    bool anyPressed = topBtnPressed_ || bottomBtnPressed_ || trackPressed_;
+    if (anyPressed) {
+        double step = 0.008;
+        if (topBtnPressed_) {
+            scrollPos_ -= step;
+        } else if (bottomBtnPressed_) {
+            scrollPos_ += step;
+        } else if (trackPressed_) {
+            scrollPos_ += step * trackScrollDir_;
+        }
+        if (scrollPos_ < 0) scrollPos_ = 0;
+        if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+        targetScrollPos_ = scrollPos_;
+        if (parentPanel_) {
+            if (!btnScrollActive_) {
+                parentPanel_->setAlwaysDirty(true);
+                btnScrollActive_ = true;
+            }
+            parentPanel_->setDirty();
+        }
+    } else if (btnScrollActive_) {
+        if (parentPanel_) {
+            parentPanel_->setAlwaysDirty(false);
+        }
+        btnScrollActive_ = false;
+    }
+
     double btnSize = getButtonSize(scale);
     double w = barWidth_;
 
@@ -3586,20 +3614,17 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
-        // 点击轨道空白区域，跳转到对应位置
+        // 点击轨道空白区域，开始持续滚动
         if (inScrollBar && !inTopBtn && !inBottomBtn) {
-            double trackHeight = barHeight_ - btnSize * 2;
-            double ratio = viewHeight_ / contentHeight_;
-            double thumbHeight = trackHeight * ratio;
-            if (thumbHeight < 20) thumbHeight = 20;
-            double scrollRange = trackHeight - thumbHeight;
-            if (scrollRange > 0) {
-                double clickPos = my - trackTop - thumbHeight / 2;
-                scrollPos_ = clickPos / scrollRange;
-                if (scrollPos_ < 0) scrollPos_ = 0;
-                if (scrollPos_ > 1.0) scrollPos_ = 1.0;
-                targetScrollPos_ = scrollPos_;
-            }
+            trackPressed_ = true;
+            // 判断点击在滑块上方还是下方
+            trackScrollDir_ = (my < absoluteThumbTop) ? -1 : 1;
+            // 首次点击立即滚动一步
+            double step = 0.05;
+            scrollPos_ += step * trackScrollDir_;
+            if (scrollPos_ < 0) scrollPos_ = 0;
+            if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+            targetScrollPos_ = scrollPos_;
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
@@ -3607,6 +3632,8 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     else if (msg.is_left() && msg.is_up()) {
         topBtnPressed_ = false;
         bottomBtnPressed_ = false;
+        trackPressed_ = false;
+        trackScrollDir_ = 0;
         thumbPressed_ = false;
         thumbDragging_ = false;
         if (parentPanel_) parentPanel_->setDirty();
