@@ -313,6 +313,16 @@ bool Panel::handleEvent(const mouse_msg& msg){
         }
         return true;
     }
+    else if(msg.is_wheel()){
+        if(scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
+            double sbLeft = left + width - scrollBar_->getWidth();
+            double sbTop = top;
+            if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
+                return true;
+            }
+        }
+        return true;
+    }
     else{
         if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
             mouseOwningFlag->catchMouseOwningFlag(msg);
@@ -3673,6 +3683,15 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
         }
         if (parentPanel_ && inScrollBar) parentPanel_->setDirty();
         return inScrollBar;
+    }
+    else if(msg.is_wheel()) {
+        double step = 0.05 * (msg.wheel > 0 ? -1 : 1);
+        targetScrollPos_ += step;
+        if (targetScrollPos_ < 0) targetScrollPos_ = 0;
+        if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+        scrollPos_ = targetScrollPos_;
+        if (parentPanel_) parentPanel_->setDirty();
+        return true;
     }
 
     return inScrollBar;
