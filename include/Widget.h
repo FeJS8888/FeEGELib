@@ -1650,6 +1650,9 @@ private:
     bool btnScrollActive_ = false;
     double pressStartTime_ = 0;      ///< 按钮/轨道按下的时间戳(ms)
 
+    // 平滑滚动动画
+    bool smoothScrollActive_ = false; ///< 平滑滚动动画是否激活
+
     // 滑块状态
     bool thumbHovered_ = false;
     bool thumbPressed_ = false;

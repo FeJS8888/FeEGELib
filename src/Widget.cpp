@@ -3436,7 +3436,7 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     bool anyPressed = topBtnPressed_ || bottomBtnPressed_ || trackPressed_;
     if (anyPressed) {
         double elapsed = getMs() - pressStartTime_;
-        // 阶段1: 0~100ms 初始慢速滚动（首次点击已在handleEvent中移动了一步）
+        // 阶段1: 0~100ms 初始慢速滚动（首次点击已在handleEvent中设置了targetScrollPos_）
         // 阶段2: 100~400ms 停顿，不滚动
         // 阶段3: 400ms+ 快速持续滚动
         double step = 0;
@@ -3449,15 +3449,14 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
 
         if (step > 0) {
             if (topBtnPressed_) {
-                scrollPos_ -= step;
+                targetScrollPos_ -= step;
             } else if (bottomBtnPressed_) {
-                scrollPos_ += step;
+                targetScrollPos_ += step;
             } else if (trackPressed_) {
-                scrollPos_ += step * trackScrollDir_;
+                targetScrollPos_ += step * trackScrollDir_;
             }
-            if (scrollPos_ < 0) scrollPos_ = 0;
-            if (scrollPos_ > 1.0) scrollPos_ = 1.0;
-            targetScrollPos_ = scrollPos_;
+            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
             if (parentPanel_) parentPanel_->setDirty();
         }
 
@@ -3470,6 +3469,28 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
             parentPanel_->setAlwaysDirty(false);
         }
         btnScrollActive_ = false;
+    }
+
+    // 平滑滚动：scrollPos_ 向 targetScrollPos_ 插值
+    double diff = targetScrollPos_ - scrollPos_;
+    if (diff != 0) {
+        double lerpFactor = 0.18;  // 插值系数，越大越快到达目标
+        if (std::abs(diff) < 0.001) {
+            scrollPos_ = targetScrollPos_;  // 接近目标时直接到达
+        } else {
+            scrollPos_ += diff * lerpFactor;
+        }
+        if (parentPanel_) parentPanel_->setDirty();
+        // 动画进行中，保持持续重绘
+        if (!smoothScrollActive_ && parentPanel_) {
+            parentPanel_->setAlwaysDirty(true);
+            smoothScrollActive_ = true;
+        }
+    } else if (smoothScrollActive_) {
+        if (parentPanel_) {
+            parentPanel_->setAlwaysDirty(false);
+        }
+        smoothScrollActive_ = false;
     }
 
     double btnSize = getButtonSize(scale);
@@ -3616,7 +3637,6 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             double step = 0.05;
             targetScrollPos_ = scrollPos_ - step;
             if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-            scrollPos_ = targetScrollPos_;
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
@@ -3626,7 +3646,6 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             double step = 0.05;
             targetScrollPos_ = scrollPos_ + step;
             if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-            scrollPos_ = targetScrollPos_;
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
@@ -3644,12 +3663,11 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             pressStartTime_ = getMs();
             // 判断点击在滑块上方还是下方
             trackScrollDir_ = (my < absoluteThumbTop) ? -1 : 1;
-            // 首次点击立即滚动一步
+            // 首次点击设置目标位置
             double step = 0.05;
-            scrollPos_ += step * trackScrollDir_;
-            if (scrollPos_ < 0) scrollPos_ = 0;
-            if (scrollPos_ > 1.0) scrollPos_ = 1.0;
-            targetScrollPos_ = scrollPos_;
+            targetScrollPos_ = scrollPos_ + step * trackScrollDir_;
+            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
