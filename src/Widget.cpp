@@ -3707,7 +3707,6 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
         targetScrollPos_ += step;
         if (targetScrollPos_ < 0) targetScrollPos_ = 0;
         if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-        scrollPos_ = targetScrollPos_;
         if (parentPanel_) parentPanel_->setDirty();
         return true;
     }
