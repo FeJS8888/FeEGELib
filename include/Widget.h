@@ -1645,6 +1645,7 @@ private:
     // 轨道按下状态（持续滚动）
     bool trackPressed_ = false;
     int trackScrollDir_ = 0;         ///< 轨道滚动方向: -1=上, 1=下
+    double trackClickPos_ = 0;       ///< 轨道点击位置对应的滚动比例
 
     // 持续滚动时的setAlwaysDirty管理
     bool btnScrollActive_ = false;

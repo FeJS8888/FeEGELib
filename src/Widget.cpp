@@ -3454,6 +3454,9 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
                 targetScrollPos_ += step;
             } else if (trackPressed_) {
                 targetScrollPos_ += step * trackScrollDir_;
+                // 不超过点击位置
+                if (trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
+                if (trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
             }
             if (targetScrollPos_ < 0) targetScrollPos_ = 0;
             if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
@@ -3663,11 +3666,25 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             pressStartTime_ = getMs();
             // 判断点击在滑块上方还是下方
             trackScrollDir_ = (my < absoluteThumbTop) ? -1 : 1;
+            // 计算点击位置对应的滚动比例（滑块中心对齐到点击位置）
+            double trackHeight = barHeight_ - btnSize * 2;
+            double ratio = viewHeight_ / contentHeight_;
+            double thumbHeight = trackHeight * ratio;
+            if (thumbHeight < 20) thumbHeight = 20;
+            double scrollRange = trackHeight - thumbHeight;
+            if (scrollRange > 0) {
+                trackClickPos_ = (my - trackTop - thumbHeight / 2) / scrollRange;
+                if (trackClickPos_ < 0) trackClickPos_ = 0;
+                if (trackClickPos_ > 1.0) trackClickPos_ = 1.0;
+            }
             // 首次点击设置目标位置
             double step = 0.05;
             targetScrollPos_ = scrollPos_ + step * trackScrollDir_;
             if (targetScrollPos_ < 0) targetScrollPos_ = 0;
             if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            // 不超过点击位置
+            if (trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
+            if (trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
             if (parentPanel_) parentPanel_->setDirty();
             return true;
         }
