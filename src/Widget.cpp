@@ -169,11 +169,13 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
     globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
 
+    double savedAbsPosDeltaX = absolutPosDeltaX;
+    double savedAbsPosDeltaY = absolutPosDeltaY;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
-        absolutPosDeltaX = left;
-        absolutPosDeltaY = top;
+        absolutPosDeltaX = savedAbsPosDeltaX + left;
+        absolutPosDeltaY = savedAbsPosDeltaY + top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
 
         // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
@@ -188,10 +190,9 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         if (withinBounds || children[i]->getDrawingState() != 0) {
             children[i]->draw(layer, childX, childY);
         }
-
-        absolutPosDeltaX = 0;
-        absolutPosDeltaY = 0;
     }
+    absolutPosDeltaX = savedAbsPosDeltaX;
+    absolutPosDeltaY = savedAbsPosDeltaY;
 
     // 恢复全局可绘制区域
     globalDrawingLeft = oldDrawingLeft;
@@ -3892,11 +3893,13 @@ void Box::draw(PIMAGE dst, double x, double y) {
     globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
     globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
 
+    double savedAbsPosDeltaX = absolutPosDeltaX;
+    double savedAbsPosDeltaY = absolutPosDeltaY;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
-        absolutPosDeltaX = left;
-        absolutPosDeltaY = top;
+        absolutPosDeltaX = savedAbsPosDeltaX + left;
+        absolutPosDeltaY = savedAbsPosDeltaY + top;
         children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
 
         // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
@@ -3911,10 +3914,9 @@ void Box::draw(PIMAGE dst, double x, double y) {
         if (withinBounds || children[i]->getDrawingState() != 0) {
             children[i]->draw(layer, childX, childY);
         }
-
-        absolutPosDeltaX = 0;
-        absolutPosDeltaY = 0;
     }
+    absolutPosDeltaX = savedAbsPosDeltaX;
+    absolutPosDeltaY = savedAbsPosDeltaY;
 
     // 恢复全局可绘制区域
     globalDrawingLeft = oldDrawingLeft;
