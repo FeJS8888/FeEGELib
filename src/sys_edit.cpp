@@ -72,27 +72,33 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
 	    case WM_IME_STARTCOMPOSITION:{
-            SetIMEPosition(getHWnd(),InputPositionX,InputPositionY);
+            POINT pt = {(LONG)InputPositionX, (LONG)InputPositionY};
+            ClientToScreen(getHWnd(), &pt);
+            ScreenToClient(m_hwnd, &pt);
+            SetIMEPosition(m_hwnd, pt.x, pt.y);
 			return TRUE;
 		}
 		case WM_IME_COMPOSITION:{
 			InputBox* p = static_cast<InputBox*>(m_object);
 			if (lParam & GCS_COMPSTR) {
-                std::wstring compositionString = GetImeCompositionString(getHWnd(), GCS_COMPSTR);
+                std::wstring compositionString = GetImeCompositionString(m_hwnd, GCS_COMPSTR);
 				p->setIMECompositionString(compositionString);
             }
 
             if (lParam & GCS_RESULTSTR) {
-                std::wstring resultString = GetImeCompositionString(getHWnd(), GCS_RESULTSTR);
+                std::wstring resultString = GetImeCompositionString(m_hwnd, GCS_RESULTSTR);
 				p->setIMECompositionString(L"");
             }
-			HIMC hIMC = ImmGetContext(getHWnd());
+			HIMC hIMC = ImmGetContext(m_hwnd);
 			LONG cursorPos = ImmGetCompositionStringW(hIMC, GCS_CURSORPOS, nullptr, 0);
-			ImmReleaseContext(getHWnd(), hIMC);
+			ImmReleaseContext(m_hwnd, hIMC);
 			p->setIMECursorPos(cursorPos);
 			p->reflushCursorTick();
 			LRESULT r = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
-			SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
+            POINT pt = {(LONG)InputPositionX, (LONG)InputPositionY};
+            ClientToScreen(getHWnd(), &pt);
+            ScreenToClient(m_hwnd, &pt);
+            SetIMEPosition(m_hwnd, pt.x, pt.y);
 			return r;
 		}
 		case WM_KEYDOWN:{
