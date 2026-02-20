@@ -3720,7 +3720,7 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
         return inScrollBar;
     }
     else if(msg.is_wheel()) {
-        double step = 0.05 * (msg.wheel > 0 ? -1 : 1);
+        double step = 0.05 * (msg.wheel / -120.0);
         targetScrollPos_ += step;
         if (targetScrollPos_ < 0) targetScrollPos_ = 0;
         if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
