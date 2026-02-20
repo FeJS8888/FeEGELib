@@ -91,7 +91,9 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			ImmReleaseContext(getHWnd(), hIMC);
 			p->setIMECursorPos(cursorPos);
 			p->reflushCursorTick();
-			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			LRESULT r = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
+			return r;
 		}
 		case WM_KEYDOWN:{
 			switch (wParam) {
