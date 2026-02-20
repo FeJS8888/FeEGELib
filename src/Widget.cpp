@@ -9,6 +9,14 @@ vector<Widget*> widgets;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 bool PanelScaleChanged = false;
 
+// 当前可绘制区域（全局坐标系），Panel绘制时逐层收窄
+static constexpr double DRAWING_BOUND_MIN = -1e9;
+static constexpr double DRAWING_BOUND_MAX = 1e9;
+double globalDrawingLeft = DRAWING_BOUND_MIN;
+double globalDrawingRight = DRAWING_BOUND_MAX;
+double globalDrawingTop = DRAWING_BOUND_MIN;
+double globalDrawingBottom = DRAWING_BOUND_MAX;
+
 double Widget::getWidth(){
     return width;
 }
@@ -34,6 +42,17 @@ void Widget::setParent(Widget* p){
 
 Widget* Widget::getParent(){
     return this->parent;
+}
+
+void Widget::setDrawing(bool d) {
+    this->m_drawing += d ? 1 : -1;
+    if (this->parent != nullptr) {
+        this->parent->setDrawing(d);
+    }
+}
+
+int Widget::getDrawingState() const {
+    return this->m_drawing;
 }
 
 Widget::~Widget() {
@@ -141,16 +160,45 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
     // 绘制子控件（偏移已由Layout处理，无需手动减scrollOffset_）
     if(scaleChanged) PanelScaleChanged = true;
+
+    // 收窄全局可绘制区域到本Panel范围
+    double oldDrawingLeft = globalDrawingLeft, oldDrawingRight = globalDrawingRight;
+    double oldDrawingTop = globalDrawingTop, oldDrawingBottom = globalDrawingBottom;
+    globalDrawingLeft = std::max(globalDrawingLeft, cx - width / 2);
+    globalDrawingRight = std::min(globalDrawingRight, cx + width / 2);
+    globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
+    globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
+
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
-        children[i]->draw(layer, childX, childY);
+
+        // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
+        double childCX = cx + childOffsets[i].x * scale;
+        double childCY = cy + childOffsets[i].y * scale;
+        double halfW = children[i]->getWidth() / 2.0;
+        double halfH = children[i]->getHeight() / 2.0;
+        bool withinBounds = (childCX + halfW > globalDrawingLeft) &&
+                            (childCX - halfW < globalDrawingRight) &&
+                            (childCY + halfH > globalDrawingTop) &&
+                            (childCY - halfH < globalDrawingBottom);
+        if (withinBounds || children[i]->getDrawingState() != 0) {
+            children[i]->draw(layer, childX, childY);
+        }
+
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
+
+    // 恢复全局可绘制区域
+    globalDrawingLeft = oldDrawingLeft;
+    globalDrawingRight = oldDrawingRight;
+    globalDrawingTop = oldDrawingTop;
+    globalDrawingBottom = oldDrawingBottom;
+
     PanelScaleChanged = false;
     scaleChanged = false;
 
@@ -455,6 +503,7 @@ bool Ripple::alive() const {
             if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
                 if(!m_setDirtyState){
                     p->setAlwaysDirty(true);
+                    btn->setDrawing(true);
                     m_setDirtyState = true;
                 }
                 p->setDirty();
@@ -465,6 +514,7 @@ bool Ripple::alive() const {
             if(btn->getParent() != nullptr){
                 if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
                     p->setAlwaysDirty(false);
+                    btn->setDrawing(false);
                 }
             }
         }
@@ -475,6 +525,7 @@ bool Ripple::alive() const {
             if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
                 if(!m_setDirtyState){
                     p->setAlwaysDirty(true);
+                    ib->setDrawing(true);
                     m_setDirtyState = true;
                 }
                 p->setDirty();
@@ -485,6 +536,7 @@ bool Ripple::alive() const {
             if(ib->getParent() != nullptr){
                 if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
                     p->setAlwaysDirty(false);
+                    ib->setDrawing(false);
                 }
             }
         }
@@ -1040,6 +1092,7 @@ void InputBox::deleteFocus(const mouse_msg& msg){
             p->setAlwaysDirty(false);
         }
     }
+    this->setDrawing(false);
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     if(focusingWidget == this) focusingWidget = nullptr;
 }
@@ -1080,6 +1133,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
                     p->setAlwaysDirty(true);
                 }
             }
+            this->setDrawing(true);
             inv.setfocus();
             reflushCursorTick();
         }
@@ -1461,8 +1515,10 @@ void Slider::draw(PIMAGE dst,double x,double y){
             if(isAnimating){
                 p->setAlwaysDirty(true);
                 p->setDirty();
+                this->setDrawing(true);
             } else {
                 p->setAlwaysDirty(false);
+                this->setDrawing(false);
             }
         }
     }
@@ -3007,8 +3063,10 @@ void Knob::draw(PIMAGE dst, double x, double y) {
             if(isAnimating){
                 p->setAlwaysDirty(true);
                 p->setDirty();
+                this->setDrawing(true);
             } else {
                 p->setAlwaysDirty(false);
+                this->setDrawing(false);
             }
         }
     }
@@ -3825,16 +3883,45 @@ void Box::draw(PIMAGE dst, double x, double y) {
     // Box不绘制背景，直接绘制子控件
     // 绘制子控件 - 子控件相对于自己的中心缩放，位置不随scale变化
     if(scaleChanged) PanelScaleChanged = true;
+
+    // 收窄全局可绘制区域到本Box范围
+    double oldDrawingLeft = globalDrawingLeft, oldDrawingRight = globalDrawingRight;
+    double oldDrawingTop = globalDrawingTop, oldDrawingBottom = globalDrawingBottom;
+    globalDrawingLeft = std::max(globalDrawingLeft, cx - width / 2);
+    globalDrawingRight = std::min(globalDrawingRight, cx + width / 2);
+    globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
+    globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
+
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
         absolutPosDeltaX = left;
         absolutPosDeltaY = top;
         children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
-        children[i]->draw(layer, childX, childY);
+
+        // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
+        double childCX = cx + childOffsets[i].x;
+        double childCY = cy + childOffsets[i].y;
+        double halfW = children[i]->getWidth() / 2.0;
+        double halfH = children[i]->getHeight() / 2.0;
+        bool withinBounds = (childCX + halfW > globalDrawingLeft) &&
+                            (childCX - halfW < globalDrawingRight) &&
+                            (childCY + halfH > globalDrawingTop) &&
+                            (childCY - halfH < globalDrawingBottom);
+        if (withinBounds || children[i]->getDrawingState() != 0) {
+            children[i]->draw(layer, childX, childY);
+        }
+
         absolutPosDeltaX = 0;
         absolutPosDeltaY = 0;
     }
+
+    // 恢复全局可绘制区域
+    globalDrawingLeft = oldDrawingLeft;
+    globalDrawingRight = oldDrawingRight;
+    globalDrawingTop = oldDrawingTop;
+    globalDrawingBottom = oldDrawingBottom;
+
     PanelScaleChanged = false;
     scaleChanged = false;
     
