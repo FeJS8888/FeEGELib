@@ -81,11 +81,25 @@ public:
     void setParent(Widget* p);
 
     Widget* getParent();
+
+    /**
+     * @brief 设置控件是否正在绘制动画（引用计数方式，可传播到父控件）
+     * @param d true表示开始绘制动画，false表示结束
+     */
+    void setDrawing(bool d);
+
+    /**
+     * @brief 获取当前绘制动画引用计数
+     * @return 引用计数值（非零表示控件有正在进行的动画）
+     */
+    int getDrawingState() const;
+
 protected:
     double cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
     double scale = 1;         ///< 缩放比例
     Widget* parent = nullptr;
+    int m_drawing = 0;           ///< 绘制动画引用计数（非零时即使超出Panel范围也应绘制）
 };
 
 /**
