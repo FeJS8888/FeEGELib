@@ -534,6 +534,8 @@ protected:
     std::wstring IMECompositionString = L"";
     int IMECursorPos = 0;
     float scroll_offset = 0;
+    float m_ime_pos_x = 0;
+    float m_ime_pos_y = 0;
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
@@ -621,6 +623,7 @@ public:
     int getMCounter();
 
     virtual void deleteFocus(const mouse_msg& msg) override ;
+    void updateIMEPosition();
 };
 
 

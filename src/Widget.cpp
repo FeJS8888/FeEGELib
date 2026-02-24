@@ -924,9 +924,14 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
     inv.size(0, 0);
     inv.setmaxlen(2147483640);
     inv.setparent(this);
+    inv.killfocus();
     
     on_focus = false;
-    inv.killfocus();
+
+    float _w,_h;
+    measuretext("a",&_w,&_h,btnLayer);
+    m_ime_pos_x = left + absolutPosDeltaX;
+    m_ime_pos_y = top + height / 2 + _h / 2 + 2 + absolutPosDeltaY;
 }
 
 InputBox::~InputBox() {
@@ -1059,8 +1064,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             }
             
             // 更新IME位置
-            InputPositionX = left + cursor_draw_x + absolutPosDeltaX;
-            InputPositionY = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
+            InputPositionX = m_ime_pos_x = left + cursor_draw_x + absolutPosDeltaX;
+            InputPositionY = m_ime_pos_y = top + height / 2 + textRealHeight / 2 + 2 + absolutPosDeltaY;
+            SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
         }
     }
     
@@ -1095,6 +1101,13 @@ void InputBox::deleteFocus(const mouse_msg& msg){
     this->setDrawing(false);
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     if(focusingWidget == this) focusingWidget = nullptr;
+}
+
+// todo: 输入法位置会在 Win11 的输入的第一帧无法做到对齐
+void InputBox::updateIMEPosition() {
+    InputPositionX = m_ime_pos_x;
+    InputPositionY = m_ime_pos_y;
+    SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
 }
 
 bool InputBox::handleEvent(const mouse_msg& msg) {
@@ -1176,6 +1189,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
         focusingWidget = this;
         mouseOwningFlag = this;
+        updateIMEPosition();
         return true;
     }
     // 鼠标左键按下且不在输入框内
@@ -1250,6 +1264,12 @@ void InputBox::setPosition(double x,double y){
     if(sgn(left - (x - width / 2)) == 0 && sgn(top - (y - height / 2)) == 0) return;
 	left = x - width / 2;
 	top = y - height / 2;
+
+    float _w,_h;
+    measuretext("a",&_w,&_h,btnLayer);
+    m_ime_pos_x = left + absolutPosDeltaX;
+    m_ime_pos_y = top + height / 2 + _h / 2 + 2 + absolutPosDeltaY;
+
     needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
