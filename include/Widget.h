@@ -244,6 +244,10 @@ public:
      */
     double getScrollOffset() const;
 
+    bool isInside(double x, double y) const;
+
+    void deleteFocus(const mouse_msg& msg) override;
+
 protected:
     double radius;
     double origin_width, origin_height;

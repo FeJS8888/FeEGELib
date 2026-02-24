@@ -313,26 +313,83 @@ bool isDescendant(Widget* target, const std::vector<Widget*>& children) {
     return false;
 }
 
+bool Panel::isInside(double x, double y) const {
+    double left = cx - width / 2;
+    double top = cy - height / 2;
+    // 转换为按钮内部坐标系
+    double localX = x - left;
+    double localY = y - top;
+
+    // 先检查是否在按钮矩形框外
+    if (localX < 0 || localX >= width || localY < 0 || localY >= height)
+        return false;
+
+    // 中心矩形区（不考虑圆角）直接返回 true
+    if (localX >= radius && localX < width - radius)
+        return true;
+    if (localY >= radius && localY < height - radius)
+        return true;
+
+    // 检查四个圆角区域
+    int dx, dy;
+    // 左上角
+    if (localX < radius && localY < radius) {
+        dx = radius - localX;
+        dy = radius - localY;
+        return dx * dx + dy * dy <= radius * radius;
+    }
+    // 右上角
+    if (localX >= width - radius && localY < radius) {
+        dx = localX - (width - radius);
+        dy = radius - localY;
+        return dx * dx + dy * dy <= radius * radius;
+    }
+    // 左下角
+    if (localX < radius && localY >= height - radius) {
+        dx = radius - localX;
+        dy = localY - (height - radius);
+        return dx * dx + dy * dy <= radius * radius;
+    }
+    // 右下角
+    if (localX >= width - radius && localY >= height - radius) {
+        dx = localX - (width - radius);
+        dy = localY - (height - radius);
+        return dx * dx + dy * dy <= radius * radius;
+    }
+
+    // 其余区域为中间的十字形部分
+    return true;
+}
+
+void Panel::deleteFocus(const mouse_msg& msg) {
+    focusingWidget = nullptr;
+}
+
 bool Panel::handleEvent(const mouse_msg& msg){
     int mx = msg.x,my = msg.y;
     double left = cx - width / 2;
     double top = cy - height / 2;
-    bool isin = mx >= left && mx <= left + width && my >= top && my <= top + height;
+    bool isin = isInside(mx, my);
 
     // 处理滚动条拖动（即使鼠标在面板外也要处理）
     if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
-        double sbLeft = left + width - scrollBar_->getWidth();
-        double sbTop = top;
-        // 拖动时始终处理
-        if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
-            return true;
+        if(!msg.is_wheel() || (msg.is_wheel() && focusingWidget == this)){
+            double sbLeft = left + width - scrollBar_->getWidth();
+            double sbTop = top;
+            // 拖动时始终处理
+            if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
+                if(msg.is_left() && msg.is_down() && focusingWidget == nullptr){
+                    focusingWidget = this;
+                }
+                return true;
+            }
         }
     }
 
     if(!isin) {
         // When clicking outside the Panel, remove focus from any descendant widget that has focus
         if(msg.is_left() && msg.is_down() && focusingWidget != nullptr) {
-            if(isDescendant(focusingWidget, children)) {
+            if(focusingWidget == this || isDescendant(focusingWidget, children)) {
                 focusingWidget->deleteFocus(msg);
             }
         }
@@ -346,7 +403,12 @@ bool Panel::handleEvent(const mouse_msg& msg){
     }
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
-        if(state) return true;
+        if(state){
+            if(msg.is_left() && msg.is_down() && focusingWidget == nullptr){
+                focusingWidget = this;
+            }
+            return true;
+        }
     }
     if(msg.is_left() && msg.is_down()){
         mouseOwningFlag = this;
@@ -355,19 +417,10 @@ bool Panel::handleEvent(const mouse_msg& msg){
     else if(msg.is_left() && msg.is_up()){
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
+            focusingWidget = this;
         }
         else if(mouseOwningFlag != nullptr){
             mouseOwningFlag->releaseMouseOwningFlag(msg);
-        }
-        return true;
-    }
-    else if(msg.is_wheel()){
-        if(scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
-            double sbLeft = left + width - scrollBar_->getWidth();
-            double sbTop = top;
-            if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
-                return true;
-            }
         }
         return true;
     }
@@ -3795,10 +3848,10 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             return true;
         }
         if (parentPanel_ && inScrollBar) parentPanel_->setDirty();
-        return inScrollBar;
+        return inScrollBar;git 
     }
     else if(msg.is_wheel()) {
-        double step = 0.05 * (msg.wheel / -120.0);
+        double step = 0.15 * (msg.wheel / -120.0);
         targetScrollPos_ += step;
         if (targetScrollPos_ < 0) targetScrollPos_ = 0;
         if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
