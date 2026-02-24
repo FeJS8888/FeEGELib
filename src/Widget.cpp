@@ -3609,8 +3609,9 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     double diff = targetScrollPos_ - scrollPos_;
     if (diff != 0) {
         double lerpFactor = 0.18;  // 插值系数，越大越快到达目标
-        if (std::abs(diff) < 0.001) {
-            scrollPos_ = targetScrollPos_;  // 接近目标时直接到达
+        double maxScroll = contentHeight_ - viewHeight_;
+        if (maxScroll <= 0 || std::abs(diff) * maxScroll < 1.0) {
+            scrollPos_ = targetScrollPos_;  // 接近目标时直接到达（像素级精度）
         } else {
             scrollPos_ += diff * lerpFactor;
         }
@@ -3848,14 +3849,18 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             return true;
         }
         if (parentPanel_ && inScrollBar) parentPanel_->setDirty();
-        return inScrollBar;git 
+        return inScrollBar;
     }
     else if(msg.is_wheel()) {
-        double step = 0.15 * (msg.wheel / -120.0);
-        targetScrollPos_ += step;
-        if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-        if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-        if (parentPanel_) parentPanel_->setDirty();
+        double maxScroll = contentHeight_ - viewHeight_;
+        if (maxScroll > 0) {
+            double fixedPixels = 60.0;  // 每次滚轮固定滚动60像素
+            double step = fixedPixels / maxScroll * (msg.wheel / -120.0);
+            targetScrollPos_ += step;
+            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            if (parentPanel_) parentPanel_->setDirty();
+        }
         return true;
     }
 
