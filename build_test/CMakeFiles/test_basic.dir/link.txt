@@ -1,3 +1,0 @@
-/usr/local/bin/cmake -E rm -f CMakeFiles/test_basic.dir/objects.a
-/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/test_basic.dir/objects.a @CMakeFiles/test_basic.dir/objects1.rsp
-/usr/bin/x86_64-w64-mingw32-g++ -g  -Wl,--allow-multiple-definition -mwindows -static -Wl,--whole-archive CMakeFiles/test_basic.dir/objects.a -Wl,--no-whole-archive -o test_basic.exe -Wl,--out-implib,libtest_basic.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/test_basic.dir/linkLibs.rsp

@@ -1,2 +1,0 @@
-/usr/bin/x86_64-w64-mingw32-ar qc libFeEGELib_core.a CMakeFiles/FeEGELib_core.dir/src/Base.cpp.obj CMakeFiles/FeEGELib_core.dir/src/Widget.cpp.obj CMakeFiles/FeEGELib_core.dir/src/Collision.cpp.obj CMakeFiles/FeEGELib_core.dir/src/Element.cpp.obj CMakeFiles/FeEGELib_core.dir/src/font_manager.cpp.obj CMakeFiles/FeEGELib_core.dir/src/sys_edit.cpp.obj CMakeFiles/FeEGELib_core.dir/src/Layout.cpp.obj
-/usr/bin/x86_64-w64-mingw32-ranlib libFeEGELib_core.a
