@@ -373,7 +373,9 @@ bool Panel::handleEvent(const mouse_msg& msg){
 
     // 处理滚动条拖动（即使鼠标在面板外也要处理）
     if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
-        if(!msg.is_wheel() || (msg.is_wheel() && focusingWidget == this)){
+        // 非滚轮事件（拖拽等）始终处理；滚轮事件仅在鼠标位于面板内时处理，
+        // 不受子控件焦点状态影响（否则InputBox获焦后无法滚动面板）
+        if(!msg.is_wheel() || (msg.is_wheel() && isin)){
             double sbLeft = left + width - scrollBar_->getWidth();
             double sbTop = top;
             // 拖动时始终处理

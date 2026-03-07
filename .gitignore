@@ -8,5 +8,11 @@
 *.exe
 *.dll
 *.so
-*.dylibbuild_test/
+*.dylib
+build_test/
 build/
+build_verify/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
