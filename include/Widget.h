@@ -1749,6 +1749,16 @@ public:
      * @param s 缩放比例
      */
     void setScale(double s) override;
+
+    /**
+     * @brief 处理鼠标事件，支持滚轮滚动（无滚动条）
+     */
+    bool handleEvent(const mouse_msg& msg) override;
+
+private:
+    double targetBoxScrollPos_ = 0.0;  ///< 目标滚动位置（0~1）
+    double boxScrollPos_ = 0.0;        ///< 当前滚动位置（0~1，平滑插值）
+    bool smoothScrollActive_ = false;  ///< 是否正在进行平滑滚动动画
 };
 
 /**

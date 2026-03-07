@@ -393,6 +393,13 @@ bool Panel::handleEvent(const mouse_msg& msg){
                 focusingWidget->deleteFocus(msg);
             }
         }
+        // 鼠标移出Panel区域时，通知子控件以便重置鼠标指针形状
+        // （如InputBox的IDC_IBEAM→IDC_ARROW），仅在无拖动操作时执行
+        if (msg.is_move() && (mouseOwningFlag == nullptr || mouseOwningFlag == this)) {
+            for (Widget* w : children) {
+                w->handleEvent(msg);
+            }
+        }
         return false;
     }
     // When clicking inside this Panel, if the focused widget is in another Panel, remove its focus
@@ -3952,8 +3959,48 @@ void Box::draw(PIMAGE dst, double x, double y) {
         return;
     }
 
-    if (layout) layout->apply(*this);  // 自动计算子控件位置
-    
+    // 计算滚动偏移并进行平滑插值（与Panel/ScrollBar实现保持一致，但Box无滚动条）
+    double layoutScrollOffset = 0;
+    if (layout) {
+        LayoutResult extentResult = layout->apply(*this, 0);
+        double contentH = extentResult.contentMaxY - extentResult.contentMinY;
+        double viewH = height / (scale > 0 ? scale : 1.0);
+        double maxScroll = contentH - viewH;
+
+        if (maxScroll > 0) {
+            // 平滑滚动：boxScrollPos_ 向 targetBoxScrollPos_ 插值（同ScrollBar逻辑）
+            double diff = targetBoxScrollPos_ - boxScrollPos_;
+            if (diff != 0) {
+                double lerpFactor = 0.18;
+                if (std::abs(diff) * maxScroll < 1.0) {
+                    boxScrollPos_ = targetBoxScrollPos_;  // 接近目标时直接到达（像素级精度）
+                } else {
+                    boxScrollPos_ += diff * lerpFactor;
+                }
+                this->setDirty();
+                if (!smoothScrollActive_) {
+                    this->setAlwaysDirty(true);
+                    smoothScrollActive_ = true;
+                }
+            } else if (smoothScrollActive_) {
+                this->setAlwaysDirty(false);
+                smoothScrollActive_ = false;
+            }
+            layoutScrollOffset = boxScrollPos_ * maxScroll;
+        } else {
+            // 内容未超出视口，重置滚动状态
+            boxScrollPos_ = 0;
+            targetBoxScrollPos_ = 0;
+            if (smoothScrollActive_) {
+                this->setAlwaysDirty(false);
+                smoothScrollActive_ = false;
+            }
+        }
+    }
+
+    // 应用布局（带滚动偏移）
+    if (layout) layout->apply(*this, layoutScrollOffset);
+
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
     cleardevice(layer);
@@ -4030,6 +4077,28 @@ void Box::setScale(double s){
             p->setDirty();
         }
     }
+}
+
+bool Box::handleEvent(const mouse_msg& msg) {
+    // 滚轮事件：无滚动条的平滑滚动（与Panel/ScrollBar实现保持一致）
+    if (msg.is_wheel() && isInside(msg.x, msg.y)) {
+        if (layout) {
+            LayoutResult extentResult = layout->apply(*this, 0);
+            double contentH = extentResult.contentMaxY - extentResult.contentMinY;
+            double viewH = height / (scale > 0 ? scale : 1.0);
+            double maxScroll = contentH - viewH;
+            if (maxScroll > 0) {
+                double fixedPixels = 60.0;  // 每次滚轮固定滚动60像素（同ScrollBar）
+                double step = fixedPixels / maxScroll * (msg.wheel / -120.0);
+                targetBoxScrollPos_ += step;
+                if (targetBoxScrollPos_ < 0) targetBoxScrollPos_ = 0;
+                if (targetBoxScrollPos_ > 1.0) targetBoxScrollPos_ = 1.0;
+                this->setDirty();
+            }
+        }
+        return true;
+    }
+    return Panel::handleEvent(msg);
 }
 
 // ============ BoxBuilder 实现 ============
