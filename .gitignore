@@ -8,4 +8,5 @@
 *.exe
 *.dll
 *.so
-*.dylib
+*.dylibbuild_test/
+build/
