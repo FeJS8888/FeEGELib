@@ -396,10 +396,15 @@ bool Panel::handleEvent(const mouse_msg& msg){
             }
         }
         // 鼠标移出Panel区域时，通知子控件以便重置鼠标指针形状
-        // （如InputBox的IDC_IBEAM→IDC_ARROW），仅在无拖动操作时执行
+        // （如InputBox的IDC_IBEAM→IDC_ARROW），仅在无拖动操作时执行。
+        // 使用远离屏幕的合成坐标，而非实际鼠标坐标，以避免滚动超出视口的
+        // 不可见子控件恰好命中真实鼠标位置而错误触发IDC_IBEAM。
         if (msg.is_move() && (mouseOwningFlag == nullptr || mouseOwningFlag == this)) {
+            mouse_msg leaveMsg = msg;
+            leaveMsg.x = -99999;
+            leaveMsg.y = -99999;
             for (Widget* w : children) {
-                w->handleEvent(msg);
+                w->handleEvent(leaveMsg);
             }
         }
         return false;
