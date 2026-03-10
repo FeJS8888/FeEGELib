@@ -597,8 +597,9 @@ public:
     /**
      * @brief 设置输入内容
      * @param s 内容字符串
+     * @param flag 内部标志，外界调用不应当填入
      */
-    void setContent(const std::wstring& s);
+    void setContent(const std::wstring& s,bool flag = false);
 
     /**
      * @brief 设置最大输入长度

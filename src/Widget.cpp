@@ -1035,7 +1035,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         inv.setfocus();
         wchar_t str[512];
         inv.gettext(512, str);
-        setContent(str);
+        setContent(str,true);
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -1312,9 +1312,10 @@ bool InputBox::isInside(double x, double y) const {
     return true;
 }
 
-void InputBox::setContent(const std::wstring& s) {
+void InputBox::setContent(const std::wstring& s,bool flag) {
     if(content == s) return;
     content = s;
+    if(!flag) inv.settext(s.c_str());
     needRedraw = true;
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
