@@ -94,12 +94,18 @@ public:
      */
     int getDrawingState() const;
 
+    virtual void reset();
+
+    // 仅作用于部分控件
+    void setNeedRedraw(bool b) { needRedraw = b; };
+
 protected:
     double cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
     double scale = 1;         ///< 缩放比例
     Widget* parent = nullptr;
     int m_drawing = 0;           ///< 绘制动画引用计数（非零时即使超出Panel范围也应绘制）
+    bool needRedraw = true;
 };
 
 /**
@@ -248,6 +254,8 @@ public:
 
     void deleteFocus(const mouse_msg& msg) override;
 
+    void reset() override;
+
 protected:
     double radius;
     double origin_width, origin_height;
@@ -258,7 +266,6 @@ protected:
     PIMAGE maskLayer = nullptr;
     PIMAGE drawLayer = nullptr;
     bool scaleChanged = true;
-    bool needRedraw = true;
     int needRedrawAlways = 0;
     ege_path clippath;
 
@@ -363,7 +370,6 @@ protected:
     std::wstring content;                       ///< 按钮文本
     std::function<void(void)> on_click_event = nullptr;  ///< 点击事件回调
     color_t color;                              ///< 按钮颜色
-    bool needRedraw = true;                     ///< 是否需要重绘
     bool m_clicking = false;                    ///< 是否正在点击
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
@@ -476,6 +482,8 @@ public:
 
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
+
+    void reset() override;
 };
 
 /**
@@ -527,7 +535,6 @@ protected:
     bool m_clicking = false;
     int m_counter = 0;
     color_t color = EGERGB(245, 245, 235);
-    bool needRedraw = true;
     bool scaleChanged = true;
     ege_path clippath;
 
@@ -597,8 +604,9 @@ public:
     /**
      * @brief 设置输入内容
      * @param s 内容字符串
+     * @param flag 内部标志，外界调用不应当填入
      */
-    void setContent(const std::wstring& s);
+    void setContent(const std::wstring& s,bool flag = false);
 
     /**
      * @brief 设置最大输入长度
@@ -628,6 +636,8 @@ public:
 
     virtual void deleteFocus(const mouse_msg& msg) override ;
     void updateIMEPosition();
+
+    void reset() override;
 };
 
 
@@ -684,7 +694,6 @@ protected:
 	double thickness = 4;
 	double origin_thickness = 4;
     double step = 0.0;              ///< 步进值，0表示无步进
-    bool needRedraw = true;
     Orientation m_orientation = Orientation::Row; // 方向
     float text_offset_x = 0; // 文本水平偏移量
     float last_cursor_pos_width = 0; // 上次光标位置，用于平滑滚动
@@ -889,7 +898,6 @@ protected:
 
     double currentProgress = 0.0;  // 当前绘制进度
     double targetProgress = 0.0;   // 实际设置目标
-    bool needRedraw = true;
 
     PIMAGE barLayer = nullptr;
 
@@ -1749,6 +1757,18 @@ public:
      * @param s 缩放比例
      */
     void setScale(double s) override;
+
+    /**
+     * @brief 处理鼠标事件，支持滚轮滚动（无滚动条）
+     */
+    bool handleEvent(const mouse_msg& msg) override;
+
+    void reset() override;
+
+private:
+    double targetBoxScrollPos_ = 0.0;  ///< 目标滚动位置（0~1）
+    double boxScrollPos_ = 0.0;        ///< 当前滚动位置（0~1，平滑插值）
+    bool smoothScrollActive_ = false;  ///< 是否正在进行平滑滚动动画
 };
 
 /**
