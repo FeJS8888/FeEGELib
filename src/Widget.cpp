@@ -55,6 +55,10 @@ int Widget::getDrawingState() const {
     return this->m_drawing;
 }
 
+void Widget::reset() {
+    
+}
+
 Widget::~Widget() {
     // 从全局widgets集合中移除
     
@@ -485,6 +489,14 @@ std::vector<Widget*>& Panel::getChildren() {
     return children; 
 }
 
+void Panel::reset(){
+    for(Widget* w : children){
+        w->reset();
+        w->setNeedRedraw(true);
+    }
+    setDirty();
+}
+
 void Panel::setChildrenOffset(int index,Position pos){
     if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
         childOffsets[index] = pos;
@@ -903,6 +915,11 @@ bool Button::getClickState(){
 
 int Button::getMCounter(){
     return m_counter;
+}
+
+void Button::reset(){
+    ripples.clear();
+    ripples.shrink_to_fit();
 }
 
 // InputBox 类实现
@@ -1507,6 +1524,11 @@ void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
 void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
     // InputBox的拖动选择逻辑已在handleEvent的move事件中处理
     // 这里不需要额外处理，因为拖动选择是基于内部状态而非mouseOwning机制
+}
+
+void InputBox::reset(){
+    ripples.clear();
+    ripples.shrink_to_fit();
 }
 
 // Slider 类实现
@@ -3523,6 +3545,9 @@ Widget* getWidgetById(const std::wstring& identifier){
 
 void assignOrder(std::vector<Widget*> widgetWithOrder){
     swap(widgetWithOrder,widgets);
+    for(Widget* w : widgetWithOrder){
+        w->reset();
+    }
 }
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
@@ -4107,6 +4132,14 @@ bool Box::handleEvent(const mouse_msg& msg) {
         return true;
     }
     return Panel::handleEvent(msg);
+}
+
+void Box::reset(){
+    for(Widget* w : children){
+        w->reset();
+        w->setNeedRedraw(true);
+    }
+    setDirty();
 }
 
 // ============ BoxBuilder 实现 ============
