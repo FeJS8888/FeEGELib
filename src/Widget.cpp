@@ -1309,24 +1309,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
     // 鼠标移动时更新拖动选择范围
     if (msg.is_move() && dragging && on_focus) {
-        float localX = (float)(msg.x - (int)left);
-        int best_pos = charPositionFromLocalX(localX);
-
-        dragEnd = best_pos;
-        // 光标跟随选区末端
-        if (cursor_pos != dragEnd) moveCursor(dragEnd);
-        // 同步选区到 sys_edit（EM_SETSEL），保证键盘操作正确
-        inv.movecursor(dragBegin, dragEnd);
-
-        // 记录是否超出输入框边界（用于自动推进）
-        if (msg.x < (int)left) dragSide = -1;
-        else if (msg.x > (int)(left + width)) dragSide = 1;
-        else dragSide = 0;
-
-        needRedraw = true;
-        if (this->parent != nullptr) {
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
-        }
+        applyDragMove(msg.x);
         return true;
     }
 
@@ -1583,16 +1566,60 @@ int InputBox::charPositionFromLocalX(float localX) const {
     return best_pos;
 }
 
+void InputBox::applyDragMove(int mouseX) {
+    float localX = (float)(mouseX - (int)left);
+    int best_pos = charPositionFromLocalX(localX);
+    dragEnd = best_pos;
+    // 光标跟随选区末端
+    if (cursor_pos != dragEnd) moveCursor(dragEnd);
+    // 同步选区到 sys_edit（EM_SETSEL），保证后续键盘操作在正确范围内进行
+    inv.movecursor(dragBegin, dragEnd);
+    // 记录是否超出输入框边界（用于自动滚动推进）
+    if (mouseX < (int)left) dragSide = -1;
+    else if (mouseX > (int)(left + width)) dragSide = 1;
+    else dragSide = 0;
+    needRedraw = true;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    }
+}
+
 void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
-    // 清理拖动选择状态
-    dragging = false;
-    dragSide = 0;
-    mouseOwningFlag = nullptr;
+    if (msg.is_left() && msg.is_up()) {
+        // 鼠标抬起：正式结束拖动选择
+        dragging = false;
+        dragSide = 0;
+        mouseOwningFlag = nullptr;
+    } else if (msg.is_move() && dragging && on_focus) {
+        // 鼠标移动到所有控件外部时，仍继续更新拖动选择
+        applyDragMove(msg.x);
+    }
 }
 
 void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
-    // InputBox的拖动选择逻辑已在handleEvent的move事件中处理
-    // 这里不需要额外处理，因为拖动选择是基于内部状态而非mouseOwning机制
+    // 当鼠标移动到包含本控件的内层 Panel 之外、但仍在外层 Panel 内时，
+    // 外层 Panel 会通过 catchMouseOwningFlag 通知 mouseOwningFlag。
+    // 此处继续处理拖动选择，保证选区可以延伸到内层 Panel 边界之外。
+    if (msg.is_move() && dragging && on_focus) {
+        applyDragMove(msg.x);
+    }
+}
+
+void InputBox::deleteSelectedText() {
+    if (dragBegin == dragEnd) return;
+    int sel_s = std::min(dragBegin, dragEnd);
+    int sel_e = std::max(dragBegin, dragEnd);
+    sel_s = std::max(0, std::min(sel_s, (int)content.size()));
+    sel_e = std::max(0, std::min(sel_e, (int)content.size()));
+    content.erase(sel_s, sel_e - sel_s);
+    cursor_pos = sel_s;
+    dragBegin = dragEnd = sel_s;
+    inv.settext(content.c_str());
+    inv.movecursor(sel_s, sel_s);
+    needRedraw = true;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    }
 }
 
 void InputBox::reset(){

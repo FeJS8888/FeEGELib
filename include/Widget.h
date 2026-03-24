@@ -565,6 +565,9 @@ protected:
     /// 根据鼠标相对输入框左边缘的 localX 坐标，二分查找最近字符索引
     int charPositionFromLocalX(float localX) const;
 
+    /// 在拖动选择期间，更新 dragEnd / cursor_pos / scroll / sys_edit 选区到给定鼠标位置
+    void applyDragMove(int mouseX);
+
 public:
     /**
      * @brief 构造函数
@@ -595,6 +598,12 @@ public:
 
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
+
+    /**
+     * @brief 删除当前选区内的文本（同步更新 content、cursor_pos、dragBegin/dragEnd 及 sys_edit）
+     *        若无选区则不操作。用于 IME 开始组合前清除选区。
+     */
+    void deleteSelectedText();
 
     /**
      * @brief 检查点是否在输入框内
