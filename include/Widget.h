@@ -562,6 +562,9 @@ protected:
     float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
     float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
 
+    /// 根据鼠标相对输入框左边缘的 localX 坐标，二分查找最近字符索引
+    int charPositionFromLocalX(float localX) const;
+
 public:
     /**
      * @brief 构造函数

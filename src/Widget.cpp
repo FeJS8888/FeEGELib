@@ -1056,6 +1056,20 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         wchar_t str[512];
         inv.gettext(512, str);
         setContent(str,true);
+
+        // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
+        if (!dragging && IMECompositionString.empty()) {
+            DWORD selStart = 0, selEnd = 0;
+            SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+            int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
+            int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
+            if (dragBegin != newStart || dragEnd != newEnd) {
+                dragBegin  = newStart;
+                dragEnd    = newEnd;
+                needRedraw = true;
+            }
+            if (cursor_pos != newEnd) moveCursor(newEnd);
+        }
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -1118,6 +1132,23 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         measuretext("a",&_w,&_h,btnLayer);
         float textRealHeight = tmp ? tmp : _h;
         float text_start_x = padding - scroll_offset;
+
+        // 绘制选区高亮（文本下方，仅聚焦且有选区时）
+        if (on_focus && dragBegin != dragEnd) {
+            int sel_s = std::min(dragBegin, dragEnd);
+            int sel_e = std::max(dragBegin, dragEnd);
+            sel_s = std::max(0, std::min(sel_s, (int)content.size()));
+            sel_e = std::max(0, std::min(sel_e, (int)content.size()));
+            float sel_s_px, sel_e_px, sel_tmp;
+            measuretext(content.substr(0, sel_s).c_str(), &sel_s_px, &sel_tmp, btnLayer);
+            measuretext(content.substr(0, sel_e).c_str(), &sel_e_px, &sel_tmp, btnLayer);
+            setfillcolor(EGEARGB(180, 0, 120, 215), btnLayer);
+            ege_fillrect(text_start_x + sel_s_px,
+                         height / 2 - textRealHeight / 2 - 3.5f,
+                         sel_e_px - sel_s_px,
+                         textRealHeight + 7,
+                         btnLayer);
+        }
         
         // 绘制文本
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
@@ -1177,6 +1208,10 @@ void InputBox::draw(){
 
 void InputBox::deleteFocus(const mouse_msg& msg){
     on_focus = false;
+    dragging = false;
+    dragSide = 0;
+    dragBegin = 0;
+    dragEnd = 0;
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
@@ -1216,6 +1251,12 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
             mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
+        // 鼠标抬起时结束拖动选择
+        if (dragging) {
+            dragging = false;
+            dragSide = 0;
+            mouseOwningFlag = nullptr;
+        }
     }
 
     // 鼠标左键按下且在输入框内部
@@ -1238,33 +1279,15 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             reflushCursorTick();
         }
 
-        // 计算点击位置对应的字符下标（二分法）
-        const float padding = 14 * scale;
-        float click_x = localX - padding + scroll_offset;
-        int l = 0, r = content.length();
-        int best_pos = 0;
-        float min_dist = 1e9, tmp, char_x = 0;
-
-        while (l <= r) {
-            int mid = (l + r) / 2;
-            measuretext(content.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
-            float dist = fabs(char_x - click_x);
-            if (dist < min_dist) {
-                min_dist = dist;
-                best_pos = mid;
-            }
-            if (char_x < click_x) {
-                l = mid + 1;
-            } else if (char_x > click_x) {
-                r = mid - 1;
-            } else {
-                best_pos = mid;
-                break;
-            }
-        }
+        // 计算点击位置对应的字符下标
+        int best_pos = charPositionFromLocalX((float)localX);
 
         moveCursor(best_pos);
-        inv.movecursor(best_pos, best_pos);
+        // 开始拖动选择，锚点与光标初始相同
+        dragBegin = best_pos;
+        dragEnd = best_pos;
+        dragging = true;
+        inv.movecursor(dragBegin, dragEnd);
         needRedraw = true;
         if(this->parent != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1283,6 +1306,30 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
     else if (msg.is_left() && msg.is_down() && on_focus) {
         deleteFocus(msg);
     }
+
+    // 鼠标移动时更新拖动选择范围
+    if (msg.is_move() && dragging && on_focus) {
+        float localX = (float)(msg.x - (int)left);
+        int best_pos = charPositionFromLocalX(localX);
+
+        dragEnd = best_pos;
+        // 光标跟随选区末端
+        if (cursor_pos != dragEnd) moveCursor(dragEnd);
+        // 同步选区到 sys_edit（EM_SETSEL），保证键盘操作正确
+        inv.movecursor(dragBegin, dragEnd);
+
+        // 记录是否超出输入框边界（用于自动推进）
+        if (msg.x < (int)left) dragSide = -1;
+        else if (msg.x > (int)(left + width)) dragSide = 1;
+        else dragSide = 0;
+
+        needRedraw = true;
+        if (this->parent != nullptr) {
+            if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+        }
+        return true;
+    }
+
     return false;
 }
 
@@ -1518,9 +1565,28 @@ int InputBox::getMCounter(){
     return m_counter;
 }
 
+int InputBox::charPositionFromLocalX(float localX) const {
+    const float padding = 14 * scale;
+    float click_x = localX - padding + scroll_offset;
+    int l = 0, r = (int)content.length();
+    int best_pos = 0;
+    float min_dist = 1e9f, tmp, char_x = 0;
+    while (l <= r) {
+        int mid = (l + r) / 2;
+        measuretext(content.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
+        float dist = fabsf(char_x - click_x);
+        if (dist < min_dist) { min_dist = dist; best_pos = mid; }
+        if (char_x < click_x) l = mid + 1;
+        else if (char_x > click_x) r = mid - 1;
+        else { best_pos = mid; break; }
+    }
+    return best_pos;
+}
+
 void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
     // 清理拖动选择状态
     dragging = false;
+    dragSide = 0;
     mouseOwningFlag = nullptr;
 }
 
