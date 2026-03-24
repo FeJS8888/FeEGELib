@@ -173,11 +173,14 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
     globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
 
+    double savedAbsPosX = absolutPosDeltaX;
+    double savedAbsPosY = absolutPosDeltaY;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
-        absolutPosDeltaX = left;
-        absolutPosDeltaY = top;
+        // 累积父容器的屏幕偏移量，确保嵌套容器（如Panel>Box>InputBox）中的IME位置正确
+        absolutPosDeltaX = savedAbsPosX + left;
+        absolutPosDeltaY = savedAbsPosY + top;
         children[i]->setPosition(cx + childOffsets[i].x * scale,cy + childOffsets[i].y * scale);
 
         // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
@@ -193,8 +196,8 @@ void Panel::draw(PIMAGE dst, double x, double y) {
             children[i]->draw(layer, childX, childY);
         }
 
-        absolutPosDeltaX = 0;
-        absolutPosDeltaY = 0;
+        absolutPosDeltaX = savedAbsPosX;
+        absolutPosDeltaY = savedAbsPosY;
     }
 
     // 恢复全局可绘制区域
@@ -1014,8 +1017,8 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
 
     float _w,_h;
     measuretext("a",&_w,&_h,btnLayer);
-    m_ime_pos_x = left + absolutPosDeltaX;
-    m_ime_pos_y = top + height / 2 + _h / 2 + 2 + absolutPosDeltaY;
+    m_ime_pos_x = left;
+    m_ime_pos_y = top + height / 2 + _h / 2 + 2;
 }
 
 InputBox::~InputBox() {
@@ -1352,8 +1355,8 @@ void InputBox::setPosition(double x,double y){
 
     float _w,_h;
     measuretext("a",&_w,&_h,btnLayer);
-    m_ime_pos_x = left + absolutPosDeltaX;
-    m_ime_pos_y = top + height / 2 + _h / 2 + 2 + absolutPosDeltaY;
+    m_ime_pos_x = left;
+    m_ime_pos_y = top + height / 2 + _h / 2 + 2;
 
     needRedraw = true;
     if(this->parent != nullptr){
@@ -4050,11 +4053,14 @@ void Box::draw(PIMAGE dst, double x, double y) {
     globalDrawingTop = std::max(globalDrawingTop, cy - height / 2);
     globalDrawingBottom = std::min(globalDrawingBottom, cy + height / 2);
 
+    double savedAbsPosX = absolutPosDeltaX;
+    double savedAbsPosY = absolutPosDeltaY;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
-        absolutPosDeltaX = left;
-        absolutPosDeltaY = top;
+        // 累积父容器的屏幕偏移量，确保嵌套容器（如Panel>Box>InputBox）中的IME位置正确
+        absolutPosDeltaX = savedAbsPosX + left;
+        absolutPosDeltaY = savedAbsPosY + top;
         children[i]->setPosition(cx + childOffsets[i].x, cy + childOffsets[i].y);
 
         // 检查子控件是否在可绘制区域内，或有正在进行的动画需要继续更新
@@ -4070,8 +4076,8 @@ void Box::draw(PIMAGE dst, double x, double y) {
             children[i]->draw(layer, childX, childY);
         }
 
-        absolutPosDeltaX = 0;
-        absolutPosDeltaY = 0;
+        absolutPosDeltaX = savedAbsPosX;
+        absolutPosDeltaY = savedAbsPosY;
     }
 
     // 恢复全局可绘制区域
