@@ -13,6 +13,7 @@
 using namespace FeEGE;
 
 class Layout;
+class ScrollBar;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
@@ -80,11 +81,31 @@ public:
     void setParent(Widget* p);
 
     Widget* getParent();
+
+    /**
+     * @brief 设置控件是否正在绘制动画（引用计数方式，可传播到父控件）
+     * @param d true表示开始绘制动画，false表示结束
+     */
+    void setDrawing(bool d);
+
+    /**
+     * @brief 获取当前绘制动画引用计数
+     * @return 引用计数值（非零表示控件有正在进行的动画）
+     */
+    int getDrawingState() const;
+
+    virtual void reset();
+
+    // 仅作用于部分控件
+    void setNeedRedraw(bool b) { needRedraw = b; };
+
 protected:
     double cx = 0, cy = 0;       ///< 中心坐标
     double width = 0, height = 0; ///< 控件尺寸
     double scale = 1;         ///< 缩放比例
     Widget* parent = nullptr;
+    int m_drawing = 0;           ///< 绘制动画引用计数（非零时即使超出Panel范围也应绘制）
+    bool needRedraw = true;
 };
 
 /**
@@ -209,6 +230,32 @@ public:
     void setAlwaysDirty(bool d);
 
     int getAlwaysDirtyState();
+
+    /**
+     * @brief 启用或禁用滚动条
+     * @param enable 是否启用
+     * @param scrollBarWidth 滚动条宽度（默认16）
+     */
+    void enableScrollBar(bool enable, double scrollBarWidth = 16);
+
+    /**
+     * @brief 获取滚动条指针
+     * @return 滚动条指针（未启用时为nullptr）
+     */
+    ScrollBar* getScrollBar();
+
+    /**
+     * @brief 获取滚动偏移量（像素）
+     * @return 当前滚动偏移量
+     */
+    double getScrollOffset() const;
+
+    bool isInside(double x, double y) const;
+
+    void deleteFocus(const mouse_msg& msg) override;
+
+    void reset() override;
+
 protected:
     double radius;
     double origin_width, origin_height;
@@ -219,13 +266,16 @@ protected:
     PIMAGE maskLayer = nullptr;
     PIMAGE drawLayer = nullptr;
     bool scaleChanged = true;
-    bool needRedraw = true;
     int needRedrawAlways = 0;
     ege_path clippath;
 
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
-    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象}
+    std::shared_ptr<Layout> layout = nullptr;  ///< 当前布局对象
+
+    ScrollBar* scrollBar_ = nullptr;   ///< 滚动条（启用时非空）
+    bool scrollBarEnabled_ = false;     ///< 是否启用了滚动条
+    double scrollOffset_ = 0.0;         ///< 当前滚动偏移（像素）
 };
 
 
@@ -240,6 +290,7 @@ public:
     PanelBuilder& addChild(Widget* child, double offsetX = 0, double offsetY = 0);
     PanelBuilder& addChild(const std::vector<Widget*>& child, const std::vector<double>& offsetX = {}, const std::vector<double>& offsetY = {});
     PanelBuilder& setLayout(std::shared_ptr<Layout> layout);
+    PanelBuilder& setScrollBar(bool enable, double scrollBarWidth = 16);
     Panel* build();
 
 protected:
@@ -252,6 +303,8 @@ protected:
     std::vector<Widget*> children;
     std::vector<Position> childOffsets;  ///< 每个子控件的相对偏移（以面板中心为参考）
     std::shared_ptr<Layout> layout = nullptr;
+    bool scrollBarEnabled = false;
+    double scrollBarWidth = 16;
 };
 
 
@@ -317,7 +370,6 @@ protected:
     std::wstring content;                       ///< 按钮文本
     std::function<void(void)> on_click_event = nullptr;  ///< 点击事件回调
     color_t color;                              ///< 按钮颜色
-    bool needRedraw = true;                     ///< 是否需要重绘
     bool m_clicking = false;                    ///< 是否正在点击
     int m_counter = 0;                          ///< 计数器
     PIMAGE icon = nullptr;                      ///< 图标图像
@@ -430,6 +482,8 @@ public:
 
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
+
+    void reset() override;
 };
 
 /**
@@ -481,7 +535,6 @@ protected:
     bool m_clicking = false;
     int m_counter = 0;
     color_t color = EGERGB(245, 245, 235);
-    bool needRedraw = true;
     bool scaleChanged = true;
     ege_path clippath;
 
@@ -492,6 +545,8 @@ protected:
     std::wstring IMECompositionString = L"";
     int IMECursorPos = 0;
     float scroll_offset = 0;
+    float m_ime_pos_x = 0;
+    float m_ime_pos_y = 0;
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
@@ -549,8 +604,9 @@ public:
     /**
      * @brief 设置输入内容
      * @param s 内容字符串
+     * @param flag 内部标志，外界调用不应当填入
      */
-    void setContent(const std::wstring& s);
+    void setContent(const std::wstring& s,bool flag = false);
 
     /**
      * @brief 设置最大输入长度
@@ -579,6 +635,9 @@ public:
     int getMCounter();
 
     virtual void deleteFocus(const mouse_msg& msg) override ;
+    void updateIMEPosition();
+
+    void reset() override;
 };
 
 
@@ -635,7 +694,6 @@ protected:
 	double thickness = 4;
 	double origin_thickness = 4;
     double step = 0.0;              ///< 步进值，0表示无步进
-    bool needRedraw = true;
     Orientation m_orientation = Orientation::Row; // 方向
     float text_offset_x = 0; // 文本水平偏移量
     float last_cursor_pos_width = 0; // 上次光标位置，用于平滑滚动
@@ -840,7 +898,6 @@ protected:
 
     double currentProgress = 0.0;  // 当前绘制进度
     double targetProgress = 0.0;   // 实际设置目标
-    bool needRedraw = true;
 
     PIMAGE barLayer = nullptr;
 
@@ -1523,6 +1580,144 @@ private:
 };
 
 /**
+ * @brief 垂直滚动条控件类，用于Panel内容滚动
+ * 
+ * 显示在Panel右侧，包含顶部和底部箭头按钮以及中间可拖动的滑块。
+ * 滑块的相对长度与Panel内部子控件占据的总高度相关。
+ */
+class ScrollBar {
+public:
+    /**
+     * @brief 构造函数
+     * @param barWidth 滚动条宽度
+     * @param barHeight 滚动条高度（等于Panel高度）
+     */
+    ScrollBar(double barWidth, double barHeight);
+
+    /**
+     * @brief 绘制滚动条
+     * @param dst 目标图像
+     * @param x 滚动条左上角x坐标（相对于Panel layer）
+     * @param y 滚动条左上角y坐标（相对于Panel layer）
+     * @param scale 缩放比例
+     */
+    void draw(PIMAGE dst, double x, double y, double scale);
+
+    /**
+     * @brief 处理鼠标事件
+     * @param msg 鼠标消息
+     * @param scrollBarLeft 滚动条在屏幕坐标中的左边界
+     * @param scrollBarTop 滚动条在屏幕坐标中的上边界
+     * @param scale 缩放比例
+     * @return 是否消费了事件
+     */
+    bool handleEvent(const mouse_msg& msg, double scrollBarLeft, double scrollBarTop, double scale);
+
+    /**
+     * @brief 设置内容范围（子控件的最小Y到最大Y的跨度）
+     * @param contentHeight 内容总高度
+     * @param viewHeight 可见区域高度
+     */
+    void setContentRange(double contentHeight, double viewHeight);
+
+    /**
+     * @brief 设置滚动位置（0.0 ~ 1.0）
+     * @param pos 滚动位置
+     */
+    void setScrollPosition(double pos);
+
+    /**
+     * @brief 获取滚动位置（0.0 ~ 1.0）
+     * @return 当前滚动位置
+     */
+    double getScrollPosition() const;
+
+    /**
+     * @brief 获取滚动条宽度
+     * @return 宽度
+     */
+    double getWidth() const;
+
+    /**
+     * @brief 设置尺寸
+     * @param w 宽度
+     * @param h 高度
+     */
+    void setSize(double w, double h);
+
+    /**
+     * @brief 是否需要显示滚动条（内容高度 > 可见高度）
+     * @return 是否需要显示
+     */
+    bool isNeeded() const;
+
+    /**
+     * @brief 设置关联的Panel（用于通知重绘）
+     * @param p Panel指针
+     */
+    void setParentPanel(Panel* p);
+
+private:
+    double barWidth_;             ///< 滚动条宽度
+    double barHeight_;            ///< 滚动条总高度
+    double contentHeight_ = 0;    ///< 内容总高度
+    double viewHeight_ = 0;       ///< 可见区域高度
+    double scrollPos_ = 0.0;      ///< 滚动位置(0.0~1.0)
+    double targetScrollPos_ = 0.0;///< 目标滚动位置
+    
+    // 按钮状态
+    bool topBtnHovered_ = false;
+    bool topBtnPressed_ = false;
+    bool bottomBtnHovered_ = false;
+    bool bottomBtnPressed_ = false;
+
+    // 轨道按下状态（持续滚动）
+    bool trackPressed_ = false;
+    int trackScrollDir_ = 0;         ///< 轨道滚动方向: -1=上, 1=下
+    double trackClickPos_ = 0;       ///< 轨道点击位置对应的滚动比例
+
+    // 持续滚动时的setAlwaysDirty管理
+    bool btnScrollActive_ = false;
+    double pressStartTime_ = 0;      ///< 按钮/轨道按下的时间戳(ms)
+
+    // 平滑滚动动画
+    bool smoothScrollActive_ = false; ///< 平滑滚动动画是否激活
+
+    // 滑块状态
+    bool thumbHovered_ = false;
+    bool thumbPressed_ = false;
+    bool thumbDragging_ = false;
+    double dragOffset_ = 0;       ///< 拖动偏移
+
+    Panel* parentPanel_ = nullptr;
+
+    /**
+     * @brief 获取按钮区域高度（正方形按钮）
+     */
+    double getButtonSize(double scale) const;
+
+    /**
+     * @brief 获取滑块的Y位置和高度
+     * @param scale 缩放比例
+     * @param outY 输出滑块Y位置（相对于轨道顶部）
+     * @param outH 输出滑块高度
+     */
+    void getThumbRect(double scale, double& outY, double& outH) const;
+
+    /**
+     * @brief 绘制三角形箭头
+     * @param dst 目标图像
+     * @param centerX 中心X
+     * @param centerY 中心Y
+     * @param size 三角形大小
+     * @param up 是否朝上
+     * @param color 颜色
+     */
+    void drawArrow(PIMAGE dst, double centerX, double centerY, double size, bool up, color_t color);
+};
+
+
+/**
  * @brief Box布局容器
  * 
  * Box是一个自带FlexLayout的透明容器，继承自Panel但不显示任何背景和边框，
@@ -1562,6 +1757,18 @@ public:
      * @param s 缩放比例
      */
     void setScale(double s) override;
+
+    /**
+     * @brief 处理鼠标事件，支持滚轮滚动（无滚动条）
+     */
+    bool handleEvent(const mouse_msg& msg) override;
+
+    void reset() override;
+
+private:
+    double targetBoxScrollPos_ = 0.0;  ///< 目标滚动位置（0~1）
+    double boxScrollPos_ = 0.0;        ///< 当前滚动位置（0~1，平滑插值）
+    bool smoothScrollActive_ = false;  ///< 是否正在进行平滑滚动动画
 };
 
 /**

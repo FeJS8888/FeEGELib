@@ -62,8 +62,12 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	    case WM_SETFOCUS:{
 	        m_bInputFocus = 1;
 	        m_focus = true;
-	        // call textbox's own message process to show caret
-	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			// call textbox's own message process to show caret
+			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			CreateCaret(m_hwnd, (HBITMAP)NULL, 1, 1);
+			InputBox* p = static_cast<InputBox*>(m_object);
+			p->updateIMEPosition();
+	        return lr;
 		}
 	    case WM_KILLFOCUS:{
 	        m_bInputFocus = 0;
@@ -76,6 +80,7 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return TRUE;
 		}
 		case WM_IME_COMPOSITION:{
+			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 			InputBox* p = static_cast<InputBox*>(m_object);
 			if (lParam & GCS_COMPSTR) {
                 std::wstring compositionString = GetImeCompositionString(getHWnd(), GCS_COMPSTR);
@@ -91,7 +96,7 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			ImmReleaseContext(getHWnd(), hIMC);
 			p->setIMECursorPos(cursorPos);
 			p->reflushCursorTick();
-			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			return lr;
 		}
 		case WM_KEYDOWN:{
 			switch (wParam) {

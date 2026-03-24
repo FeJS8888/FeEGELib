@@ -112,6 +112,7 @@ void SetIMEPosition(HWND hwnd, int x, int y)
     ImmSetCandidateWindow(hIMC, &cfCand);
 
     ImmReleaseContext(hwnd, hIMC);
+    SetCaretPos(x, y - 20); // 调整输入法窗口位置，避免遮挡光标
 }
 
 

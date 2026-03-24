@@ -23,9 +23,10 @@ FlexLayout& FlexLayout::align(LayoutAlign align) {
     return *this;
 }
 
-void FlexLayout::apply(Panel& parent) {
+LayoutResult FlexLayout::apply(Panel& parent, double scrollOffset) {
+    LayoutResult result;
     std::vector<Widget*>& children = parent.getChildren();
-    if (children.empty()) return;
+    if (children.empty()) return result;
 
     double panelWidth = parent.getWidth();
     double panelHeight = parent.getHeight();
@@ -98,11 +99,27 @@ void FlexLayout::apply(Panel& parent) {
         for (int i = 0;i < children.size();++ i) {
             Widget* child = children[i];
             double childHeight = child->getHeight() / panelScale;
-            double cy = cursor + childHeight / 2.0;
+            double cy = cursor + childHeight / 2.0 - scrollOffset;
             parent.setChildrenOffset(i, {0, cy});
+
+            // 使用不含scrollOffset的原始位置计算内容范围
+            double originalCy = cursor + childHeight / 2.0;
+            double childTop = originalCy - childHeight / 2.0;
+            double childBottom = originalCy + childHeight / 2.0;
+            if (i == 0) {
+                result.contentMinY = childTop - padding_;
+                result.contentMaxY = childBottom;
+            } else {
+                if (childBottom > result.contentMaxY) result.contentMaxY = childBottom;
+            }
+
             cursor += childHeight + effectiveSpacing;
         }
+        // 在最后一个子控件的底部加上padding
+        result.contentMaxY += padding_;
     }
+
+    return result;
 }
 
 // ============ FlexLayoutBuilder ============

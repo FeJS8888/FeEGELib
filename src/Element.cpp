@@ -1442,6 +1442,7 @@ void init(int x,int y,int mode){
 	initXY();
 	FeEGE::initPen();
 	FeEGE::initTextPen();
+	SetProcessDPIAware();
 	ege_enable_aa(true);
 
 	// Font
