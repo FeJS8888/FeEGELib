@@ -1,10 +1,10 @@
-# FeEGELib V2.12.0.0
+# FeEGELib V2.15.0.0
 
 [![Page Views Count](https://badges.toozhao.com/badges/01JH01V78N1S0P0A9RVFJ5SWXZ/blue.svg)](https://badges.toozhao.com/stats/01JH01V78N1S0P0A9RVFJ5SWXZ "Get your own page views count badge on badges.toozhao.com")
 
 [![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=FeJS8888\&repo=FeEGELib\&show_owner=true\&theme=catppuccin_latte)](https://github.com/FeJS8888/FeEGELib)
 
-> 更新日期：2025/11/14
+> 更新日期：2026/03/24
 > 基于 [EGE V24.04](https://xege.org/) 开发的一套图形开发框架
 
 ---
