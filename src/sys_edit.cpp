@@ -72,6 +72,20 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	    case WM_KILLFOCUS:{
 	        m_bInputFocus = 0;
 	        m_focus = false;
+			HIMC hIMC = ImmGetContext(m_hwnd);
+			if (hIMC) {
+				LONG size = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, NULL, 0);
+				if (size > 0) {
+					std::vector<wchar_t> buffer(size, 0); 
+					ImmGetCompositionStringW(hIMC, GCS_COMPSTR, buffer.data(), size);
+					std::wstring content(buffer.data(), size);
+					InputBox* p = static_cast<InputBox*>(m_object);
+					p->setIMECompositionString(L"");
+					p->setContent(p->getContent() + content);
+				}
+				ImmNotifyIME(hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+				ImmReleaseContext(m_hwnd, hIMC);
+			}
 	        // call textbox's own message process to hide caret
 	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
