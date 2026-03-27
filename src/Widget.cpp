@@ -1063,12 +1063,19 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
             int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
             int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
-            if (dragBegin != newStart || dragEnd != newEnd) {
+            // EM_GETSEL 始终返回归一化的 (min, max)。
+            // 如果结果与我们最后通过 inv.movecursor(dragBegin, dragEnd) 设置的选区一致，
+            // 说明是键盘外部没有改变选区，此时 cursor_pos 已由拖动逻辑正确维护
+            // （鼠标松开处即 dragEnd，可能在 dragBegin 左侧），不应覆盖。
+            // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
+            bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
+                                   newEnd   == std::max(dragBegin, dragEnd));
+            if (!selMatchesOurs) {
                 dragBegin  = newStart;
                 dragEnd    = newEnd;
                 needRedraw = true;
+                if (cursor_pos != newEnd) moveCursor(newEnd);
             }
-            if (cursor_pos != newEnd) moveCursor(newEnd);
         }
     }
 
