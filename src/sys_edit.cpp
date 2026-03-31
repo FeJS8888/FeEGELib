@@ -153,7 +153,14 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return TRUE;
 		}
 		case WM_USER + 100 + 2 :{
+			// 记录点击时设置的光标位置（WM_SETTEXT 不会改变光标，此时 EDIT 光标 = 点击位置）。
+			// ImmNotifyIME(CPS_COMPLETE) 会触发 WM_IME_COMPOSITION(GCS_RESULTSTR)，
+			// EDIT 处理后光标移动到提交字符串末尾，可能产生选区。
+			// killIME() 结束后将 EDIT 光标恢复到点击位置，使绘制循环同步时 EM_GETSEL 与
+			// dragBegin/dragEnd 一致，从而不创建多余的高亮选区。
+			int savedPos = getCursorPos();
 			killIME();
+			movecursor(savedPos, savedPos);
 			return TRUE;
 		}
 		case EM_SETSEL:{
