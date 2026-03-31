@@ -1307,6 +1307,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         focusingWidget = this;
         mouseOwningFlag = this;
         updateIMEPosition();
+        ::PostMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
         return true;
     }
     // 鼠标左键按下且不在输入框内

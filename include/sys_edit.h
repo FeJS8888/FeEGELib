@@ -357,6 +357,8 @@ public:
         ::WaitForSingleObject(msg.hEvent, INFINITE);
     }
 
+    void killIME();
+
 public:
     HWND     m_hwnd;        ///< 窗口句柄
     HFONT    m_hFont;       ///< 字体句柄
