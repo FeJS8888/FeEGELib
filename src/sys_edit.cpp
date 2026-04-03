@@ -52,14 +52,20 @@ void sys_edit::killIME(){
 	if (hIMC) {
 		LONG size = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, NULL, 0);
 		if (size > 0) {
-			std::vector<wchar_t> buffer(size, 0); 
-			ImmGetCompositionStringW(hIMC, GCS_COMPSTR, buffer.data(), size);
-			std::wstring content(buffer.data(), size);
+			// 清除叠加层显示，然后让 ImmNotifyIME(CPS_COMPLETE) 驱动 EDIT 控件
+			// 自行在当前光标位置插入最终转换结果（GCS_RESULTSTR），避免手动
+			// 追加原始拼音串到末尾（位置错误）与 ImmNotifyIME 二次插入之间的冲突。
 			InputBox* p = static_cast<InputBox*>(m_object);
 			p->setIMECompositionString(L"");
-			p->setContent(p->getContent() + content);
+			// ImmNotifyIME 是同步的：WM_IME_COMPOSITION(GCS_RESULTSTR) 在此调用返回前
+			// 已被处理，EDIT 已将结果字符串插入当前光标位置。
+			ImmNotifyIME(hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+			// 将 EDIT 的最新文本（含已提交结果）同步到 InputBox::content；
+			// 使用 flag=true 跳过 inv.settext()，避免再次改变 EDIT 光标位置。
+			wchar_t buf[512];
+			gettext(512, buf);
+			p->setContent(std::wstring(buf), true);
 		}
-		ImmNotifyIME(hIMC, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
 		ImmReleaseContext(m_hwnd, hIMC);
 	}
 }
