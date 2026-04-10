@@ -1630,6 +1630,39 @@ void InputBox::deleteSelectedText() {
     }
 }
 
+void InputBox::markIMEStart() {
+    imeStartPos = cursor_pos;
+}
+
+void InputBox::commitIMEString(const std::wstring& compStr) {
+    setIMECompositionString(L"");
+    if (compStr.empty()) return;
+
+    int insertAt = std::max(0, std::min(imeStartPos, (int)content.size()));
+
+    // cursor_pos may already have been updated to the new click target (path 2:
+    // click inside same box) before this is called.  Shift it past the inserted
+    // text when it falls at or after the insertion point so the position stays
+    // consistent.  For the WM_KILLFOCUS path (path 1: click outside), cursor_pos
+    // still equals imeStartPos, so finalPos naturally lands right after the insert.
+    int savedPos = cursor_pos;
+    int finalPos = (savedPos < insertAt) ? savedPos : savedPos + (int)compStr.size();
+    finalPos = std::max(0, std::min(finalPos, (int)(content.size() + compStr.size())));
+
+    content.insert(insertAt, compStr);
+    cursor_pos = finalPos;
+    dragBegin = finalPos;
+    dragEnd = finalPos;
+
+    inv.settext(content.c_str());
+    inv.movecursor(finalPos, finalPos);
+
+    needRedraw = true;
+    if (parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+    }
+}
+
 void InputBox::reset(){
     ripples.clear();
     ripples.shrink_to_fit();

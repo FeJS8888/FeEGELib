@@ -551,6 +551,7 @@ protected:
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
     int dragSide = 0; // -1=左出界，1=右出界，0=无
+    int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
     double lastDragTick = 0.0;
     const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
 
@@ -637,6 +638,13 @@ public:
 
     void setIMECompositionString(const std::wstring& str);
     void setIMECursorPos(int pos);
+
+    /// 记录当前光标位置为 IME 组合起点（在 WM_IME_STARTCOMPOSITION 中调用）
+    void markIMEStart();
+
+    /// 将未完成的 IME 组合串插入到 imeStartPos 处，并将光标移到插入后的合适位置。
+    /// 若 compStr 为空则只清除叠加层显示。
+    void commitIMEString(const std::wstring& compStr);
 
     void adjustScrollForCursor();
     void reflushCursorTick();

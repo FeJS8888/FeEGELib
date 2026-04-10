@@ -48,21 +48,26 @@ int GetTextAscent(HWND hWnd) {
 }
 
 void sys_edit::killIME(){
-	// We return TRUE from WM_IME_STARTCOMPOSITION (without forwarding to the EDIT),
-	// so the EDIT has no internal IME state.  CPS_COMPLETE would commit the raw
-	// phonetic buffer ("ni") rather than the converted result ("你"), because the
-	// EDIT never set up a composition insertion point.  CPS_CANCEL simply discards
-	// the unfinished composition — no text is inserted and no GCS_RESULTSTR fires.
+	// Read the raw phonetic composition string (if any) before cancelling the IME,
+	// then commit it manually at imeStartPos via commitIMEString().
+	// We use CPS_CANCEL rather than CPS_COMPLETE because we returned TRUE from
+	// WM_IME_STARTCOMPOSITION without forwarding to the EDIT, so the EDIT has no
+	// composition insertion point; CPS_COMPLETE would insert the raw phonetic
+	// string at position 0 instead of at the correct position.
+	std::wstring compStr;
 	HIMC hIMC = ImmGetContext(m_hwnd);
 	if (hIMC) {
 		LONG size = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, NULL, 0);
 		if (size > 0) {
+			LONG charCount = size / sizeof(wchar_t);
+			std::vector<wchar_t> buf(charCount + 1, 0);
+			ImmGetCompositionStringW(hIMC, GCS_COMPSTR, buf.data(), size);
+			compStr.assign(buf.data(), charCount);
 			ImmNotifyIME(hIMC, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
 		}
 		ImmReleaseContext(m_hwnd, hIMC);
 	}
-	// Always clear the visual overlay even when the system already reset the IME.
-	static_cast<InputBox*>(m_object)->setIMECompositionString(L"");
+	static_cast<InputBox*>(m_object)->commitIMEString(compStr);
 }
 
 LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
@@ -99,6 +104,8 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
             // （WM_IME_STARTCOMPOSITION 返回 TRUE 后 EDIT 控件不会自行处理选区删除）
             InputBox* p = static_cast<InputBox*>(m_object);
             p->deleteSelectedText();
+            // 记录组合起点，供 killIME() 正确插入未完成组合串
+            p->markIMEStart();
             SetIMEPosition(getHWnd(),InputPositionX,InputPositionY);
 			return TRUE;
 		}
