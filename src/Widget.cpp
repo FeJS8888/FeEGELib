@@ -1059,6 +1059,14 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
 
         // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
         if (!dragging && IMECompositionString.empty()) {
+            // IME 串刚提交：强制选区锚点与光标对齐（不应有选区），
+            // 防止 WM_SETTEXT 导致的 EDIT 内部选区状态与 dragBegin/dragEnd 不符。
+            if (imeJustCommitted) {
+                imeJustCommitted = false;
+                dragBegin = cursor_pos;
+                dragEnd   = cursor_pos;
+                inv.movecursor(cursor_pos, cursor_pos);
+            }
             DWORD selStart = 0, selEnd = 0;
             SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
             int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
@@ -1219,6 +1227,7 @@ void InputBox::deleteFocus(const mouse_msg& msg){
     dragSide = 0;
     dragBegin = 0;
     dragEnd = 0;
+    imeJustCommitted = false;
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
@@ -1653,6 +1662,7 @@ void InputBox::commitIMEString(const std::wstring& compStr) {
     cursor_pos = finalPos;
     dragBegin = finalPos;
     dragEnd = finalPos;
+    imeJustCommitted = true;
 
     inv.settext(content.c_str());
     inv.movecursor(finalPos, finalPos);
