@@ -552,7 +552,6 @@ protected:
     int dragBegin = 0, dragEnd = 0;
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
-    bool imeJustCommitted = false; // IME 串刚刚提交，需要在绘制帧中重置选区起点
     double lastDragTick = 0.0;
     const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
 
