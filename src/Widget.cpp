@@ -1294,6 +1294,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         dragBegin = best_pos;
         dragEnd = best_pos;
         dragging = true;
+        lastDragMouseX = msg.x; // 记录点击时的屏幕 X，防止后续合成 MOUSEMOVE 误触发
         inv.movecursor(dragBegin, dragEnd);
         needRedraw = true;
         if(this->parent != nullptr){
@@ -1575,6 +1576,12 @@ int InputBox::charPositionFromLocalX(float localX) const {
 }
 
 void InputBox::applyDragMove(int mouseX) {
+    // 跳过鼠标未实际移动的合成 MOUSEMOVE（由 SetCursorPos 每帧触发）。
+    // 若 IME 提交刚刚改变了文本内容，相同像素 X 会映射到新内容中不同的字符下标，
+    // 从而产生虚假选区。只有鼠标真正移动后才重新计算。
+    if (mouseX == lastDragMouseX) return;
+    lastDragMouseX = mouseX;
+
     float localX = (float)(mouseX - (int)left);
     int best_pos = charPositionFromLocalX(localX);
     dragEnd = best_pos;
