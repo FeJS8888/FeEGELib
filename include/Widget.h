@@ -551,6 +551,8 @@ protected:
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
     int dragSide = 0; // -1=左出界，1=右出界，0=无
+    int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
+    int lastDragMouseX = -1; // 上次 applyDragMove 处理的屏幕 X，用于跳过内容变化后的重复合成 MOUSEMOVE
     double lastDragTick = 0.0;
     const double DRAG_ADVANCE_INTERVAL = 0.05; // 自动推进间隔，单位秒
 
@@ -561,6 +563,12 @@ protected:
     float cachedCursorPosWidth = 0;    ///< 缓存的光标位置宽度
     float cachedCursorWithImeWidth = 0;  ///< 缓存的光标+IME位置宽度
     float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
+
+    /// 根据鼠标相对输入框左边缘的 localX 坐标，二分查找最近字符索引
+    int charPositionFromLocalX(float localX) const;
+
+    /// 在拖动选择期间，更新 dragEnd / cursor_pos / scroll / sys_edit 选区到给定鼠标位置
+    void applyDragMove(int mouseX);
 
 public:
     /**
@@ -594,6 +602,12 @@ public:
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     /**
+     * @brief 删除当前选区内的文本（同步更新 content、cursor_pos、dragBegin/dragEnd 及 sys_edit）
+     *        若无选区则不操作。用于 IME 开始组合前清除选区。
+     */
+    void deleteSelectedText();
+
+    /**
      * @brief 检查点是否在输入框内
      * @param x x坐标
      * @param y y坐标
@@ -625,6 +639,13 @@ public:
 
     void setIMECompositionString(const std::wstring& str);
     void setIMECursorPos(int pos);
+
+    /// 记录当前光标位置为 IME 组合起点（在 WM_IME_STARTCOMPOSITION 中调用）
+    void markIMEStart();
+
+    /// 将未完成的 IME 组合串插入到 imeStartPos 处，并将光标移到插入后的合适位置。
+    /// 若 compStr 为空则只清除叠加层显示。
+    void commitIMEString(const std::wstring& compStr);
 
     void adjustScrollForCursor();
     void reflushCursorTick();

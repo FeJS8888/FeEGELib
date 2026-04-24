@@ -1056,6 +1056,27 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         wchar_t str[512];
         inv.gettext(512, str);
         setContent(str,true);
+
+        // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
+        if (!dragging && IMECompositionString.empty()) {
+            DWORD selStart = 0, selEnd = 0;
+            SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+            int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
+            int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
+            // EM_GETSEL 始终返回归一化的 (min, max)。
+            // 如果结果与我们最后通过 inv.movecursor(dragBegin, dragEnd) 设置的选区一致，
+            // 说明是键盘外部没有改变选区，此时 cursor_pos 已由拖动逻辑正确维护
+            // （鼠标松开处即 dragEnd，可能在 dragBegin 左侧），不应覆盖。
+            // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
+            bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
+                                   newEnd   == std::max(dragBegin, dragEnd));
+            if (!selMatchesOurs) {
+                dragBegin  = newStart;
+                dragEnd    = newEnd;
+                needRedraw = true;
+                if (cursor_pos != newEnd) moveCursor(newEnd);
+            }
+        }
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -1118,6 +1139,23 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         measuretext("a",&_w,&_h,btnLayer);
         float textRealHeight = tmp ? tmp : _h;
         float text_start_x = padding - scroll_offset;
+
+        // 绘制选区高亮（文本下方，仅聚焦且有选区时）
+        if (on_focus && dragBegin != dragEnd) {
+            int sel_s = std::min(dragBegin, dragEnd);
+            int sel_e = std::max(dragBegin, dragEnd);
+            sel_s = std::max(0, std::min(sel_s, (int)content.size()));
+            sel_e = std::max(0, std::min(sel_e, (int)content.size()));
+            float sel_s_px, sel_e_px, sel_tmp;
+            measuretext(content.substr(0, sel_s).c_str(), &sel_s_px, &sel_tmp, btnLayer);
+            measuretext(content.substr(0, sel_e).c_str(), &sel_e_px, &sel_tmp, btnLayer);
+            setfillcolor(EGEARGB(180, 0, 120, 215), btnLayer);
+            ege_fillrect(text_start_x + sel_s_px,
+                         height / 2 - textRealHeight / 2 - 3.5f,
+                         sel_e_px - sel_s_px,
+                         textRealHeight + 7,
+                         btnLayer);
+        }
         
         // 绘制文本
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
@@ -1177,6 +1215,10 @@ void InputBox::draw(){
 
 void InputBox::deleteFocus(const mouse_msg& msg){
     on_focus = false;
+    dragging = false;
+    dragSide = 0;
+    dragBegin = 0;
+    dragEnd = 0;
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
@@ -1216,6 +1258,12 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         if(mouseOwningFlag != nullptr && mouseOwningFlag != this){
             mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
+        // 鼠标抬起时结束拖动选择
+        if (dragging) {
+            dragging = false;
+            dragSide = 0;
+            mouseOwningFlag = nullptr;
+        }
     }
 
     // 鼠标左键按下且在输入框内部
@@ -1238,33 +1286,16 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             reflushCursorTick();
         }
 
-        // 计算点击位置对应的字符下标（二分法）
-        const float padding = 14 * scale;
-        float click_x = localX - padding + scroll_offset;
-        int l = 0, r = content.length();
-        int best_pos = 0;
-        float min_dist = 1e9, tmp, char_x = 0;
-
-        while (l <= r) {
-            int mid = (l + r) / 2;
-            measuretext(content.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
-            float dist = fabs(char_x - click_x);
-            if (dist < min_dist) {
-                min_dist = dist;
-                best_pos = mid;
-            }
-            if (char_x < click_x) {
-                l = mid + 1;
-            } else if (char_x > click_x) {
-                r = mid - 1;
-            } else {
-                best_pos = mid;
-                break;
-            }
-        }
+        // 计算点击位置对应的字符下标
+        int best_pos = charPositionFromLocalX((float)localX);
 
         moveCursor(best_pos);
-        inv.movecursor(best_pos, best_pos);
+        // 开始拖动选择，锚点与光标初始相同
+        dragBegin = best_pos;
+        dragEnd = best_pos;
+        dragging = true;
+        lastDragMouseX = msg.x; // 记录点击时的屏幕 X，防止后续合成 MOUSEMOVE 误触发
+        inv.movecursor(dragBegin, dragEnd);
         needRedraw = true;
         if(this->parent != nullptr){
             if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1277,12 +1308,20 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         focusingWidget = this;
         mouseOwningFlag = this;
         updateIMEPosition();
+        ::PostMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
         return true;
     }
     // 鼠标左键按下且不在输入框内
     else if (msg.is_left() && msg.is_down() && on_focus) {
         deleteFocus(msg);
     }
+
+    // 鼠标移动时更新拖动选择范围
+    if (msg.is_move() && dragging && on_focus) {
+        applyDragMove(msg.x);
+        return true;
+    }
+
     return false;
 }
 
@@ -1518,15 +1557,152 @@ int InputBox::getMCounter(){
     return m_counter;
 }
 
+int InputBox::charPositionFromLocalX(float localX) const {
+    const float padding = 14 * scale;
+    float click_x = localX - padding + scroll_offset;
+
+    // When IME composition is active the display string differs from content:
+    //   display = content[0..cursor_pos] + IMECompositionString + content[cursor_pos..]
+    // Searching against content alone causes clicks after the IME overlay to be
+    // mapped to positions that are too small (the IME string's pixel width is
+    // ignored).  We therefore search against the display string and convert the
+    // result back to a content index.
+    bool imeActive = !IMECompositionString.empty();
+    std::wstring displayContent;
+    int cp = 0; // IME insertion point in content
+    if (imeActive) {
+        cp = std::max(0, std::min(cursor_pos, (int)content.size()));
+        displayContent = content.substr(0, cp) + IMECompositionString + content.substr(cp);
+    }
+    const std::wstring& searchText = imeActive ? displayContent : content;
+
+    int l = 0, r = (int)searchText.length();
+    int best_pos = 0;
+    float min_dist = 1e9f, tmp, char_x = 0;
+    while (l <= r) {
+        int mid = (l + r) / 2;
+        measuretext(searchText.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
+        float dist = fabsf(char_x - click_x);
+        if (dist < min_dist) { min_dist = dist; best_pos = mid; }
+        if (char_x < click_x) l = mid + 1;
+        else if (char_x > click_x) r = mid - 1;
+        else { best_pos = mid; break; }
+    }
+
+    // Convert display position back to a content position.
+    if (imeActive) {
+        int imeLen = (int)IMECompositionString.size();
+        if (best_pos <= cp) {
+            // Before or at IME start: 1-to-1 mapping with content.
+            return best_pos;
+        } else if (best_pos < cp + imeLen) {
+            // Inside the IME composition area: clamp to its start so that the
+            // click target is the IME insertion point.
+            return cp;
+        } else {
+            // After the IME composition: subtract the IME string length.
+            return best_pos - imeLen;
+        }
+    }
+    return best_pos;
+}
+
+void InputBox::applyDragMove(int mouseX) {
+    // 跳过鼠标未实际移动的合成 MOUSEMOVE（由 SetCursorPos 每帧触发）。
+    // 若 IME 提交刚刚改变了文本内容，相同像素 X 会映射到新内容中不同的字符下标，
+    // 从而产生虚假选区。只有鼠标真正移动后才重新计算。
+    if (mouseX == lastDragMouseX) return;
+    lastDragMouseX = mouseX;
+
+    float localX = (float)(mouseX - (int)left);
+    int best_pos = charPositionFromLocalX(localX);
+    dragEnd = best_pos;
+    // 光标跟随选区末端
+    if (cursor_pos != dragEnd) moveCursor(dragEnd);
+    // 同步选区到 sys_edit（EM_SETSEL），保证后续键盘操作在正确范围内进行
+    inv.movecursor(dragBegin, dragEnd);
+    // 记录是否超出输入框边界（用于自动滚动推进）
+    if (mouseX < (int)left) dragSide = -1;
+    else if (mouseX > (int)(left + width)) dragSide = 1;
+    else dragSide = 0;
+    needRedraw = true;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    }
+}
+
 void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
-    // 清理拖动选择状态
-    dragging = false;
-    mouseOwningFlag = nullptr;
+    if (msg.is_left() && msg.is_up()) {
+        // 鼠标抬起：正式结束拖动选择
+        dragging = false;
+        dragSide = 0;
+        mouseOwningFlag = nullptr;
+    } else if (msg.is_move() && dragging && on_focus) {
+        // 鼠标移动到所有控件外部时，仍继续更新拖动选择
+        applyDragMove(msg.x);
+    }
 }
 
 void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
-    // InputBox的拖动选择逻辑已在handleEvent的move事件中处理
-    // 这里不需要额外处理，因为拖动选择是基于内部状态而非mouseOwning机制
+    // 当鼠标移动到包含本控件的内层 Panel 之外、但仍在外层 Panel 内时，
+    // 外层 Panel 会通过 catchMouseOwningFlag 通知 mouseOwningFlag。
+    // 此处继续处理拖动选择，保证选区可以延伸到内层 Panel 边界之外。
+    if (msg.is_move() && dragging && on_focus) {
+        applyDragMove(msg.x);
+    }
+}
+
+void InputBox::deleteSelectedText() {
+    if (dragBegin == dragEnd) return;
+    int sel_s = std::min(dragBegin, dragEnd);
+    int sel_e = std::max(dragBegin, dragEnd);
+    sel_s = std::max(0, std::min(sel_s, (int)content.size()));
+    sel_e = std::max(0, std::min(sel_e, (int)content.size()));
+    content.erase(sel_s, sel_e - sel_s);
+    cursor_pos = sel_s;
+    dragBegin = dragEnd = sel_s;
+    inv.settext(content.c_str());
+    inv.movecursor(sel_s, sel_s);
+    needRedraw = true;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    }
+}
+
+void InputBox::markIMEStart() {
+    imeStartPos = cursor_pos;
+}
+
+void InputBox::commitIMEString(const std::wstring& compStr) {
+    setIMECompositionString(L"");
+    if (compStr.empty()) return;
+
+    int insertAt = std::max(0, std::min(imeStartPos, (int)content.size()));
+
+    // cursor_pos may already have been updated to the new click target (path 2:
+    // click inside same box) before this is called.  Shift it past the inserted
+    // text when it falls at or after the insertion point so the position stays
+    // consistent.  For the WM_KILLFOCUS path (path 1: click outside), cursor_pos
+    // still equals imeStartPos, so finalPos naturally lands right after the insert.
+    int savedPos = cursor_pos;
+    int finalPos = (savedPos < insertAt) ? savedPos : savedPos + (int)compStr.size();
+    finalPos = std::max(0, std::min(finalPos, (int)(content.size() + compStr.size())));
+
+    content.insert(insertAt, compStr);
+    cursor_pos = finalPos;
+    dragEnd = finalPos;
+    // Shift dragBegin past the inserted text if it was at or after the insertion point.
+    // Do NOT unconditionally override dragBegin: the click handler has already set it to
+    // the correct drag anchor (click position). We only need to adjust it for the insertion.
+    if (dragBegin >= insertAt) dragBegin += (int)compStr.size();
+
+    inv.settext(content.c_str());
+    inv.movecursor(dragBegin, dragEnd);
+
+    needRedraw = true;
+    if (parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+    }
 }
 
 void InputBox::reset(){
