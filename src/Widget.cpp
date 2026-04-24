@@ -1560,17 +1560,49 @@ int InputBox::getMCounter(){
 int InputBox::charPositionFromLocalX(float localX) const {
     const float padding = 14 * scale;
     float click_x = localX - padding + scroll_offset;
-    int l = 0, r = (int)content.length();
+
+    // When IME composition is active the display string differs from content:
+    //   display = content[0..cursor_pos] + IMECompositionString + content[cursor_pos..]
+    // Searching against content alone causes clicks after the IME overlay to be
+    // mapped to positions that are too small (the IME string's pixel width is
+    // ignored).  We therefore search against the display string and convert the
+    // result back to a content index.
+    bool imeActive = !IMECompositionString.empty();
+    std::wstring displayContent;
+    int cp = 0; // IME insertion point in content
+    if (imeActive) {
+        cp = std::max(0, std::min(cursor_pos, (int)content.size()));
+        displayContent = content.substr(0, cp) + IMECompositionString + content.substr(cp);
+    }
+    const std::wstring& searchText = imeActive ? displayContent : content;
+
+    int l = 0, r = (int)searchText.length();
     int best_pos = 0;
     float min_dist = 1e9f, tmp, char_x = 0;
     while (l <= r) {
         int mid = (l + r) / 2;
-        measuretext(content.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
+        measuretext(searchText.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
         float dist = fabsf(char_x - click_x);
         if (dist < min_dist) { min_dist = dist; best_pos = mid; }
         if (char_x < click_x) l = mid + 1;
         else if (char_x > click_x) r = mid - 1;
         else { best_pos = mid; break; }
+    }
+
+    // Convert display position back to a content position.
+    if (imeActive) {
+        int imeLen = (int)IMECompositionString.size();
+        if (best_pos <= cp) {
+            // Before or at IME start: 1-to-1 mapping with content.
+            return best_pos;
+        } else if (best_pos < cp + imeLen) {
+            // Inside the IME composition area: clamp to its start so that the
+            // click target is the IME insertion point.
+            return cp;
+        } else {
+            // After the IME composition: subtract the IME string length.
+            return best_pos - imeLen;
+        }
     }
     return best_pos;
 }
