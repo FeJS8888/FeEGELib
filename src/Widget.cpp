@@ -1669,6 +1669,19 @@ void InputBox::deleteSelectedText() {
     }
 }
 
+void InputBox::cancelDrag() {
+    if (!dragging) return;
+    dragging = false;
+    dragSide = 0;
+    if (mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    // 收起选区到当前光标处。
+    // dragging=false 之后，draw-loop 的 EM_GETSEL 同步块会在下一帧
+    // 从 EDIT 控件读取键盘操作后的实际光标/选区并更新 dragBegin/dragEnd/cursor_pos，
+    // 因此这里只需保证两者相等即可，具体值由同步块修正。
+    dragBegin = cursor_pos;
+    dragEnd   = cursor_pos;
+}
+
 void InputBox::markIMEStart() {
     imeStartPos = cursor_pos;
 }

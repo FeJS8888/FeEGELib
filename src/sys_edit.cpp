@@ -129,6 +129,9 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return lr;
 		}
 		case WM_KEYDOWN:{
+			// 若用户正在鼠标拖动选择中，任何键盘输入均应终止拖动状态，
+			// 防止后续 applyDragMove 以失效的 dragBegin 重建错误选区。
+			static_cast<InputBox*>(m_object)->cancelDrag();
 			switch (wParam) {
                 case VK_LEFT: {
 					InputBox* p = static_cast<InputBox*>(m_object);
@@ -153,6 +156,8 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
         case WM_PASTE:
         case WM_CUT:
         case WM_SETTEXT:{
+			// 字符输入/粘贴/剪切同样需要终止拖动，避免内容变化后 dragBegin 失效。
+			static_cast<InputBox*>(m_object)->cancelDrag();
 			::PostMessageW(m_hwnd,WM_USER + 100 + 1,0,0);
 			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}

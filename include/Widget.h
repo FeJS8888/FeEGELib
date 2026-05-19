@@ -608,6 +608,14 @@ public:
     void deleteSelectedText();
 
     /**
+     * @brief 取消正在进行的鼠标拖动选择，将选区收起到光标处。
+     *        在键盘输入到达时调用，防止拖动状态与键盘操作互相干扰
+     *        （内容变化后 dragBegin 失效、或光标被 applyDragMove 覆盖等问题）。
+     *        若当前未处于拖动状态则无操作。
+     */
+    void cancelDrag();
+
+    /**
      * @brief 检查点是否在输入框内
      * @param x x坐标
      * @param y y坐标
