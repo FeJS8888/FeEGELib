@@ -1268,6 +1268,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
     // 鼠标左键按下且在输入框内部
     if (msg.is_left() && msg.is_down() && inside) {
+        // 若当前存在 IME 组合串，先同步结束组合并提交到 content，
+        // 再基于最新文本立即开始本次鼠标勾选。
+        const bool hasIMEComposition = !IMECompositionString.empty();
+        if (hasIMEComposition) {
+            ::SendMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
+        }
+
         int localX = msg.x - left;
         int localY = msg.y - top;
 
@@ -1308,7 +1315,9 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         focusingWidget = this;
         mouseOwningFlag = this;
         updateIMEPosition();
-        ::PostMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
+        if (!hasIMEComposition) {
+            ::PostMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
+        }
         return true;
     }
     // 鼠标左键按下且不在输入框内
