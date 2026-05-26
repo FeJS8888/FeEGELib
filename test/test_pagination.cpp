@@ -66,7 +66,7 @@ static Panel* buildPage1() {
         .setAlign(TextAlign::Center)
         .setPosition(400, 250)
         .setMaxWidth(460)
-        .setContent(L"这是一个基于 EGE 的现代化 UI 控件库。\n点击右下角的"下一页"体验各种控件。")
+        .setContent(L"这是一个基于 EGE 的现代化 UI 控件库。\n点击右下角的\"下一页\"体验各种控件。")
         .setFont(18, L"Microsoft YaHei")
         .setColor(EGERGB(80, 80, 100))
         .build();

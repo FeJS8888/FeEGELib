@@ -8,6 +8,7 @@ LPSTR current_cursor = IDC_ARROW;
 WNDPROC g_oldWndProc = nullptr;
 FontManager fontManager;
 bool needReflushCursor = true;
+bool BackendFlag = false;
 
 double InputPositionX,InputPositionY;
 

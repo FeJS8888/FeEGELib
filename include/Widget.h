@@ -1829,8 +1829,9 @@ protected:
     std::vector<Widget*> children;
 };
 
-extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
-extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
+extern std::vector<Widget*> widgets;                ///< 全局控件集合
+extern std::unordered_set<Widget*> widgetBackendRedraw;    ///< 重绘中的控件集合
+extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射
 
 /**
  * @brief 通过ID获取控件

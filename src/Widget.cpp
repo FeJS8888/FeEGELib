@@ -6,6 +6,7 @@ Widget* mouseOwningFlag = nullptr;
 Widget* focusingWidget = nullptr;
 
 vector<Widget*> widgets;
+unordered_set<Widget*> widgetBackendRedraw;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 bool PanelScaleChanged = false;
 
@@ -3740,10 +3741,21 @@ Widget* getWidgetById(const std::wstring& identifier){
 }
 
 void assignOrder(std::vector<Widget*> widgetWithOrder){
-    swap(widgetWithOrder,widgets);
-    for(Widget* w : widgetWithOrder){
-        w->reset();
+    std::unordered_set<Widget*> newWidgetsSet(widgetWithOrder.begin(), widgetWithOrder.end());
+    std::unordered_set<Widget*> currentWidgetsSet(widgets.begin(), widgets.end());
+    for (Widget* w : widgets) {
+        // 被取出了
+        if (newWidgetsSet.find(w) == newWidgetsSet.end()) {
+            widgetBackendRedraw.insert(w);
+        }
     }
+    for (Widget* w : widgetWithOrder) {
+        // 被放入了
+        if (currentWidgetsSet.find(w) != currentWidgetsSet.end()) {
+            widgetBackendRedraw.erase(w);
+        }
+    }
+    swap(widgetWithOrder,widgets);
 }
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
