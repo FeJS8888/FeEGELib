@@ -47,6 +47,29 @@ int GetTextAscent(HWND hWnd) {
     }
 }
 
+void sys_edit::killIME(){
+	// Read the raw phonetic composition string (if any) before cancelling the IME,
+	// then commit it manually at imeStartPos via commitIMEString().
+	// We use CPS_CANCEL rather than CPS_COMPLETE because we returned TRUE from
+	// WM_IME_STARTCOMPOSITION without forwarding to the EDIT, so the EDIT has no
+	// composition insertion point; CPS_COMPLETE would insert the raw phonetic
+	// string at position 0 instead of at the correct position.
+	std::wstring compStr;
+	HIMC hIMC = ImmGetContext(m_hwnd);
+	if (hIMC) {
+		LONG size = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, NULL, 0);
+		if (size > 0) {
+			LONG charCount = size / sizeof(wchar_t);
+			std::vector<wchar_t> buf(charCount + 1, 0);
+			ImmGetCompositionStringW(hIMC, GCS_COMPSTR, buf.data(), size);
+			compStr.assign(buf.data(), charCount);
+			ImmNotifyIME(hIMC, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
+		}
+		ImmReleaseContext(m_hwnd, hIMC);
+	}
+	static_cast<InputBox*>(m_object)->commitIMEString(compStr);
+}
+
 LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
     switch (message) {
 	    case WM_CTLCOLOREDIT: {
@@ -72,10 +95,17 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	    case WM_KILLFOCUS:{
 	        m_bInputFocus = 0;
 	        m_focus = false;
+			killIME();
 	        // call textbox's own message process to hide caret
 	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
 	    case WM_IME_STARTCOMPOSITION:{
+            // 在输入法开始组合前，若有文字选区则先删除选区内容
+            // （WM_IME_STARTCOMPOSITION 返回 TRUE 后 EDIT 控件不会自行处理选区删除）
+            InputBox* p = static_cast<InputBox*>(m_object);
+            p->deleteSelectedText();
+            // 记录组合起点，供 killIME() 正确插入未完成组合串
+            p->markIMEStart();
             SetIMEPosition(getHWnd(),InputPositionX,InputPositionY);
 			return TRUE;
 		}
@@ -99,9 +129,11 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return lr;
 		}
 		case WM_KEYDOWN:{
+			InputBox* p = static_cast<InputBox*>(m_object);
 			switch (wParam) {
                 case VK_LEFT: {
-					InputBox* p = static_cast<InputBox*>(m_object);
+					// 方向键不应继续维持鼠标拖动状态。
+					p->cancelDrag();
 					int pos = getCursorPos();
 					if(pos <= 0) break;
 					p->moveCursor(pos - 1);
@@ -109,7 +141,8 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
                     break;
                 }
                 case VK_RIGHT: {
-					InputBox* p = static_cast<InputBox*>(m_object);
+					// 方向键不应继续维持鼠标拖动状态。
+					p->cancelDrag();
 					int pos = getCursorPos();
 					if(pos >= p->getContent().size()) break;
 					p->moveCursor(pos + 1);
@@ -123,17 +156,28 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
         case WM_PASTE:
         case WM_CUT:
         case WM_SETTEXT:{
+			// 先让 EDIT 处理字符输入/粘贴/剪切（包括选区替换删除），
+			// 再结束拖动状态，避免提前清空选区导致“只取消框选不删除文字”。
+			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			static_cast<InputBox*>(m_object)->cancelDrag();
 			::PostMessageW(m_hwnd,WM_USER + 100 + 1,0,0);
-			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			return lr;
 		}
 		case WM_USER + 100 + 1 :{
 			updatecursor();
 			return TRUE;
 		}
+		case WM_USER + 100 + 2 :{
+			killIME();
+			return TRUE;
+		}
 		case EM_SETSEL:{
-			LRESULT r = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
-			::PostMessageW(m_hwnd,WM_USER + 100 + 1,0,0);
-			return r;
+			// 注意：不再异步 PostMessageW(WM_USER+100+1)，
+			// 因为 EM_SETSEL 由 inv.movecursor() 触发，调用方已通过
+			// moveCursor() 手动维护 cursor_pos，异步 updatecursor()
+			// 会把光标重置为 EM_GETSEL 的 start（=选区锚点 dragBegin），
+			// 导致拖动时光标不跟随鼠标而回到起点。
+			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
         default:
 	        return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
