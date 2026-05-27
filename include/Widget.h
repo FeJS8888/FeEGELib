@@ -48,6 +48,8 @@ public:
      * @brief 绘制控件到默认图像
      */
     virtual void draw() = 0;
+
+    virtual bool isBackendDirty() const;
     
     /**
      * @brief 设置控件位置
@@ -150,6 +152,8 @@ public:
      * @brief 绘制 Panel 到默认图像
      */
     void draw() override;
+
+    bool isBackendDirty() const override;
     
     /**
      * @brief 设置面板位置
@@ -747,6 +751,8 @@ public:
      */
     virtual void draw(PIMAGE dst,double x,double y) override ;
     virtual void draw();
+
+    bool isBackendDirty() const override;
     
     /**
      * @brief 检查点是否在滑块内
@@ -941,6 +947,7 @@ public:
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     void setPosition(double x, double y) override;
     void setScale(double s) override;
@@ -982,6 +989,7 @@ public:
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     bool isInside(double x, double y) const;
 
@@ -1050,6 +1058,7 @@ public:
     void setStyle(RadioStyle s);
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
 
 protected:
@@ -1240,6 +1249,7 @@ public:
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     void setPosition(double x, double y) override;
     bool handleEvent(const mouse_msg& msg) override;
 
@@ -1384,6 +1394,7 @@ public:
     void setPosition(double x, double y) override;
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;

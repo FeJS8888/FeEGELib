@@ -56,6 +56,10 @@ int Widget::getDrawingState() const {
     return this->m_drawing;
 }
 
+bool Widget::isBackendDirty() const {
+    return needRedraw || m_drawing != 0;
+}
+
 void Widget::reset() {
     
 }
@@ -113,7 +117,9 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
 
     if(!needRedraw && !needRedrawAlways){
-        putimage_withalpha(dst,layer,left,top);
+        if (!BackendFlag) {
+            putimage_withalpha(dst,layer,left,top);
+        }
         return;
     }
 
@@ -226,8 +232,14 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setlinewidth(1,layer);
     setlinecolor(EGEACOLOR(255,bgColor), layer);
     ege_drawpath(&clippath,layer);
-    putimage_withalpha(dst,layer,left,top);
+    if (!BackendFlag) {
+        putimage_withalpha(dst,layer,left,top);
+    }
     needRedraw = false;
+}
+
+bool Panel::isBackendDirty() const {
+    return needRedraw || needRedrawAlways != 0 || getDrawingState() != 0;
 }
 
 Panel::~Panel(){
@@ -651,6 +663,7 @@ void Ripple::update() {
 }
 
 void Ripple::draw(PIMAGE dst) const {
+    if (BackendFlag) return;
     double progress = (double)age / life;
     double r = maxRadius * progress;
     int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
@@ -659,6 +672,7 @@ void Ripple::draw(PIMAGE dst) const {
 }
 
 void Ripple::draw_aa(PIMAGE dst) const {
+    if (BackendFlag) return;
     double progress = (double)age / life;
     double r = maxRadius * progress;
     int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
@@ -692,7 +706,9 @@ void Button::draw(PIMAGE dst,double x,double y){
     double width = this->width + 8;
     double height = this->height + 8;
     if(!ripples.size() && !needRedraw){
-        putimage_withalpha(dst,btnLayer,left,top);
+        if (!BackendFlag) {
+            putimage_withalpha(dst,btnLayer,left,top);
+        }
         return;
     }
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
@@ -744,7 +760,9 @@ void Button::draw(PIMAGE dst,double x,double y){
     setlinecolor(EGEACOLOR(255,color), btnLayer);
     ege_drawpath(&clippath,btnLayer);
 
-    putimage_withalpha(dst,btnLayer,left,top);
+    if (!BackendFlag) {
+        putimage_withalpha(dst,btnLayer,left,top);
+    }
     
     needRedraw = false;
 }
@@ -1046,7 +1064,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     double height = this->height + 8;
     
     if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
-        putimage_withalpha(dst, btnLayer, left, top);
+        if (!BackendFlag) {
+            putimage_withalpha(dst, btnLayer, left, top);
+        }
         return;
     }
 
@@ -1205,7 +1225,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     setlinecolor(EGEACOLOR(255,color), btnLayer);
     ege_drawpath(&clippath,btnLayer);
 
-    putimage_withalpha(dst,btnLayer,left,top);
+    if (!BackendFlag) {
+        putimage_withalpha(dst,btnLayer,left,top);
+    }
     needRedraw = false;
     scaleChanged = false;
 }
@@ -1830,6 +1852,10 @@ void Slider::draw(PIMAGE dst,double x,double y){
         }
     }
 
+    if (BackendFlag) {
+        return;
+    }
+
     // 背景轨道
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
@@ -1884,6 +1910,10 @@ void Slider::draw(PIMAGE dst,double x,double y){
 
 void Slider::draw(){
 	draw(nullptr,cx,cy);
+}
+
+bool Slider::isBackendDirty() const {
+    return getDrawingState() != 0;
 }
 
 bool Slider::isInside(double x, double y){
@@ -2209,7 +2239,9 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
         currentProgress = targetProgress;
 
     if (!needRedraw && fabs(currentProgress - targetProgress) < 1e-4) {
-        putimage_withalpha(dst, barLayer, left, top);
+        if (!BackendFlag) {
+            putimage_withalpha(dst, barLayer, left, top);
+        }
         return;
     }
 
@@ -2224,12 +2256,18 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
     setfillcolor(fgColor, barLayer);
     ege_fillrect(0, 0, width * currentProgress, height, barLayer);
 
-    putimage_withalpha(dst, barLayer, left, top);
+    if (!BackendFlag) {
+        putimage_withalpha(dst, barLayer, left, top);
+    }
     needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
 }
 
 void ProgressBar::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool ProgressBar::isBackendDirty() const {
+    return Widget::isBackendDirty();
 }
 
 bool ProgressBar::handleEvent(const mouse_msg& msg){
@@ -2394,6 +2432,12 @@ void Dropdown::draw(PIMAGE dst, double x, double y) {
 
 void Dropdown::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Dropdown::isBackendDirty() const {
+    if (mainButton && mainButton->isBackendDirty()) return true;
+    if (dropdownPanel && dropdownPanel->isBackendDirty()) return true;
+    return expanded || fadingIn || fadingOut || fadeAlpha > 0.08;
 }
 
 bool Dropdown::handleEvent(const mouse_msg& msg) {
@@ -2562,24 +2606,26 @@ void Radio::draw(PIMAGE dst, double x, double y) {
 
     double R = radius;
 
-    // 悬停阴影
-    if (hovered) {
-        double shadowRadius = R + 6;
-        setfillcolor(EGERGBA(50, 50, 50, 32), dst);
-        ege_fillellipse(x - shadowRadius, y - shadowRadius, shadowRadius * 2, shadowRadius * 2, dst);
-    }
+    if (!BackendFlag) {
+        // 悬停阴影
+        if (hovered) {
+            double shadowRadius = R + 6;
+            setfillcolor(EGERGBA(50, 50, 50, 32), dst);
+            ege_fillellipse(x - shadowRadius, y - shadowRadius, shadowRadius * 2, shadowRadius * 2, dst);
+        }
 
-    if(keepColor || nowChecked) setlinecolor(EGERGB(50, 150, 250), dst);
-    else setlinecolor(EGERGB(110,110,110), dst);
-    setlinewidth(2, dst);
+        if(keepColor || nowChecked) setlinecolor(EGERGB(50, 150, 250), dst);
+        else setlinecolor(EGERGB(110,110,110), dst);
+        setlinewidth(2, dst);
 
-    if (style == RadioStyle::Filled) {
-        setfillcolor(WHITE, dst);
-        ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
-    } 
-    else if (style == RadioStyle::Outline) {
-        // 只绘制线框，不填充
-        ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
+        if (style == RadioStyle::Filled) {
+            setfillcolor(WHITE, dst);
+            ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
+        } 
+        else if (style == RadioStyle::Outline) {
+            // 只绘制线框，不填充
+            ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
+        }
     }
 
     // 更新动画进度
@@ -2608,7 +2654,7 @@ void Radio::draw(PIMAGE dst, double x, double y) {
         scaleFactor = lastScale;
     }
 
-    if (showDot) {
+    if (showDot && !BackendFlag) {
         double r_in = R * 0.5 * scaleFactor;
         if(keepColor || nowChecked){
             setlinecolor(EGERGB(50, 150, 250), dst);
@@ -2625,6 +2671,10 @@ void Radio::draw(PIMAGE dst, double x, double y) {
 
 void Radio::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Radio::isBackendDirty() const {
+    return animIn || animOut;
 }
 
 bool Radio::handleEvent(const mouse_msg& msg) {
@@ -2880,6 +2930,10 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
     else
         knobOffset = knobTarget;
 
+    if (BackendFlag) {
+        return;
+    }
+
     double w = width * scale;
     double h_track = height * scale * 0.6;
     double r_track = h_track / 2;
@@ -2932,6 +2986,10 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
 
 void Toggle::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Toggle::isBackendDirty() const {
+    return fabs(knobOffset - knobTarget) > 1e-3;
 }
 
 ToggleBuilder& ToggleBuilder::setCenter(double x, double y) {
@@ -3089,7 +3147,12 @@ void Text::draw() {
     draw(nullptr, posX, posY);
 }
 
+bool Text::isBackendDirty() const {
+    return false;
+}
+
 void Text::draw(PIMAGE dst, double x, double y) {
+    if (BackendFlag) return;
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
@@ -3377,6 +3440,10 @@ void Knob::draw(PIMAGE dst, double x, double y) {
             }
         }
     }
+
+    if (BackendFlag) {
+        return;
+    }
     
     // 如果禁用，使用灰色
     color_t currentFgColor = disabled ? EGERGB(180, 180, 180) : fgColor;
@@ -3454,6 +3521,10 @@ void Knob::draw(PIMAGE dst, double x, double y) {
 
 void Knob::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Knob::isBackendDirty() const {
+    return getDrawingState() != 0;
 }
 
 void Knob::releaseMouseOwningFlag(const mouse_msg& msg){
@@ -3876,6 +3947,10 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
         smoothScrollActive_ = false;
     }
 
+    if (BackendFlag) {
+        return;
+    }
+
     double btnSize = getButtonSize(scale);
     double w = barWidth_;
 
@@ -4196,7 +4271,9 @@ void Box::draw(PIMAGE dst, double x, double y) {
     double layerHeight = this->height + 8;
 
     if(!needRedraw && !needRedrawAlways){
-        putimage_withalpha(dst,layer,left,top);
+        if (!BackendFlag) {
+            putimage_withalpha(dst,layer,left,top);
+        }
         return;
     }
 
@@ -4295,7 +4372,9 @@ void Box::draw(PIMAGE dst, double x, double y) {
     scaleChanged = false;
     
     // 粘贴到主窗口
-    putimage_withalpha(dst,layer,left,top);
+    if (!BackendFlag) {
+        putimage_withalpha(dst,layer,left,top);
+    }
     needRedraw = false;
 }
 
