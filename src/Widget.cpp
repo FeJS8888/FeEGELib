@@ -3140,7 +3140,6 @@ void Text::updateLayout() {
 
     height = textHeight;
     width = (maxWidth > 0) ? maxWidth : textWidth;
-    needRedraw = true;
 }
 
 // 默认绘制
@@ -3149,14 +3148,11 @@ void Text::draw() {
 }
 
 bool Text::isBackendDirty() const {
-    return Widget::isBackendDirty();
+    return false;
 }
 
 void Text::draw(PIMAGE dst, double x, double y) {
-    if (BackendFlag) {
-        needRedraw = false;
-        return;
-    }
+    if (BackendFlag) return;
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
@@ -3187,7 +3183,6 @@ void Text::draw(PIMAGE dst, double x, double y) {
         double y_draw = originY + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
-    needRedraw = false;
 }
 
 bool Text::handleEvent(const mouse_msg& msg) {
