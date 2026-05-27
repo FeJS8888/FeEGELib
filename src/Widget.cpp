@@ -57,7 +57,7 @@ int Widget::getDrawingState() const {
 }
 
 bool Widget::isBackendDirty() const {
-    return needRedraw || m_drawing != 0;
+    return needRedraw || getDrawingState() != 0;
 }
 
 void Widget::reset() {
@@ -2267,7 +2267,7 @@ void ProgressBar::draw() {
 }
 
 bool ProgressBar::isBackendDirty() const {
-    return Widget::isBackendDirty();
+    return needRedraw || fabs(currentProgress - targetProgress) > 1e-4;
 }
 
 bool ProgressBar::handleEvent(const mouse_msg& msg){
@@ -3140,6 +3140,7 @@ void Text::updateLayout() {
 
     height = textHeight;
     width = (maxWidth > 0) ? maxWidth : textWidth;
+    needRedraw = true;
 }
 
 // 默认绘制
@@ -3148,11 +3149,14 @@ void Text::draw() {
 }
 
 bool Text::isBackendDirty() const {
-    return false;
+    return Widget::isBackendDirty();
 }
 
 void Text::draw(PIMAGE dst, double x, double y) {
-    if (BackendFlag) return;
+    if (BackendFlag) {
+        needRedraw = false;
+        return;
+    }
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
@@ -3183,6 +3187,7 @@ void Text::draw(PIMAGE dst, double x, double y) {
         double y_draw = originY + i * (lineHeight + lineSpacing);
         ege_outtextxy(x_draw, y_draw, lines[i].c_str(), dst);
     }
+    needRedraw = false;
 }
 
 bool Text::handleEvent(const mouse_msg& msg) {
