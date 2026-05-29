@@ -1179,6 +1179,8 @@ public:
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
+    bool isBackendDirty() const override;
+
 protected:
     double cx, cy;
     double width, height, scale = 1.0;
