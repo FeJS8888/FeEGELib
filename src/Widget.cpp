@@ -1842,12 +1842,16 @@ void Slider::draw(PIMAGE dst,double x,double y){
     if(this->parent != nullptr){
         if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
             if(isAnimating){
-                p->setAlwaysDirty(true);
+                if(!m_animatingDirty){
+                    p->setAlwaysDirty(true);
+                    this->setDrawing(true);
+                    m_animatingDirty = true;
+                }
                 p->setDirty();
-                this->setDrawing(true);
-            } else {
+            } else if (m_animatingDirty) {
                 p->setAlwaysDirty(false);
                 this->setDrawing(false);
+                m_animatingDirty = false;
             }
         }
     }
