@@ -723,7 +723,7 @@ protected:
 	bool m_hover = false;            ///< 鼠标是否悬停
     bool m_skip = false;             ///< 是否点击轨道改变进度
 	bool m_pressed = false;          ///< 是否正在按住
-    bool m_animatingDirty = false;
+    bool m_animatingDirty = false;  ///< 是否已设置动画重绘状态
 	float m_scale = 1.0f;            ///< 当前缩放比例
 	double thickness = 4;
 	double origin_thickness = 4;
