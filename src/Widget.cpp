@@ -786,6 +786,7 @@ void Button::catchMouseOwningFlag(const mouse_msg& msg){
 
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
+    if(disabled) return inside;
     
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
@@ -942,6 +943,26 @@ int Button::getMCounter(){
 void Button::reset(){
     ripples.clear();
     ripples.shrink_to_fit();
+}
+
+void Button::disable(){
+    disabled = true;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+void Button::enable(){
+    disabled = false;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 // InputBox 类实现
@@ -1264,6 +1285,8 @@ void InputBox::updateIMEPosition() {
 
 bool InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
+    if(disabled) return inside;
+
     // 鼠标移入移出处理
     if (inside) {
         setCursor(IDC_IBEAM);
@@ -1748,6 +1771,26 @@ void InputBox::commitIMEString(const std::wstring& compStr) {
 void InputBox::reset(){
     ripples.clear();
     ripples.shrink_to_fit();
+}
+
+void InputBox::disable(){
+    disabled = true;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+void InputBox::enable(){
+    disabled = false;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 // Slider 类实现
@@ -2994,6 +3037,14 @@ void Toggle::draw() {
 
 bool Toggle::isBackendDirty() const {
     return fabs(knobOffset - knobTarget) > 1e-3;
+}
+
+double Toggle::getWidth(){
+    return width * scale;
+}
+
+double Toggle::getHeight(){
+    return height * scale;
 }
 
 ToggleBuilder& ToggleBuilder::setCenter(double x, double y) {

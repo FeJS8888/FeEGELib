@@ -68,13 +68,13 @@ public:
      * @brief 获取控件宽度
      * @return 宽度值
      */
-    double getWidth();
+    virtual double getWidth();
     
     /**
      * @brief 获取控件高度
      * @return 高度值
      */
-    double getHeight();
+    virtual double getHeight();
 
     virtual void deleteFocus(const mouse_msg& msg);
     virtual void releaseMouseOwningFlag(const mouse_msg& msg);
@@ -379,6 +379,7 @@ protected:
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
     ege_path clippath;
+    bool disabled = false;
 
 public:
     /**
@@ -488,6 +489,9 @@ public:
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     void reset() override;
+
+    void disable();
+    void enable();
 };
 
 /**
@@ -551,6 +555,8 @@ protected:
     float scroll_offset = 0;
     float m_ime_pos_x = 0;
     float m_ime_pos_y = 0;
+
+    bool disabled = false;
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
@@ -671,6 +677,9 @@ public:
     void updateIMEPosition();
 
     void reset() override;
+
+    void disable();
+    void enable();
 };
 
 
@@ -1181,6 +1190,9 @@ public:
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     bool isBackendDirty() const override;
+
+    double getWidth() override ;
+    double getHeight() override ;
 
 protected:
     double cx, cy;
