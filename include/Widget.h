@@ -1208,6 +1208,7 @@ protected:
     const double animationSpeed = 0.1;
     bool keepColor = false;
     color_t baseColor = EGERGB(33, 150, 243);
+    bool m_animatingDirty = false;
 
 
     std::function<void(bool)> onToggle;

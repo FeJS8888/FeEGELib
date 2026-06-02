@@ -2873,6 +2873,11 @@ Toggle::Toggle(double cx, double cy, double w, double h)
 void Toggle::setChecked(bool c) {
     checked = c;
     knobTarget = c ? 1.0 : 0.0;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Toggle::toggle() {
@@ -2920,7 +2925,15 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
     int dx = msg.x - cx;
     int dy = msg.y - cy;
 
+    bool hoverChanged = false;
+    bool prevHovered = hovered;
     hovered = (std::abs(dx) <= w / 2 && std::abs(dy) <= h / 2);
+    hoverChanged = (prevHovered != hovered);
+    if (hoverChanged && this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 
     if (disabled) return false;
 
@@ -2976,6 +2989,24 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
         knobOffset += (knobTarget - knobOffset) * animationSpeed;
     else
         knobOffset = knobTarget;
+
+    bool isAnimating = std::abs(knobOffset - knobTarget) > 1e-3;
+    if (this->parent != nullptr) {
+        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if (isAnimating) {
+                if (!m_animatingDirty) {
+                    p->setAlwaysDirty(true);
+                    this->setDrawing(true);
+                    m_animatingDirty = true;
+                }
+                p->setDirty();
+            } else if (m_animatingDirty) {
+                p->setAlwaysDirty(false);
+                this->setDrawing(false);
+                m_animatingDirty = false;
+            }
+        }
+    }
 
     if (BackendFlag) {
         return;
