@@ -934,6 +934,12 @@ void Button::setOnClickEvent(std::function<void(void)> func){
 
 void Button::setColor(color_t col){
     color = col;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 bool Button::getClickState(){
@@ -2142,6 +2148,12 @@ double Slider::getProgress() const {
 void Slider::setColor(color_t bg, color_t fg) {
     m_bgColor = bg;
     m_fgColor = fg;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Slider::setThickness(double t){
@@ -2561,6 +2573,12 @@ void Dropdown::setColor(color_t col) {
     mainButton->setColor(col);
     for (auto& opt : options)
         opt->setColor(col);
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 bool Dropdown::isInside(double x, double y) const {
@@ -3185,6 +3203,12 @@ void Text::setFont(int size, const std::wstring& name) {
 
 void Text::setColor(color_t col) {
     color = col;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Text::setScale(double s) {
@@ -3434,6 +3458,12 @@ double Knob::getValue() const {
 void Knob::setColor(color_t fg, color_t bg) {
     fgColor = fg;
     bgColor = bg;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Knob::setOnChange(std::function<void(double)> cb) {
@@ -3956,6 +3986,14 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
         }
     }
     swap(widgetWithOrder,widgets);
+    for(auto w : widgets){
+        if(auto p = dynamic_cast<Panel*>(w)){
+            p->setDirty();
+        }
+        if(auto b = dynamic_cast<Box*>(w)){
+            b->setDirty();
+        }
+    }
 }
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){

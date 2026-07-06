@@ -46,7 +46,8 @@ static void switchPage(int idx) {
     nextBtn->setColor(currentPage < PAGE_COUNT - 1
         ? EGERGB(102, 126, 234)
         : EGERGB(200, 200, 200));
-
+    
+    wcout<<pages[currentPage]->getChildren().size()<<endl;
     assignOrder({pages[currentPage], prevBtn, pageText, nextBtn});
 }
 
@@ -98,6 +99,13 @@ static Panel* buildPage1() {
         .addChild(desc,    0, 0)
         .addChild(startBtn,0, 0)
         .addChild(version, 0, 0)
+        .setLayout(
+            FlexLayoutBuilder()
+                .setDirection(LayoutDirection::Column)
+                .setAlign(LayoutAlign::Center)
+                .setSpacing(20)
+                .build()
+        )
         .build();
 
     return panel;
