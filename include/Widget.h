@@ -14,6 +14,7 @@ using namespace FeEGE;
 
 class Layout;
 class ScrollBar;
+class Box;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
@@ -48,6 +49,8 @@ public:
      * @brief 绘制控件到默认图像
      */
     virtual void draw() = 0;
+
+    virtual bool isBackendDirty() const;
     
     /**
      * @brief 设置控件位置
@@ -66,13 +69,13 @@ public:
      * @brief 获取控件宽度
      * @return 宽度值
      */
-    double getWidth();
+    virtual double getWidth();
     
     /**
      * @brief 获取控件高度
      * @return 高度值
      */
-    double getHeight();
+    virtual double getHeight();
 
     virtual void deleteFocus(const mouse_msg& msg);
     virtual void releaseMouseOwningFlag(const mouse_msg& msg);
@@ -150,6 +153,8 @@ public:
      * @brief 绘制 Panel 到默认图像
      */
     void draw() override;
+
+    bool isBackendDirty() const override;
     
     /**
      * @brief 设置面板位置
@@ -375,6 +380,8 @@ protected:
     PIMAGE icon = nullptr;                      ///< 图标图像
     int iconSize = 100;                         ///< 图标尺寸
     ege_path clippath;
+    bool disabled = false;
+    bool lastInside = false;
 
 public:
     /**
@@ -484,6 +491,9 @@ public:
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
     void reset() override;
+
+    void disable();
+    void enable();
 };
 
 /**
@@ -547,6 +557,8 @@ protected:
     float scroll_offset = 0;
     float m_ime_pos_x = 0;
     float m_ime_pos_y = 0;
+
+    bool disabled = false;
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
@@ -667,6 +679,9 @@ public:
     void updateIMEPosition();
 
     void reset() override;
+
+    void disable();
+    void enable();
 };
 
 
@@ -719,6 +734,7 @@ protected:
 	bool m_hover = false;            ///< 鼠标是否悬停
     bool m_skip = false;             ///< 是否点击轨道改变进度
 	bool m_pressed = false;          ///< 是否正在按住
+    bool m_animatingDirty = false;  ///< 是否已设置动画重绘状态
 	float m_scale = 1.0f;            ///< 当前缩放比例
 	double thickness = 4;
 	double origin_thickness = 4;
@@ -747,6 +763,8 @@ public:
      */
     virtual void draw(PIMAGE dst,double x,double y) override ;
     virtual void draw();
+
+    bool isBackendDirty() const override;
     
     /**
      * @brief 检查点是否在滑块内
@@ -941,6 +959,7 @@ public:
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     void setPosition(double x, double y) override;
     void setScale(double s) override;
@@ -982,6 +1001,7 @@ public:
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     bool isInside(double x, double y) const;
 
@@ -1050,6 +1070,7 @@ public:
     void setStyle(RadioStyle s);
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
 
 protected:
@@ -1101,7 +1122,7 @@ private:
 };
 
 
-class RadioController {
+class RadioController{
 public:
     RadioController(double cx, double cy, double r, double gap, double scale, RadioStyle style);
 
@@ -1109,7 +1130,7 @@ public:
     void setDefault(const std::wstring& val);
     void setOnChange(std::function<void(const std::wstring&)> cb);
     std::wstring getValue();
-    void build();
+    Box* build();
 
 protected:
     std::wstring identifier;
@@ -1170,6 +1191,11 @@ public:
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
 
+    bool isBackendDirty() const override;
+
+    double getWidth() override ;
+    double getHeight() override ;
+
 protected:
     double cx, cy;
     double width, height, scale = 1.0;
@@ -1184,6 +1210,7 @@ protected:
     const double animationSpeed = 0.1;
     bool keepColor = false;
     color_t baseColor = EGERGB(33, 150, 243);
+    bool m_animatingDirty = false;
 
 
     std::function<void(bool)> onToggle;
@@ -1234,12 +1261,15 @@ public:
 
     int getTextWidth() const;
     int getTextHeight() const;
+    int getWidth() const;
+    int getHeight() const;
     int getMaxWidth() const;
     TextAlign getAlign() const;
     int getLineSpacing() const;
 
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     void setPosition(double x, double y) override;
     bool handleEvent(const mouse_msg& msg) override;
 
@@ -1384,6 +1414,7 @@ public:
     void setPosition(double x, double y) override;
     void draw(PIMAGE dst, double x, double y) override;
     void draw() override;
+    bool isBackendDirty() const override;
     bool handleEvent(const mouse_msg& msg) override;
     virtual void releaseMouseOwningFlag(const mouse_msg& msg) override;
     virtual void catchMouseOwningFlag(const mouse_msg& msg) override;
@@ -1417,6 +1448,7 @@ protected:
     int lastMouseX = 0;              ///< 上次鼠标X坐标
     int lastMouseY = 0;              ///< 上次鼠标Y坐标
     bool hovered = false;            ///< 是否鼠标悬停
+    bool dirtyFlag = false;
 
     std::function<void(double)> onChange;  ///< 值改变回调
 
@@ -1792,12 +1824,23 @@ public:
      */
     bool handleEvent(const mouse_msg& msg) override;
 
+    /**
+     * @brief 显示边界盒
+     */
+    void enableBoundingBox();
+
+    /**
+     * @brief 隐藏边界盒
+     */
+    void disableBoundingBox();
+
     void reset() override;
 
-private:
+protected:
     double targetBoxScrollPos_ = 0.0;  ///< 目标滚动位置（0~1）
     double boxScrollPos_ = 0.0;        ///< 当前滚动位置（0~1，平滑插值）
     bool smoothScrollActive_ = false;  ///< 是否正在进行平滑滚动动画
+    bool boundingBoxEnabled = false; ///< 是否显示边界盒
 };
 
 /**
@@ -1829,8 +1872,9 @@ protected:
     std::vector<Widget*> children;
 };
 
-extern std::vector<Widget*> widgets;                ///< 全局控件集合（Widget析构时自动移除）
-extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射（Widget析构时自动移除）
+extern std::vector<Widget*> widgets;                ///< 全局控件集合
+extern std::unordered_set<Widget*> widgetBackendRedraw;    ///< 重绘中的控件集合
+extern std::map<std::wstring,Widget*> IdToWidget; ///< ID到控件的映射
 
 /**
  * @brief 通过ID获取控件

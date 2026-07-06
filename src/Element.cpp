@@ -1430,6 +1430,18 @@ void reflush() {
 		if(!is_run()) return;
     	w->draw();
 	}
+
+	BackendFlag = true;
+	for (auto it = widgetBackendRedraw.begin(); it != widgetBackendRedraw.end(); ) {
+		Widget* w = *it;
+		w->draw();
+		if (!w->isBackendDirty()) {
+			it = widgetBackendRedraw.erase(it);
+		} else {
+			++it;
+		}
+	}
+	BackendFlag = false;
 	
 	POINT pt;
 	::GetCursorPos(&pt);            // 获取当前鼠标位置

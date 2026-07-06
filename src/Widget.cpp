@@ -6,6 +6,7 @@ Widget* mouseOwningFlag = nullptr;
 Widget* focusingWidget = nullptr;
 
 vector<Widget*> widgets;
+unordered_set<Widget*> widgetBackendRedraw;
 double absolutPosDeltaX = 0,absolutPosDeltaY = 0;
 bool PanelScaleChanged = false;
 
@@ -46,13 +47,17 @@ Widget* Widget::getParent(){
 
 void Widget::setDrawing(bool d) {
     this->m_drawing += d ? 1 : -1;
-    if (this->parent != nullptr) {
+    if(this->parent != nullptr) {
         this->parent->setDrawing(d);
     }
 }
 
 int Widget::getDrawingState() const {
     return this->m_drawing;
+}
+
+bool Widget::isBackendDirty() const {
+    return needRedraw || getDrawingState() != 0;
 }
 
 void Widget::reset() {
@@ -64,9 +69,10 @@ Widget::~Widget() {
     
     // 从IdToWidget映射中移除所有指向this的条目
     for (auto it = IdToWidget.begin(); it != IdToWidget.end(); ) {
-        if (it->second == this) {
+        if(it->second == this) {
             it = IdToWidget.erase(it);
-        } else {
+        }
+        else {
             ++it;
         }
     }
@@ -93,8 +99,8 @@ void Panel::addChild(Widget* child, double offsetX, double offsetY) {
     childOffsets.push_back(Position{ offsetX, offsetY });
     child->is_global = false;
     needRedraw = true;
-    if (this->parent != nullptr) {
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+    if(this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -110,15 +116,16 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     double layerWidth = this->width + 8;
     double layerHeight = this->height + 8;
 
-
     if(!needRedraw && !needRedrawAlways){
-        putimage_withalpha(dst,layer,left,top);
+        if(!BackendFlag) {
+            putimage_withalpha(dst,layer,left,top);
+        }
         return;
     }
 
     // 计算滚动偏移（未缩放坐标系），传递给Layout
     double layoutScrollOffset = 0;
-    if (scrollBarEnabled_ && scrollBar_ && layout) {
+    if(scrollBarEnabled_ && scrollBar_ && layout) {
         // 先不带偏移执行一次布局，获取内容范围
         LayoutResult extentResult = layout->apply(*this, 0);
         double contentH = (extentResult.contentMaxY - extentResult.contentMinY) * scale;
@@ -126,19 +133,20 @@ void Panel::draw(PIMAGE dst, double x, double y) {
         scrollBar_->setSize(scrollBar_->getWidth(), height);
         scrollBar_->setContentRange(contentH, viewH);
 
-        if (scrollBar_->isNeeded()) {
+        if(scrollBar_->isNeeded()) {
             double maxScroll = contentH - viewH;
             // 初始偏移：让内容顶部对齐视口顶部
             double initialOffset = extentResult.contentMinY * scale + viewH / 2.0;
             scrollOffset_ = initialOffset + scrollBar_->getScrollPosition() * maxScroll;
             layoutScrollOffset = scrollOffset_ / scale;  // 转换到未缩放坐标系
-        } else {
+        }
+        else {
             scrollOffset_ = 0;
         }
     }
 
     // 应用布局（带滚动偏移）
-    if (layout) layout->apply(*this, layoutScrollOffset);
+    if(layout) layout->apply(*this, layoutScrollOffset);
 
     // 总是清空并重绘（子控件可能有动态内容）
     // 注意：子控件（如Button, InputBox）内部有自己的缓存机制来避免不必要的工作
@@ -175,6 +183,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
     double savedAbsPosX = absolutPosDeltaX;
     double savedAbsPosY = absolutPosDeltaY;
+    needRedraw = false;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
@@ -192,7 +201,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
                             (childCX - halfW < globalDrawingRight) &&
                             (childCY + halfH > globalDrawingTop) &&
                             (childCY - halfH < globalDrawingBottom);
-        if (withinBounds || children[i]->getDrawingState() != 0) {
+        if(withinBounds || children[i]->getDrawingState() != 0) {
             children[i]->draw(layer, childX, childY);
         }
 
@@ -210,7 +219,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     scaleChanged = false;
 
     // 绘制滚动条（在clip path内）
-    if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
+    if(scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
         double sbX = layerWidth - 4 - scrollBar_->getWidth();
         double sbY = 4;
         scrollBar_->draw(layer, sbX, sbY, scale);
@@ -225,19 +234,24 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     setlinewidth(1,layer);
     setlinecolor(EGEACOLOR(255,bgColor), layer);
     ege_drawpath(&clippath,layer);
-    putimage_withalpha(dst,layer,left,top);
-    needRedraw = false;
+    if(!BackendFlag) {
+        putimage_withalpha(dst,layer,left,top);
+    }
+}
+
+bool Panel::isBackendDirty() const {
+    return needRedraw || needRedrawAlways != 0 || getDrawingState() != 0;
 }
 
 Panel::~Panel(){
-	if (layer) delimage(layer);
-    if (scrollBar_) delete scrollBar_;
+	if(layer) delimage(layer);
+    if(scrollBar_) delete scrollBar_;
 }
 
 void Panel::setAlwaysDirty(bool d) {
     this->needRedrawAlways += ((int)d + d - 1); 
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setAlwaysDirty(d);
         }
     }
@@ -246,7 +260,7 @@ void Panel::setAlwaysDirty(bool d) {
 void Panel::setDirty() {
     this->needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -261,7 +275,7 @@ void Panel::setPosition(double x,double y){
 	cy = y;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -289,13 +303,13 @@ void Panel::setScale(double s){
     ege_path_reset(&clippath);
     ege_path_addroundrect(&clippath,4,4,width,height,radius);
 
-    if (scrollBar_) {
+    if(scrollBar_) {
         scrollBar_->setSize(scrollBar_->getWidth(), height);
     }
 
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -328,37 +342,37 @@ bool Panel::isInside(double x, double y) const {
     double localY = y - top;
 
     // 先检查是否在按钮矩形框外
-    if (localX < 0 || localX >= width || localY < 0 || localY >= height)
+    if(localX < 0 || localX >= width || localY < 0 || localY >= height)
         return false;
 
     // 中心矩形区（不考虑圆角）直接返回 true
-    if (localX >= radius && localX < width - radius)
+    if(localX >= radius && localX < width - radius)
         return true;
-    if (localY >= radius && localY < height - radius)
+    if(localY >= radius && localY < height - radius)
         return true;
 
     // 检查四个圆角区域
     int dx, dy;
     // 左上角
-    if (localX < radius && localY < radius) {
+    if(localX < radius && localY < radius) {
         dx = radius - localX;
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右上角
-    if (localX >= width - radius && localY < radius) {
+    if(localX >= width - radius && localY < radius) {
         dx = localX - (width - radius);
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 左下角
-    if (localX < radius && localY >= height - radius) {
+    if(localX < radius && localY >= height - radius) {
         dx = radius - localX;
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右下角
-    if (localX >= width - radius && localY >= height - radius) {
+    if(localX >= width - radius && localY >= height - radius) {
         dx = localX - (width - radius);
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
@@ -379,14 +393,14 @@ bool Panel::handleEvent(const mouse_msg& msg){
     bool isin = isInside(mx, my);
 
     // 处理滚动条拖动（即使鼠标在面板外也要处理）
-    if (scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
+    if(scrollBarEnabled_ && scrollBar_ && scrollBar_->isNeeded()) {
         // 非滚轮事件（拖拽等）始终处理；滚轮事件仅在鼠标位于面板内时处理，
         // 不受子控件焦点状态影响（否则InputBox获焦后无法滚动面板）
         if(!msg.is_wheel() || (msg.is_wheel() && isin)){
             double sbLeft = left + width - scrollBar_->getWidth();
             double sbTop = top;
             // 拖动时始终处理
-            if (scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
+            if(scrollBar_->handleEvent(msg, sbLeft, sbTop, scale)) {
                 if(msg.is_left() && msg.is_down() && focusingWidget == nullptr){
                     focusingWidget = this;
                 }
@@ -406,10 +420,10 @@ bool Panel::handleEvent(const mouse_msg& msg){
         // （如InputBox的IDC_IBEAM→IDC_ARROW），仅在无拖动操作时执行。
         // 使用远离屏幕的合成坐标，而非实际鼠标坐标，以避免滚动超出视口的
         // 不可见子控件恰好命中真实鼠标位置而错误触发IDC_IBEAM。
-        if (msg.is_move() && (mouseOwningFlag == nullptr || mouseOwningFlag == this)) {
+        if(msg.is_move() && (mouseOwningFlag == nullptr || mouseOwningFlag == this)) {
             mouse_msg leaveMsg = msg;
-            leaveMsg.x = -99999;
-            leaveMsg.y = -99999;
+            leaveMsg.x = -9999;
+            leaveMsg.y = -9999;
             for (Widget* w : children) {
                 w->handleEvent(leaveMsg);
             }
@@ -422,6 +436,7 @@ bool Panel::handleEvent(const mouse_msg& msg){
             focusingWidget->deleteFocus(msg);
         }
     }
+    
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
         if(state){
@@ -465,7 +480,7 @@ void Panel::setSize(double w,double h){
 
 	needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -482,7 +497,7 @@ void Panel::setAlpha(double a) {
     alpha = alpha1;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -501,7 +516,7 @@ void Panel::reset(){
 }
 
 void Panel::setChildrenOffset(int index,Position pos){
-    if (index >= 0 && index < static_cast<int>(childOffsets.size())) {
+    if(index >= 0 && index < static_cast<int>(childOffsets.size())) {
         childOffsets[index] = pos;
     }
 }
@@ -565,11 +580,11 @@ Panel* PanelBuilder::build() {
     panel->setScale(scale);
     //widgets.insert(panel);
     IdToWidget[identifier] = panel;
-    if (layout) panel->setLayout(layout);
+    if(layout) panel->setLayout(layout);
     for(size_t i = 0;i < children.size();++ i){
         panel->addChild(children[i],childOffsets[i].x,childOffsets[i].y);
     }
-    if (scrollBarEnabled) {
+    if(scrollBarEnabled) {
         panel->enableScrollBar(true, scrollBarWidth);
     }
     return panel;
@@ -580,9 +595,9 @@ Ripple::Ripple(int _x, int _y, int _r, int _life,Widget* _p,int _c)
     : x(_x), y(_y), maxRadius(_r), life(_life), parent(_p), counter(_c) {}
 
 bool Ripple::alive() const {    
-    if (auto btn = dynamic_cast<Button*>(parent)){
+    if(auto btn = dynamic_cast<Button*>(parent)){
         if(btn->getParent() != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
+            if(Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
                 if(!m_setDirtyState){
                     p->setAlwaysDirty(true);
                     btn->setDrawing(true);
@@ -590,21 +605,23 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
+            else assert(false && "Button's parent is not a Panel");
         }
         bool state = (btn->getClickState() && (btn->getMCounter() == counter)) || (age < life);
         if(!state){
             if(btn->getParent() != nullptr){
-                if (Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
+                if(Panel* p = dynamic_cast<Panel*>(btn->getParent())) {
                     p->setAlwaysDirty(false);
                     btn->setDrawing(false);
                 }
             }
+            else assert(false && "Button's parent is not a Panel");
         }
         return state;
     }
-    if (auto ib = dynamic_cast<InputBox*>(parent)){
+    if(auto ib = dynamic_cast<InputBox*>(parent)){
         if(ib->getParent() != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
+            if(Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
                 if(!m_setDirtyState){
                     p->setAlwaysDirty(true);
                     ib->setDrawing(true);
@@ -612,15 +629,17 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
+            else assert(false && "InputBox's parent is not a Panel");
         }
         bool state =  (ib->getClickState() && (ib->getMCounter() == counter)) || (age < life);
         if(!state){
             if(ib->getParent() != nullptr){
-                if (Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
+                if(Panel* p = dynamic_cast<Panel*>(ib->getParent())) {
                     p->setAlwaysDirty(false);
                     ib->setDrawing(false);
                 }
             }
+            else assert(false && "InputBox's parent is not a Panel");
         }
         return state;
     }
@@ -630,18 +649,18 @@ bool Ripple::alive() const {
 
 void Ripple::update() {
     // --- 空指针保护 ---
-    if (!parent) {
+    if(!parent) {
         age ++;
         return;
     }
 
     // --- 动态类型安全检测 ---
-    if (age >= life * 0.75) {
-        if (auto btn = dynamic_cast<Button*>(parent)) {
-            if (btn->getClickState() && (btn->getMCounter() == counter)) return;
-        } 
-        else if (auto ib = dynamic_cast<InputBox*>(parent)) {
-            if (ib->getClickState() && (ib->getMCounter() == counter)) return;
+    if(age >= life * 0.75) {
+        if(auto btn = dynamic_cast<Button*>(parent)) {
+            if(btn->getClickState() && (btn->getMCounter() == counter)) return;
+        }
+        else if(auto ib = dynamic_cast<InputBox*>(parent)) {
+            if(ib->getClickState() && (ib->getMCounter() == counter)) return;
         }
     }
 
@@ -650,6 +669,7 @@ void Ripple::update() {
 }
 
 void Ripple::draw(PIMAGE dst) const {
+    if(BackendFlag) return;
     double progress = (double)age / life;
     double r = maxRadius * progress;
     int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
@@ -658,6 +678,7 @@ void Ripple::draw(PIMAGE dst) const {
 }
 
 void Ripple::draw_aa(PIMAGE dst) const {
+    if(BackendFlag) return;
     double progress = (double)age / life;
     double r = maxRadius * progress;
     int alpha = static_cast<int>(120 * std::cos(progress * PI / 2));
@@ -682,7 +703,7 @@ Button::Button(double cx, double cy, double w, double h, double r): radius(r) {
 }
 
 Button::~Button() {
-    if (btnLayer) delimage(btnLayer);
+    if(btnLayer) delimage(btnLayer);
 }
 
 void Button::draw(PIMAGE dst,double x,double y){
@@ -691,7 +712,9 @@ void Button::draw(PIMAGE dst,double x,double y){
     double width = this->width + 8;
     double height = this->height + 8;
     if(!ripples.size() && !needRedraw){
-        putimage_withalpha(dst,btnLayer,left,top);
+        if(!BackendFlag) {
+            putimage_withalpha(dst,btnLayer,left,top);
+        }
         return;
     }
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
@@ -743,7 +766,9 @@ void Button::draw(PIMAGE dst,double x,double y){
     setlinecolor(EGEACOLOR(255,color), btnLayer);
     ege_drawpath(&clippath,btnLayer);
 
-    putimage_withalpha(dst,btnLayer,left,top);
+    if(!BackendFlag) {
+        putimage_withalpha(dst,btnLayer,left,top);
+    }
     
     needRedraw = false;
 }
@@ -767,6 +792,26 @@ void Button::catchMouseOwningFlag(const mouse_msg& msg){
 
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
+    if(disabled){
+        if(inside){
+            setCursor(IDC_NO);
+            lastInside = true;
+            return true;
+        }
+        else if(lastInside){
+            setCursor(IDC_ARROW);
+            lastInside = false;
+            return false;
+        }
+    }
+
+    if(inside){
+        lastInside = true;
+    }
+    else if(lastInside){
+        setCursor(IDC_ARROW);
+        lastInside = false;
+    }
     
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
@@ -775,7 +820,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
         }
     }
 
-    if (msg.is_left() && msg.is_down() && inside) {
+    if(msg.is_left() && msg.is_down() && inside) {
         int localX = msg.x - left;
         int localY = msg.y - top;
         m_counter++;
@@ -783,7 +828,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
         needRedraw = true;
         if(this->parent != nullptr){
             Panel* p = dynamic_cast<Panel*>(this->parent);
-            if (p != nullptr) {
+            if(p != nullptr) {
                 p->setDirty();
             }
         }
@@ -806,37 +851,37 @@ bool Button::isInside(double x, double y) const {
     double localY = y - top;
 
     // 先检查是否在按钮矩形框外
-    if (localX < 0 || localX >= width || localY < 0 || localY >= height)
+    if(localX < 0 || localX >= width || localY < 0 || localY >= height)
         return false;
 
     // 中心矩形区（不考虑圆角）直接返回 true
-    if (localX >= radius && localX < width - radius)
+    if(localX >= radius && localX < width - radius)
         return true;
-    if (localY >= radius && localY < height - radius)
+    if(localY >= radius && localY < height - radius)
         return true;
 
     // 检查四个圆角区域
     int dx, dy;
     // 左上角
-    if (localX < radius && localY < radius) {
+    if(localX < radius && localY < radius) {
         dx = radius - localX;
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右上角
-    if (localX >= width - radius && localY < radius) {
+    if(localX >= width - radius && localY < radius) {
         dx = localX - (width - radius);
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 左下角
-    if (localX < radius && localY >= height - radius) {
+    if(localX < radius && localY >= height - radius) {
         dx = radius - localX;
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右下角
-    if (localX >= width - radius && localY >= height - radius) {
+    if(localX >= width - radius && localY >= height - radius) {
         dx = localX - (width - radius);
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
@@ -851,7 +896,7 @@ void Button::setContent(const wstring& str){
 	content = str;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -867,7 +912,7 @@ void Button::setPosition(double x,double y){
 	top = y - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -890,7 +935,7 @@ void Button::setScale(double s){
 
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -910,6 +955,12 @@ void Button::setOnClickEvent(std::function<void(void)> func){
 
 void Button::setColor(color_t col){
     color = col;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 bool Button::getClickState(){
@@ -923,6 +974,26 @@ int Button::getMCounter(){
 void Button::reset(){
     ripples.clear();
     ripples.shrink_to_fit();
+}
+
+void Button::disable(){
+    disabled = true;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+void Button::enable(){
+    disabled = false;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 // InputBox 类实现
@@ -1022,17 +1093,17 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
 }
 
 InputBox::~InputBox() {
-    if (btnLayer) delimage(btnLayer);
+    if(btnLayer) delimage(btnLayer);
 }
 
 const double BLINK_FREQUENCY = 0.65;
 const double PAUSE_THRESHOLD = 0.6;
 double InputBoxSinDoubleForCursor(double time) {
     double sine_value = std::sin(time * 2.0 * M_PI * BLINK_FREQUENCY);
-    if (sine_value > PAUSE_THRESHOLD) {
+    if(sine_value > PAUSE_THRESHOLD) {
         return 1.0;
     }
-    if (sine_value < -PAUSE_THRESHOLD) {
+    if(sine_value < -PAUSE_THRESHOLD) {
         return 0.0;
     }
     return (sine_value + 1.0) / 2.0;
@@ -1045,12 +1116,14 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     double height = this->height + 8;
     
     if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
-        putimage_withalpha(dst, btnLayer, left, top);
+        if(!BackendFlag) {
+            putimage_withalpha(dst, btnLayer, left, top);
+        }
         return;
     }
 
     ege_setfont(23 * scale, L"宋体", btnLayer);
-    if (on_focus) {
+    if(on_focus) {
         adjustScrollForCursor();
         inv.setfocus();
         wchar_t str[512];
@@ -1058,7 +1131,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         setContent(str,true);
 
         // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
-        if (!dragging && IMECompositionString.empty()) {
+        if(!dragging && IMECompositionString.empty()) {
             DWORD selStart = 0, selEnd = 0;
             SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
             int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
@@ -1070,11 +1143,11 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
             bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
                                    newEnd   == std::max(dragBegin, dragEnd));
-            if (!selMatchesOurs) {
+            if(!selMatchesOurs) {
                 dragBegin  = newStart;
                 dragEnd    = newEnd;
                 needRedraw = true;
-                if (cursor_pos != newEnd) moveCursor(newEnd);
+                if(cursor_pos != newEnd) moveCursor(newEnd);
             }
         }
     }
@@ -1111,7 +1184,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         
         // 优化：仅在内容改变时重新计算文本宽度
         float cursor_pos_width, cursor_with_ime_width, tmp, full_text_width, cursor_with_full_ime_width;
-        if (lastMeasuredContent != displayContent || lastCursorPos != cursor_pos || scaleChanged || PanelScaleChanged) {
+        if(lastMeasuredContent != displayContent || lastCursorPos != cursor_pos || scaleChanged || PanelScaleChanged) {
             std::wstring cursor_before_cursor = displayContent.substr(0, cursor_pos) + IMECompositionString.substr(0, IMECursorPos);
             std::wstring cursor_before_text = displayContent.substr(0, cursor_pos) + IMECompositionString;
             
@@ -1127,7 +1200,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             lastMeasuredContent = displayContent;
             lastCursorPos = cursor_pos;
             reflushCursorTick();
-        } else {
+        }
+        else {
             // 使用所有缓存的值
             cursor_pos_width = cachedCursorPosWidth;
             cursor_with_ime_width = cachedCursorWithImeWidth;
@@ -1141,7 +1215,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         float text_start_x = padding - scroll_offset;
 
         // 绘制选区高亮（文本下方，仅聚焦且有选区时）
-        if (on_focus && dragBegin != dragEnd) {
+        if(on_focus && dragBegin != dragEnd) {
             int sel_s = std::min(dragBegin, dragEnd);
             int sel_e = std::max(dragBegin, dragEnd);
             sel_s = std::max(0, std::min(sel_s, (int)content.size()));
@@ -1161,7 +1235,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         ege_outtextxy(text_start_x, height / 2 - textRealHeight / 2, 
                     displayContent.c_str(), btnLayer);
         
-        if (on_focus) {
+        if(on_focus) {
             setfillcolor(EGEARGB(50,30,30,30), btnLayer);
             ege_fillrect(0, 0, width, height, btnLayer);
 
@@ -1204,7 +1278,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     setlinecolor(EGEACOLOR(255,color), btnLayer);
     ege_drawpath(&clippath,btnLayer);
 
-    putimage_withalpha(dst,btnLayer,left,top);
+    if(!BackendFlag) {
+        putimage_withalpha(dst,btnLayer,left,top);
+    }
     needRedraw = false;
     scaleChanged = false;
 }
@@ -1222,7 +1298,7 @@ void InputBox::deleteFocus(const mouse_msg& msg){
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
             p->setAlwaysDirty(false);
         }
@@ -1241,17 +1317,34 @@ void InputBox::updateIMEPosition() {
 
 bool InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
+
     // 鼠标移入移出处理
-    if (inside) {
+    if(disabled) {
+        if(inside) {
+            setCursor(IDC_NO);
+            lastInside = true;
+            return true;
+        }
+        else if(lastInside) {
+            setCursor(IDC_ARROW);
+            lastInside = false;
+            return false;
+        }
+    }
+
+    if(inside) {
         setCursor(IDC_IBEAM);
         lastInside = true;
-    } else {
-        if (lastInside) {
+    }
+    else if(lastInside){
+        if(lastInside) {
             setCursor(IDC_ARROW);
             needReflushCursor = true;
             lastInside = false;
         }
     }
+
+    if(disabled) return false;
 
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
@@ -1259,7 +1352,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             mouseOwningFlag->releaseMouseOwningFlag(msg);
         }
         // 鼠标抬起时结束拖动选择
-        if (dragging) {
+        if(dragging) {
             dragging = false;
             dragSide = 0;
             mouseOwningFlag = nullptr;
@@ -1267,7 +1360,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
     }
 
     // 鼠标左键按下且在输入框内部
-    if (msg.is_left() && msg.is_down() && inside) {
+    if(msg.is_left() && msg.is_down() && inside) {
         // 无论当前 IME 叠加串是否已同步到 IMECompositionString，
         // 鼠标按下都先同步结束 IME 组合，再立即进入勾选流程，
         // 避免“有候选时第一下无法开始拖选”的状态竞态。
@@ -1276,13 +1369,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         int localX = msg.x - left;
         int localY = msg.y - top;
 
-        if (!on_focus) {
+        if(!on_focus) {
             m_counter ++;
             ripples.emplace_back(localX, localY, 4.00f / 3.00f * std::sqrt(height * height + width * width), 70, dynamic_cast<Widget*>(this),m_counter);
             on_focus = true;
             needRedraw = true;
             if(this->parent != nullptr){
-                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                     p->setAlwaysDirty(true);
                 }
             }
@@ -1303,7 +1396,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         inv.movecursor(dragBegin, dragEnd);
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
@@ -1316,12 +1409,12 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         return true;
     }
     // 鼠标左键按下且不在输入框内
-    else if (msg.is_left() && msg.is_down() && on_focus) {
+    else if(msg.is_left() && msg.is_down() && on_focus) {
         deleteFocus(msg);
     }
 
     // 鼠标移动时更新拖动选择范围
-    if (msg.is_move() && dragging && on_focus) {
+    if(msg.is_move() && dragging && on_focus) {
         applyDragMove(msg.x);
         return true;
     }
@@ -1335,37 +1428,37 @@ bool InputBox::isInside(double x, double y) const {
     double localY = y - top;
 
     // 先检查是否在按钮矩形框外
-    if (localX < 0 || localX >= width || localY < 0 || localY >= height)
+    if(localX < 0 || localX >= width || localY < 0 || localY >= height)
         return false;
 
     // 中心矩形区（不考虑圆角）直接返回 true
-    if (localX >= radius && localX < width - radius)
+    if(localX >= radius && localX < width - radius)
         return true;
-    if (localY >= radius && localY < height - radius)
+    if(localY >= radius && localY < height - radius)
         return true;
 
     // 检查四个圆角区域
     int dx, dy;
     // 左上角
-    if (localX < radius && localY < radius) {
+    if(localX < radius && localY < radius) {
         dx = radius - localX;
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右上角
-    if (localX >= width - radius && localY < radius) {
+    if(localX >= width - radius && localY < radius) {
         dx = localX - (width - radius);
         dy = radius - localY;
         return dx * dx + dy * dy <= radius * radius;
     }
     // 左下角
-    if (localX < radius && localY >= height - radius) {
+    if(localX < radius && localY >= height - radius) {
         dx = radius - localX;
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
     }
     // 右下角
-    if (localX >= width - radius && localY >= height - radius) {
+    if(localX >= width - radius && localY >= height - radius) {
         dx = localX - (width - radius);
         dy = localY - (height - radius);
         return dx * dx + dy * dy <= radius * radius;
@@ -1381,7 +1474,7 @@ void InputBox::setContent(const std::wstring& s,bool flag) {
     if(!flag) inv.settext(s.c_str());
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1403,7 +1496,7 @@ void InputBox::setPosition(double x,double y){
 
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1420,7 +1513,7 @@ void InputBox::setScale(double s){
     left = cx - width / 2;
     top = cy - height / 2;
     // 按比例缩放滚动偏移，保持文本相对位置
-    if (old_scale > 0) {
+    if(old_scale > 0) {
         scroll_offset = scroll_offset * (s / old_scale);
     }
 
@@ -1432,7 +1525,7 @@ void InputBox::setScale(double s){
     
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1444,7 +1537,7 @@ void InputBox::setTextHeight(double height){
     text_height = height;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1459,7 +1552,7 @@ void InputBox::moveCursor(int pos){
     cursor_pos = pos;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1469,7 +1562,7 @@ void InputBox::setIMECompositionString(const std::wstring& str){
     IMECompositionString = str;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1479,7 +1572,7 @@ void InputBox::setIMECursorPos(int pos){
     IMECursorPos = pos;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -1492,7 +1585,7 @@ void InputBox::adjustScrollForCursor() {
     float cursor_pixel_pos, tmp;
     measuretext(content.substr(0, cursor_pos).c_str(), &cursor_pixel_pos, &tmp, btnLayer);
     float cursor_with_ime_pos = cursor_pixel_pos;
-    if (IMECompositionString.size()) {
+    if(IMECompositionString.size()) {
         measuretext((content.substr(0, cursor_pos) + IMECompositionString).c_str(), &cursor_with_ime_pos, &tmp, btnLayer);
     }
     float full_text_width;
@@ -1504,40 +1597,41 @@ void InputBox::adjustScrollForCursor() {
     float target_pos = IMECompositionString.size() ? cursor_with_ime_pos : cursor_pixel_pos;
 
     // 修正：右边界判断为 >=，scroll_offset 公式明确
-    if (target_pos - scroll_offset >= visible_width - padding) {
+    if(target_pos - scroll_offset >= visible_width - padding) {
         scroll_offset = target_pos - (visible_width - padding);
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
     }
-    else if (cursor_pixel_pos - scroll_offset < padding) {
+    else if(cursor_pixel_pos - scroll_offset < padding) {
         scroll_offset = cursor_pixel_pos - padding;
-        if (scroll_offset < 0) scroll_offset = 0;
+        if(scroll_offset < 0) scroll_offset = 0;
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
     }
-    if (full_text_width <= visible_width) {
+    if(full_text_width <= visible_width) {
         scroll_offset = 0;
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
-    } else {
+    }
+    else {
         float max_scroll = full_text_width - visible_width;
-        if (scroll_offset > max_scroll) {
+        if(scroll_offset > max_scroll) {
             scroll_offset = max_scroll;
             needRedraw = true;
             if(this->parent != nullptr){
-                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                     p->setDirty();
                 }
             }
@@ -1574,7 +1668,7 @@ int InputBox::charPositionFromLocalX(float localX) const {
     bool imeActive = !IMECompositionString.empty();
     std::wstring displayContent;
     int cp = 0; // IME insertion point in content
-    if (imeActive) {
+    if(imeActive) {
         cp = std::max(0, std::min(cursor_pos, (int)content.size()));
         displayContent = content.substr(0, cp) + IMECompositionString + content.substr(cp);
     }
@@ -1587,23 +1681,25 @@ int InputBox::charPositionFromLocalX(float localX) const {
         int mid = (l + r) / 2;
         measuretext(searchText.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
         float dist = fabsf(char_x - click_x);
-        if (dist < min_dist) { min_dist = dist; best_pos = mid; }
-        if (char_x < click_x) l = mid + 1;
-        else if (char_x > click_x) r = mid - 1;
+        if(dist < min_dist) { min_dist = dist; best_pos = mid; }
+        if(char_x < click_x) l = mid + 1;
+        else if(char_x > click_x) r = mid - 1;
         else { best_pos = mid; break; }
     }
 
     // Convert display position back to a content position.
-    if (imeActive) {
+    if(imeActive) {
         int imeLen = (int)IMECompositionString.size();
-        if (best_pos <= cp) {
+        if(best_pos <= cp) {
             // Before or at IME start: 1-to-1 mapping with content.
             return best_pos;
-        } else if (best_pos < cp + imeLen) {
+        }
+        else if(best_pos < cp + imeLen) {
             // Inside the IME composition area: clamp to its start so that the
             // click target is the IME insertion point.
             return cp;
-        } else {
+        }
+        else {
             // After the IME composition: subtract the IME string length.
             return best_pos - imeLen;
         }
@@ -1615,33 +1711,34 @@ void InputBox::applyDragMove(int mouseX) {
     // 跳过鼠标未实际移动的合成 MOUSEMOVE（由 SetCursorPos 每帧触发）。
     // 若 IME 提交刚刚改变了文本内容，相同像素 X 会映射到新内容中不同的字符下标，
     // 从而产生虚假选区。只有鼠标真正移动后才重新计算。
-    if (mouseX == lastDragMouseX) return;
+    if(mouseX == lastDragMouseX) return;
     lastDragMouseX = mouseX;
 
     float localX = (float)(mouseX - (int)left);
     int best_pos = charPositionFromLocalX(localX);
     dragEnd = best_pos;
     // 光标跟随选区末端
-    if (cursor_pos != dragEnd) moveCursor(dragEnd);
+    if(cursor_pos != dragEnd) moveCursor(dragEnd);
     // 同步选区到 sys_edit（EM_SETSEL），保证后续键盘操作在正确范围内进行
     inv.movecursor(dragBegin, dragEnd);
     // 记录是否超出输入框边界（用于自动滚动推进）
-    if (mouseX < (int)left) dragSide = -1;
-    else if (mouseX > (int)(left + width)) dragSide = 1;
+    if(mouseX < (int)left) dragSide = -1;
+    else if(mouseX > (int)(left + width)) dragSide = 1;
     else dragSide = 0;
     needRedraw = true;
-    if (this->parent != nullptr) {
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    if(this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
     }
 }
 
 void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
-    if (msg.is_left() && msg.is_up()) {
+    if(msg.is_left() && msg.is_up()) {
         // 鼠标抬起：正式结束拖动选择
         dragging = false;
         dragSide = 0;
         mouseOwningFlag = nullptr;
-    } else if (msg.is_move() && dragging && on_focus) {
+    }
+    else if(msg.is_move() && dragging && on_focus) {
         // 鼠标移动到所有控件外部时，仍继续更新拖动选择
         applyDragMove(msg.x);
     }
@@ -1651,13 +1748,13 @@ void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
     // 当鼠标移动到包含本控件的内层 Panel 之外、但仍在外层 Panel 内时，
     // 外层 Panel 会通过 catchMouseOwningFlag 通知 mouseOwningFlag。
     // 此处继续处理拖动选择，保证选区可以延伸到内层 Panel 边界之外。
-    if (msg.is_move() && dragging && on_focus) {
+    if(msg.is_move() && dragging && on_focus) {
         applyDragMove(msg.x);
     }
 }
 
 void InputBox::deleteSelectedText() {
-    if (dragBegin == dragEnd) return;
+    if(dragBegin == dragEnd) return;
     int sel_s = std::min(dragBegin, dragEnd);
     int sel_e = std::max(dragBegin, dragEnd);
     sel_s = std::max(0, std::min(sel_s, (int)content.size()));
@@ -1668,16 +1765,16 @@ void InputBox::deleteSelectedText() {
     inv.settext(content.c_str());
     inv.movecursor(sel_s, sel_s);
     needRedraw = true;
-    if (this->parent != nullptr) {
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
+    if(this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
     }
 }
 
 void InputBox::cancelDrag() {
-    if (!dragging) return;
+    if(!dragging) return;
     dragging = false;
     dragSide = 0;
-    if (mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     // 收起选区到当前光标处。
     // dragging=false 之后，draw-loop 的 EM_GETSEL 同步块会在下一帧
     // 从 EDIT 控件读取键盘操作后的实际光标/选区并更新 dragBegin/dragEnd/cursor_pos，
@@ -1692,7 +1789,7 @@ void InputBox::markIMEStart() {
 
 void InputBox::commitIMEString(const std::wstring& compStr) {
     setIMECompositionString(L"");
-    if (compStr.empty()) return;
+    if(compStr.empty()) return;
 
     int insertAt = std::max(0, std::min(imeStartPos, (int)content.size()));
 
@@ -1711,20 +1808,40 @@ void InputBox::commitIMEString(const std::wstring& compStr) {
     // Shift dragBegin past the inserted text if it was at or after the insertion point.
     // Do NOT unconditionally override dragBegin: the click handler has already set it to
     // the correct drag anchor (click position). We only need to adjust it for the insertion.
-    if (dragBegin >= insertAt) dragBegin += (int)compStr.size();
+    if(dragBegin >= insertAt) dragBegin += (int)compStr.size();
 
     inv.settext(content.c_str());
     inv.movecursor(dragBegin, dragEnd);
 
     needRedraw = true;
-    if (parent != nullptr) {
-        if (Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+    if(parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
     }
 }
 
 void InputBox::reset(){
     ripples.clear();
     ripples.shrink_to_fit();
+}
+
+void InputBox::disable(){
+    disabled = true;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
+}
+
+void InputBox::enable(){
+    disabled = false;
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 // Slider 类实现
@@ -1801,15 +1918,16 @@ void Slider::draw(PIMAGE dst,double x,double y){
 	double left = x - width / 2;
     double top = y - height / 2;
     // 动态更新缩放比例
-    if (m_pressed) {
+    if(m_pressed) {
         m_scale += (0.8f - m_scale) * 0.2f; // 缓动到 60%
-    } else {
+    }
+    else {
         m_scale += (1.0f - m_scale) * 0.2f; // 回弹
     }
 
     // 平滑过渡进度
     m_progress += (m_finalprogress - m_progress) * 0.15;
-    if (fabs(m_progress - m_finalprogress) < 0.005)
+    if(fabs(m_progress - m_finalprogress) < 0.005)
         m_progress = m_finalprogress;
 
     // 检查是否有动画正在进行，需要持续重绘
@@ -1817,23 +1935,32 @@ void Slider::draw(PIMAGE dst,double x,double y){
                        (fabs(m_progress - m_finalprogress) > 0.005);
     
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             if(isAnimating){
-                p->setAlwaysDirty(true);
+                if(!m_animatingDirty){
+                    p->setAlwaysDirty(true);
+                    this->setDrawing(true);
+                    m_animatingDirty = true;
+                }
                 p->setDirty();
-                this->setDrawing(true);
-            } else {
+            }
+            else if(m_animatingDirty) {
                 p->setAlwaysDirty(false);
                 this->setDrawing(false);
+                m_animatingDirty = false;
             }
         }
+    }
+
+    if(BackendFlag) {
+        return;
     }
 
     // 背景轨道
     setfillcolor(m_bgColor,dst);
     setlinecolor(m_bgColor,dst);
     
-    if (m_orientation == Orientation::Column) {
+    if(m_orientation == Orientation::Column) {
         radius = width / 2;
         // 竖直轨道
         ege_fillroundrect(left + width / 2 - thickness, top,
@@ -1848,14 +1975,15 @@ void Slider::draw(PIMAGE dst,double x,double y){
         setlinecolor(BLACK, dst);
         ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
 
-        if (m_pressed) {
+        if(m_pressed) {
             setfillcolor(EGERGBA(80, 80, 80, 80), dst);
             ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
-        } else if (m_hover && !Lpressed) {
+        }
+        else if(m_hover && !Lpressed) {
             setfillcolor(EGERGBA(80, 80, 80, 40), dst);
             ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
         }
-    } 
+    }
     else {
         radius = height / 2;
         // 水平轨道
@@ -1871,10 +1999,11 @@ void Slider::draw(PIMAGE dst,double x,double y){
         setlinecolor(BLACK, dst);
         ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
 
-        if (m_pressed) {
+        if(m_pressed) {
             setfillcolor(EGERGBA(80, 80, 80, 80), dst);
             ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
-        } else if (m_hover && !Lpressed) {
+        }
+        else if(m_hover && !Lpressed) {
             setfillcolor(EGERGBA(80, 80, 80, 40), dst);
             ege_fillellipse(knobX - r, knobY - r, r * 2, r * 2, dst);
         }
@@ -1885,13 +2014,18 @@ void Slider::draw(){
 	draw(nullptr,cx,cy);
 }
 
+bool Slider::isBackendDirty() const {
+    return getDrawingState() != 0;
+}
+
 bool Slider::isInside(double x, double y){
     double knobX, knobY;
-    if (m_orientation == Orientation::Column) {
+    if(m_orientation == Orientation::Column) {
         knobX = left + width / 2;
         knobY = top + (1.0 - m_progress) * height;
         radius = width / 2;
-    } else { // Row
+    }
+    else { // Row
         knobX = left + m_progress * width;
         knobY = top + height / 2;
         radius = height / 2;
@@ -1912,7 +2046,7 @@ void Slider::setStep(double s){
 
 double Slider::fixProgress() {
     double value = m_finalprogress;
-    if (step > 0) {
+    if(step > 0) {
         value = round(value / step) * step;
     }
     return value;
@@ -1932,65 +2066,68 @@ bool Slider::handleEvent(const mouse_msg& msg) {
     if(!m_hover && m_skip && msg.is_left() && msg.is_down()){
         m_dragging = true;
         m_pressed = true;
-        if (m_orientation == Orientation::Column) {
+        if(m_orientation == Orientation::Column) {
             int my = clamp(msg.y, top, top + height);
             m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
-        } else { // Row
+        }
+        else{ // Row
             int mx = clamp(msg.x, left, left + width);
             m_finalprogress = (mx - left) / static_cast<double>(width);
         }
-        if (m_value != fixProgress() && m_onChange != nullptr)
+        if(m_value != fixProgress() && m_onChange != nullptr)
         {
             m_value = fixProgress();
             m_onChange(m_value);
         }
         // 通知父容器需要重绘
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
         mouseOwningFlag = this;
         return true;
     }
-    else if (msg.is_left() && msg.is_down() && m_hover) {
+    else if(msg.is_left() && msg.is_down() && m_hover) {
         m_dragging = true;
         m_pressed = true;
         int knobX, knobY;
-        if (m_orientation == Orientation::Column) {
+        if(m_orientation == Orientation::Column) {
             knobX = left + width / 2;
             knobY = top + static_cast<int>((1.0 - m_progress) * height);
             m_dragOffset = msg.y - knobY;
-        } else { // Row
+        }
+        else { // Row
             knobX = left + static_cast<int>(m_progress * width);
             knobY = top + height / 2;
             m_dragOffset = msg.x - knobX;
         }
         mouseOwningFlag = this;
         return true;
-    } 
-    else if (msg.is_move() && m_dragging) {
-        if (m_orientation == Orientation::Column) {
+    }
+    else if(msg.is_move() && m_dragging) {
+        if(m_orientation == Orientation::Column) {
             int my = clamp(msg.y - m_dragOffset, top, top + height);
             m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
-        } else { // Row
+        }
+        else { // Row
             int mx = clamp(msg.x - m_dragOffset, left, left + width);
             m_finalprogress = (mx - left) / static_cast<double>(width);
         }
-        if (m_value != fixProgress() && m_onChange != nullptr)
+        if(m_value != fixProgress() && m_onChange != nullptr)
         {
             m_value = fixProgress();
             m_onChange(m_value);
         }
         // 通知父容器需要重绘
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
         return true;
-    } 
-    else if (msg.is_left() && msg.is_up()) {
+    }
+    else if(msg.is_left() && msg.is_up()) {
         m_dragging = false;
         m_pressed = false;
         m_finalprogress = fixProgress();
@@ -2013,21 +2150,22 @@ void Slider::catchMouseOwningFlag(const mouse_msg& msg){
     // 处理持续拖动
     if(!msg.is_move() || !m_dragging) return;
     
-    if (m_orientation == Orientation::Column) {
+    if(m_orientation == Orientation::Column) {
         int my = clamp(msg.y - m_dragOffset, top, top + height);
         m_finalprogress = 1.0 - (my - top) / static_cast<double>(height);
-    } else { // Row
+    }
+    else { // Row
         int mx = clamp(msg.x - m_dragOffset, left, left + width);
         m_finalprogress = (mx - left) / static_cast<double>(width);
     }
-    if (m_value != fixProgress() && m_onChange != nullptr)
+    if(m_value != fixProgress() && m_onChange != nullptr)
     {
         m_value = fixProgress();
         m_onChange(m_value);
     }
     // 通知父容器需要重绘
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -2045,6 +2183,12 @@ double Slider::getProgress() const {
 void Slider::setColor(color_t bg, color_t fg) {
     m_bgColor = bg;
     m_fgColor = fg;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Slider::setThickness(double t){
@@ -2132,10 +2276,10 @@ Slider* SliderBuilder::build() {
     slider->create(x,y, width, height);
     slider->setColor(bgColor, fgColor);
     slider->setThickness(thickness);
-    slider->setProgress(progress);
     slider->setScale(scale);
     slider->setStep(step);
-    if (onChange) slider->setOnChange(onChange);
+    if(onChange) slider->setOnChange(onChange);
+    slider->setProgress(progress);
     slider->setOrientation(orientation);
     //widgets.insert(slider);
     return slider;
@@ -2154,16 +2298,16 @@ ProgressBar::ProgressBar(double cx, double cy, double w, double h):
 }
 
 ProgressBar::~ProgressBar() {
-    if (barLayer) delimage(barLayer);
+    if(barLayer) delimage(barLayer);
 }
 
 void ProgressBar::setProgress(double p) {
     p = clamp(p, 0.0, 1.0);
-    if (fabs(targetProgress - p) > 1e-6) {
+    if(fabs(targetProgress - p) > 1e-6) {
         targetProgress = p;
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
@@ -2175,11 +2319,11 @@ double ProgressBar::getProgress() const {
 }
 
 void ProgressBar::setColor(color_t fg) {
-    if (fgColor != fg) {
+    if(fgColor != fg) {
         fgColor = fg;
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
@@ -2187,11 +2331,11 @@ void ProgressBar::setColor(color_t fg) {
 }
 
 void ProgressBar::setBackground(color_t bg) {
-    if (bgColor != bg) {
+    if(bgColor != bg) {
         bgColor = bg;
         needRedraw = true;
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
@@ -2204,11 +2348,21 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
 
     //缓动到目标进度
     currentProgress += (targetProgress - currentProgress) * 0.15;
-    if (fabs(currentProgress - targetProgress) < 0.005)
+    if(fabs(currentProgress - targetProgress) < 0.005)
         currentProgress = targetProgress;
+    
+    needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
+    if(needRedraw && this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+            p->setNeedRedraw(true);
+        }
+    }
 
-    if (!needRedraw && fabs(currentProgress - targetProgress) < 1e-4) {
-        putimage_withalpha(dst, barLayer, left, top);
+    if(!needRedraw && fabs(currentProgress - targetProgress) < 1e-4) {
+        if(!BackendFlag) {
+            putimage_withalpha(dst, barLayer, left, top);
+        }
         return;
     }
 
@@ -2223,12 +2377,17 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
     setfillcolor(fgColor, barLayer);
     ege_fillrect(0, 0, width * currentProgress, height, barLayer);
 
-    putimage_withalpha(dst, barLayer, left, top);
-    needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
+    if(!BackendFlag) {
+        putimage_withalpha(dst, barLayer, left, top);
+    }
 }
 
 void ProgressBar::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool ProgressBar::isBackendDirty() const {
+    return needRedraw || fabs(currentProgress - targetProgress) > 1e-4;
 }
 
 bool ProgressBar::handleEvent(const mouse_msg& msg){
@@ -2236,32 +2395,32 @@ bool ProgressBar::handleEvent(const mouse_msg& msg){
 }
 
 void ProgressBar::setPosition(double x, double y) {
-    if (cx == x && cy == y) return;
+    if(cx == x && cy == y) return;
     cx = x;
     cy = y;
     left = cx - width / 2;
     top = cy - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
 }
 
 void ProgressBar::setScale(double s) {
-    if (fabs(scale - s) < 1e-6) return;
+    if(fabs(scale - s) < 1e-6) return;
     scale = s;
     width = origin_width * s;
     height = origin_height * s;
-    if (barLayer) delimage(barLayer);
+    if(barLayer) delimage(barLayer);
     barLayer = newimage(width, height);
     ege_enable_aa(true, barLayer);
     left = cx - width / 2;
     top = cy - height / 2;
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -2325,10 +2484,10 @@ Dropdown::Dropdown(double cx, double cy, double w, double h, double r)
 }
 
 Dropdown::~Dropdown() {
-    if (mainButton) delete mainButton;
-    if (dropdownPanel) delete dropdownPanel;
+    if(mainButton) delete mainButton;
+    if(dropdownPanel) delete dropdownPanel;
     for (Button* option : options) {
-        if (option) delete option;
+        if(option) delete option;
     }
     options.clear();
 }
@@ -2364,17 +2523,18 @@ void Dropdown::draw(PIMAGE dst, double x, double y) {
     mainButton->draw(dst, x, y);
 
     // 如果展开中，或正在淡入淡出动画
-    if (expanded || fadeAlpha > 0.08) {
+    if(expanded || fadeAlpha > 0.08) {
         // 更新透明度（渐变）
-        if (fadingIn) {
+        if(fadingIn) {
             fadeAlpha += 0.09;
-            if (fadeAlpha >= 1.0) {
+            if(fadeAlpha >= 1.0) {
                 fadeAlpha = 1.0;
                 fadingIn = false;
             }
-        } else if (fadingOut) {
+        }
+        else if(fadingOut) {
             fadeAlpha -= 0.09;
-            if (fadeAlpha <= 0.0) {
+            if(fadeAlpha <= 0.0) {
                 fadeAlpha = 0.0;
                 fadingOut = false;
                 expanded = false;
@@ -2383,7 +2543,7 @@ void Dropdown::draw(PIMAGE dst, double x, double y) {
 
         // 优化：只在透明度改变时调用setAlpha
         int actualAlpha = static_cast<int>(fadeAlpha * 255);
-        if (lastAppliedAlpha != actualAlpha) {
+        if(lastAppliedAlpha != actualAlpha) {
             dropdownPanel->setAlpha(actualAlpha);
             lastAppliedAlpha = actualAlpha;
         }
@@ -2395,8 +2555,14 @@ void Dropdown::draw() {
     draw(nullptr, cx, cy);
 }
 
+bool Dropdown::isBackendDirty() const {
+    if(mainButton && mainButton->isBackendDirty()) return true;
+    if(dropdownPanel && dropdownPanel->isBackendDirty()) return true;
+    return expanded || fadingIn || fadingOut || fadeAlpha > 0.08;
+}
+
 bool Dropdown::handleEvent(const mouse_msg& msg) {
-    if (expanded) {
+    if(expanded) {
         dropdownPanel->handleEvent(msg);
         for (Button* btn : options) {
             btn->handleEvent(msg);
@@ -2406,8 +2572,8 @@ bool Dropdown::handleEvent(const mouse_msg& msg) {
     mainButton->handleEvent(msg);
 
     // 检测点击空白关闭
-    if (msg.is_left() && msg.is_down()) {
-        if (!isInside(msg.x, msg.y)) {
+    if(msg.is_left() && msg.is_down()) {
+        if(!isInside(msg.x, msg.y)) {
             // 点到了空白区域，关闭下拉
             fadingOut = true;
             fadingIn = false;
@@ -2417,11 +2583,12 @@ bool Dropdown::handleEvent(const mouse_msg& msg) {
 }
 
 void Dropdown::toggleDropdown() {
-    if (!expanded) {
+    if(!expanded) {
         expanded = true;
         fadingIn = true;
         fadingOut = false;
-    } else {
+    }
+    else {
         fadingOut = true;
         fadingIn = false;
     }
@@ -2448,20 +2615,26 @@ void Dropdown::setColor(color_t col) {
     mainButton->setColor(col);
     for (auto& opt : options)
         opt->setColor(col);
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 bool Dropdown::isInside(double x, double y) const {
     // 检查是否在主按钮内
-    if (mainButton->isInside(x, y))
+    if(mainButton->isInside(x, y))
         return true;
 
     // 如果未展开，无需检查下拉项
-    if (!expanded && fadeAlpha <= 0.01)
+    if(!expanded && fadeAlpha <= 0.01)
         return false;
 
     // 检查是否在下拉选项内
     for (Button* btn : options) {
-        if (btn->isInside(x, y))
+        if(btn->isInside(x, y))
             return true;
     }
 
@@ -2526,6 +2699,8 @@ void Radio::setPosition(double x, double y) {
 void Radio::setScale(double s) {
     scale = s;
     radius = origin_radius * scale;
+    width = radius * 2;
+    height = radius * 2;
 }
 
 void Radio::setStyle(RadioStyle s) {
@@ -2551,7 +2726,7 @@ bool Radio::isChecked() const {
 void Radio::draw(PIMAGE dst, double x, double y) {
     bool nowChecked = isChecked();
     bool showDot = isChecked() || (animOut && animProgress < 1.0);
-    if (!nowChecked && wasChecked && !animOut) {
+    if(!nowChecked && wasChecked && !animOut) {
         // 被取消选中了，启动缩小动画
         animOut = true;
         animIn = false;
@@ -2561,62 +2736,67 @@ void Radio::draw(PIMAGE dst, double x, double y) {
 
     double R = radius;
 
-    // 悬停阴影
-    if (hovered) {
-        double shadowRadius = R + 6;
-        setfillcolor(EGERGBA(50, 50, 50, 32), dst);
-        ege_fillellipse(x - shadowRadius, y - shadowRadius, shadowRadius * 2, shadowRadius * 2, dst);
-    }
+    if(!BackendFlag) {
+        // 悬停阴影
+        if(hovered) {
+            double shadowRadius = R + 6;
+            setfillcolor(EGERGBA(50, 50, 50, 32), dst);
+            ege_fillellipse(x - shadowRadius, y - shadowRadius, shadowRadius * 2, shadowRadius * 2, dst);
+        }
 
-    if(keepColor || nowChecked) setlinecolor(EGERGB(50, 150, 250), dst);
-    else setlinecolor(EGERGB(110,110,110), dst);
-    setlinewidth(2, dst);
+        if(keepColor || nowChecked) setlinecolor(EGERGB(50, 150, 250), dst);
+        else setlinecolor(EGERGB(110,110,110), dst);
+        setlinewidth(2, dst);
 
-    if (style == RadioStyle::Filled) {
-        setfillcolor(WHITE, dst);
-        ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
-    } 
-    else if (style == RadioStyle::Outline) {
-        // 只绘制线框，不填充
-        ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
+        if(style == RadioStyle::Filled) {
+            setfillcolor(WHITE, dst);
+            ege_fillellipse(x - R, y - R, R * 2, R * 2, dst);
+        }
+        else if(style == RadioStyle::Outline) {
+            // 只绘制线框，不填充
+            ege_ellipse((float)(x - R), (float)(y - R), (float)(R * 2), (float)(R * 2), dst);
+        }
     }
 
     // 更新动画进度
-    if (animIn) {
+    if(animIn) {
         animProgress += animSpeed;
-        if (animProgress >= 1.0) {
+        if(animProgress >= 1.0) {
             animProgress = 1.0;
             animIn = false;
         }
-    } else if (animOut) {
+    }
+    else if(animOut) {
         animProgress += animSpeed;
-        if (animProgress >= 1.0) {
+        if(animProgress >= 1.0) {
             animOut = false;
         }
     }
 
     // 动画缩放
     double scaleFactor = 1.0;
-    if (animIn) {
+    if(animIn) {
         scaleFactor = 0.7 + 0.4 * animProgress;
         lastScale = scaleFactor;
-    } else if (animOut) {
+    }
+    else if(animOut) {
         scaleFactor = 1.0 - 0.4 * animProgress;
         lastScale = scaleFactor;
-    } else {
+    }
+    else {
         scaleFactor = lastScale;
     }
 
-    if (showDot) {
+    if(showDot && !BackendFlag) {
         double r_in = R * 0.5 * scaleFactor;
         if(keepColor || nowChecked){
             setlinecolor(EGERGB(50, 150, 250), dst);
             setfillcolor(EGERGB(50, 150, 250), dst);
-        } 
+        }
         else{
             setlinecolor(EGERGB(110,110,110), dst);
             setfillcolor(EGERGB(110,110,110), dst);
-        } 
+        }
         setlinecolor(EGERGB(245, 245, 235), dst);
         ege_fillellipse(x - r_in, y - r_in, r_in * 2, r_in * 2, dst);
     }
@@ -2626,20 +2806,25 @@ void Radio::draw() {
     draw(nullptr, cx, cy);
 }
 
+bool Radio::isBackendDirty() const {
+    return animIn || animOut;
+}
+
 bool Radio::handleEvent(const mouse_msg& msg) {
     int dx = msg.x - cx;
     int dy = msg.y - cy;
     hovered = dx * dx + dy * dy <= radius * radius;
 
-    if (msg.is_left() && msg.is_down() && hovered) {
-        if (groupValuePtr && *groupValuePtr != value) {
+    if(msg.is_left() && msg.is_down() && hovered) {
+        if(groupValuePtr && *groupValuePtr != value) {
             *groupValuePtr = value;
             animIn = true;
             animOut = false;
             animProgress = 0.0;
-            if (onSelect) onSelect();
+            if(onSelect) onSelect();
             return true;
-        } else if (groupValuePtr && *groupValuePtr == value) {
+        }
+        else if(groupValuePtr && *groupValuePtr == value) {
             // cout<<"awa\n";
             // animOut = true;
             // animIn = false;
@@ -2674,8 +2859,8 @@ RadioBuilder& RadioBuilder::setStyle(RadioStyle s) {
 Radio* RadioBuilder::build() {
     auto radio = new Radio(cx, cy, radius, value);
     radio->setScale(scale);
-    if (groupPtr) radio->setGroupValueRef(groupPtr);
-    if (onSelect) radio->setOnSelect(onSelect);
+    if(groupPtr) radio->setGroupValueRef(groupPtr);
+    if(onSelect) radio->setOnSelect(onSelect);
     radio->setStyle(style); // ? 设置样式
     //widgets.insert(radio);
     return radio;
@@ -2700,10 +2885,19 @@ std::wstring RadioController::getValue(){
     return currentValue;
 }
 
-void RadioController::build() {
+Box* RadioController::build() {
+    Box* bx = BoxBuilder()
+        .setCenter(cx, cy)
+        .setAlign(LayoutAlign::Start)
+        .setPadding(5)
+        .setSpacing(gap)
+        .setDirection(LayoutDirection::Column)
+        .setSize(radius * 2 + 10, (radius * 2 + gap) * values.size() - gap + 10)
+        .build();
+    
     for (size_t i = 0; i < values.size(); ++i) {
         std::wstring val = values[i];
-        RadioBuilder()
+        Radio* r = RadioBuilder()
             .setCenter(cx, cy + i * gap)
             .setRadius(radius)
             .setScale(scale)
@@ -2712,10 +2906,12 @@ void RadioController::build() {
             .setGroupValueRef(&currentValue)
             .setOnSelect([=,this] {
                 currentValue = val;
-                if (onChange) onChange(val);
+                if(onChange) onChange(val);
             })
             .build();
+        bx->addChild(r,0,0);
     }
+    return bx;
 }
 
 RadioControllerBuilder& RadioControllerBuilder::setCenter(double x, double y) {
@@ -2775,11 +2971,16 @@ Toggle::Toggle(double cx, double cy, double w, double h)
 void Toggle::setChecked(bool c) {
     checked = c;
     knobTarget = c ? 1.0 : 0.0;
+    if(this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Toggle::toggle() {
     setChecked(!checked);
-    if (onToggle) onToggle(checked);
+    if(onToggle) onToggle(checked);
 }
 
 bool Toggle::isChecked() const {
@@ -2822,24 +3023,33 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
     int dx = msg.x - cx;
     int dy = msg.y - cy;
 
+    bool hoverChanged = false;
+    bool prevHovered = hovered;
     hovered = (std::abs(dx) <= w / 2 && std::abs(dy) <= h / 2);
+    hoverChanged = (prevHovered != hovered);
+    if(hoverChanged && this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 
-    if (disabled) return false;
+    if(disabled) return false;
+    if(!hovered) return false;
 
-    if (msg.is_left()) {
-        if (msg.is_down()) {
+    if(msg.is_left()) {
+        if(msg.is_down()) {
             // 记录是否在区域内按下
             pressedIn = hovered;
             mouseOwningFlag = this;
             return true;
-        } else if (msg.is_up()) {
+        }
+        else if(msg.is_up()) {
             // 如果松开时还在区域内且是之前按下的
-            if (hovered && pressedIn) {
+            if(hovered && pressedIn) {
                 toggle(); // ? 这里才执行切换动画与回调
             }
-            pressedIn = false;
             if(mouseOwningFlag == this){
-                mouseOwningFlag = nullptr;
+                releaseMouseOwningFlag(msg);
             }
         }
     }
@@ -2874,10 +3084,33 @@ color_t mixColor(color_t c1, color_t c2, double ratio) {
 
 void Toggle::draw(PIMAGE dst, double x, double y) {
     // === 动画推进 ===
-    if (std::abs(knobOffset - knobTarget) > 1e-3)
+    if(std::abs(knobOffset - knobTarget) > 1e-3)
         knobOffset += (knobTarget - knobOffset) * animationSpeed;
     else
         knobOffset = knobTarget;
+
+    bool isAnimating = std::abs(knobOffset - knobTarget) > 1e-3;
+    if(this->parent != nullptr) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(isAnimating) {
+                if(!m_animatingDirty) {
+                    p->setAlwaysDirty(true);
+                    this->setDrawing(true);
+                    m_animatingDirty = true;
+                }
+                p->setDirty();
+            }
+            else if(m_animatingDirty) {
+                p->setAlwaysDirty(false);
+                this->setDrawing(false);
+                m_animatingDirty = false;
+            }
+        }
+    }
+
+    if(BackendFlag) {
+        return;
+    }
 
     double w = width * scale;
     double h_track = height * scale * 0.6;
@@ -2891,12 +3124,14 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
 
     // === 轨道颜色 ===
     color_t trackColor;
-    if (disabled) {
+    if(disabled) {
         trackColor = EGERGB(200, 200, 200); // 禁用轨道
-    } else if (keepColor) {
+    }
+    else if(keepColor) {
         trackColor = checked ? mixColor(baseColor, WHITE, 0.55)
                             : mixColor(baseColor, WHITE, 0.80);
-    } else {
+    }
+    else {
         trackColor = checked ? mixColor(baseColor, WHITE, 0.55)
                             : EGERGB(160, 160, 160);
     }
@@ -2906,7 +3141,7 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
     ege_fillroundrect(x - w / 2, y - h_track / 2, w, h_track, r_track, r_track, r_track, r_track, dst);
 
     // === 悬浮灰圈背景（hover 时）
-    if (hovered && !disabled) {
+    if(hovered && !disabled) {
         double hoverR = r_knob + 7;
         setfillcolor(EGERGBA(100, 100, 100, 32), dst);
         ege_fillellipse(knobX - hoverR, y - hoverR, hoverR * 2, hoverR * 2, dst);
@@ -2914,11 +3149,13 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
 
     // === 滑块颜色（关闭时为浅灰而非纯白）
     color_t knobColor;
-    if (disabled) {
+    if(disabled) {
         knobColor = EGERGB(220, 220, 220); // 灰滑块
-    } else if (keepColor) {
+    }
+    else if(keepColor) {
         knobColor = checked ? baseColor : EGERGB(245, 245, 245);
-    } else {
+    }
+    else {
         knobColor = checked ? baseColor : EGERGB(240, 240, 240);
     }
 
@@ -2931,6 +3168,18 @@ void Toggle::draw(PIMAGE dst, double x, double y) {
 
 void Toggle::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Toggle::isBackendDirty() const {
+    return fabs(knobOffset - knobTarget) > 1e-3;
+}
+
+double Toggle::getWidth(){
+    return width * scale;
+}
+
+double Toggle::getHeight(){
+    return height * scale;
 }
 
 ToggleBuilder& ToggleBuilder::setCenter(double x, double y) {
@@ -2977,7 +3226,7 @@ Toggle* ToggleBuilder::build() {
     auto toggle = new Toggle(cx, cy, w, h);
     toggle->setScale(scale);
     toggle->setChecked(checked);
-    if (onToggle) toggle->setOnToggle(onToggle);
+    if(onToggle) toggle->setOnToggle(onToggle);
     toggle->setKeepColor(keepColor);
     toggle->setBaseColor(baseColor);
     //widgets.insert(toggle);
@@ -3008,6 +3257,12 @@ void Text::setFont(int size, const std::wstring& name) {
 
 void Text::setColor(color_t col) {
     color = col;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Text::setScale(double s) {
@@ -3030,6 +3285,14 @@ int Text::getTextHeight() const {
     return textHeight;
 }
 
+int Text::getWidth() const {
+    return textWidth;
+}
+
+int Text::getHeight() const {
+    return textHeight;
+}
+
 int Text::getMaxWidth() const {
     return maxWidth;
 }
@@ -3046,7 +3309,7 @@ void Text::updateLayout() {
 
     std::wstring line;
     for (wchar_t ch : contentW) {
-        if (ch == L'\n') {
+        if(ch == L'\n') {
             lines.push_back(line);
             line.clear();
             continue;
@@ -3056,14 +3319,14 @@ void Text::updateLayout() {
 
         float tmp,_w;
         measuretext(line.c_str(),&_w,&tmp);
-        if (maxWidth > 0 && _w > maxWidth) {
+        if(maxWidth > 0 && _w > maxWidth) {
             line.pop_back();
             lines.push_back(line);
             line = ch;
         }
     }
 
-    if (!line.empty())
+    if(!line.empty())
         lines.push_back(line);
 
     // 优化：缓存每行的宽度
@@ -3088,7 +3351,12 @@ void Text::draw() {
     draw(nullptr, posX, posY);
 }
 
+bool Text::isBackendDirty() const {
+    return false;
+}
+
 void Text::draw(PIMAGE dst, double x, double y) {
+    if(BackendFlag) return;
     ege_setfont(fontSize * scale, fontName.c_str(), dst);
     settextcolor(color, dst);
 
@@ -3100,15 +3368,15 @@ void Text::draw(PIMAGE dst, double x, double y) {
         double x_draw = originX;
         
         float lineW = (i < cachedLineWidths.size()) ? cachedLineWidths[i] : 0;
-        if (lineW == 0) {
+        if(lineW == 0) {
             float w = 0, h = 0;
             measuretext(lines[i].c_str(), &w, &h, dst);
             lineW = w;
         }
 
-        if (align == TextAlign::Center)
+        if(align == TextAlign::Center)
             x_draw = originX + (width - lineW) / 2;
-        else if (align == TextAlign::Right)
+        else if(align == TextAlign::Right)
             x_draw = originX + (width - lineW);
 
         float tmp, _h;
@@ -3215,7 +3483,7 @@ void Knob::setRange(double minVal, double maxVal) {
     minValue = minVal;
     maxValue = maxVal;
     // 同步更新内部范围（如果未单独设置）
-    if (innerMin == minValue && innerMax == maxValue) {
+    if(innerMin == minValue && innerMax == maxValue) {
         innerMin = minVal;
         innerMax = maxVal;
     }
@@ -3228,11 +3496,11 @@ void Knob::setStep(double s) {
 void Knob::setValue(double val) {
     double oldValue = value;
     value = clamp(val);
-    if (step > 0) {
+    if(step > 0) {
         value = applyStep(value);
     }
     // 如果值改变且有回调，触发回调
-    if (oldValue != value && onChange) {
+    if(oldValue != value && onChange) {
         onChange(value);
     }
 }
@@ -3244,6 +3512,12 @@ double Knob::getValue() const {
 void Knob::setColor(color_t fg, color_t bg) {
     fgColor = fg;
     bgColor = bg;
+    this->needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+    }
 }
 
 void Knob::setOnChange(std::function<void(double)> cb) {
@@ -3288,13 +3562,13 @@ void Knob::setPosition(double x, double y) {
 }
 
 double Knob::clamp(double v) const {
-    if (v < minValue) return minValue;
-    if (v > maxValue) return maxValue;
+    if(v < minValue) return minValue;
+    if(v > maxValue) return maxValue;
     return v;
 }
 
 double Knob::applyStep(double v) const {
-    if (step <= 0) return v;
+    if(step <= 0) return v;
     // 将值对齐到最近的步进点
     double steps = std::round((v - minValue) / step);
     return minValue + steps * step;
@@ -3305,7 +3579,7 @@ double Knob::valueToAngle(double v) const {
     // 完整范围：从 -90° (顶部) 到 +270° (总共 360°)
     // 加上偏移角度
     double range = maxValue - minValue;
-    if (range <= 0) return offsetAngle;
+    if(range <= 0) return offsetAngle;
     
     double ratio = (v - minValue) / range;
     // 从顶部开始，顺时针旋转完整360度
@@ -3357,7 +3631,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // 缓动到目标值（类似Slider的实现）
     displayValue += (value - displayValue) * 0.09;
-    if (fabs(displayValue - value) < 0.01) {
+    if(fabs(displayValue - value) < 0.01) {
         displayValue = value;
     }
     
@@ -3365,16 +3639,25 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     bool isAnimating = fabs(displayValue - value) >= 0.01;
     
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             if(isAnimating){
-                p->setAlwaysDirty(true);
-                p->setDirty();
-                this->setDrawing(true);
-            } else {
+                if(!dirtyFlag) {
+                    p->setAlwaysDirty(true);
+                    p->setDirty();
+                    this->setDrawing(true);
+                    dirtyFlag = true;
+                }
+            }
+            else if(dirtyFlag) {
                 p->setAlwaysDirty(false);
                 this->setDrawing(false);
+                dirtyFlag = false;
             }
         }
+    }
+
+    if(BackendFlag) {
+        return;
     }
     
     // 如果禁用，使用灰色
@@ -3402,10 +3685,10 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // 绘制进度弧
     // 添加小的epsilon以确保完整绘制到边界
-    if (progressSweep > 0.01) {
+    if(progressSweep > 0.01) {
         // 当接近最大值时，确保完整绘制360度
         double drawSweep = progressSweep;
-        if (progressSweep > 359.5 && progressSweep < 360.5) {
+        if(progressSweep > 359.5 && progressSweep < 360.5) {
             drawSweep = 360.0;  // 确保完整的360度弧
         }
         ege_arc((float)(x - r), (float)(y - r), (float)(2 * r), (float)(2 * r), 
@@ -3414,7 +3697,7 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     
     // === 绘制中心填充圆 ===
     color_t centerColor = WHITE;
-    if (hovered && !disabled && !readonly && !(mouseOwningFlag != nullptr && mouseOwningFlag != this)) {
+    if(hovered && !disabled && !readonly && !(mouseOwningFlag != nullptr && mouseOwningFlag != this)) {
         centerColor = EGERGB(250, 250, 250);
     }
     
@@ -3424,17 +3707,19 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     ege_fillcircle(x, y, (r * 0.7), dst);
     
     // === 显示当前值 ===
-    if (showValue) {
+    if(showValue) {
         // 计算字体大小
         double actualFontSize = fontSize > 0 ? fontSize : (r * 0.35);
         
         // 格式化显示值（显示displayValue而不是value，实现缓动效果）
         wchar_t valueText[64];
-        if (step >= 1.0) {
+        if(step >= 1.0) {
             swprintf(valueText, 64, L"%.0f", value);
-        } else if (step >= 0.1) {
+        }
+        else if(step >= 0.1) {
             swprintf(valueText, 64, L"%.1f", value);
-        } else {
+        }
+        else {
             swprintf(valueText, 64, L"%.2f", value);
         }
         
@@ -3453,6 +3738,10 @@ void Knob::draw(PIMAGE dst, double x, double y) {
 
 void Knob::draw() {
     draw(nullptr, cx, cy);
+}
+
+bool Knob::isBackendDirty() const {
+    return getDrawingState() != 0;
 }
 
 void Knob::releaseMouseOwningFlag(const mouse_msg& msg){
@@ -3490,7 +3779,7 @@ void Knob::catchMouseOwningFlag(const mouse_msg& msg){
     
     // 处理跨越180°边界的情况
     double normalizedAngle = angle;
-    if (normalizedAngle < startAngle) {
+    if(normalizedAngle < startAngle) {
         normalizedAngle += 360.0;  // 转换到正值范围
     }
     
@@ -3502,19 +3791,19 @@ void Knob::catchMouseOwningFlag(const mouse_msg& msg){
     
     // 限制和应用步进
     newValue = clamp(newValue);
-    if (step > 0) {
+    if(step > 0) {
         newValue = applyStep(newValue);
     }
     
     // 更新值并触发回调
-    if (newValue != value) {
+    if(newValue != value) {
         value = newValue;
-        if (onChange) {
+        if(onChange) {
             onChange(value);
         }
         // 通知父容器需要重绘
         if(this->parent != nullptr){
-            if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                 p->setDirty();
             }
         }
@@ -3536,7 +3825,7 @@ bool Knob::handleEvent(const mouse_msg& msg) {
     }
     
     // 按下鼠标左键开始拖动
-    if (msg.is_left() && msg.is_down() && hovered) {
+    if(msg.is_left() && msg.is_down() && hovered) {
         dragging = true;
         lastMouseX = msg.x;
         lastMouseY = msg.y;
@@ -3544,7 +3833,7 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         return true;
     }
     // 拖动中
-    else if (msg.is_move() && dragging) {
+    else if(msg.is_move() && dragging) {
         // 计算鼠标相对于中心的角度
         double dx = msg.x - cx;
         double dy = msg.y - cy;
@@ -3573,7 +3862,7 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         
         // 处理跨越180°边界的情况
         double normalizedAngle = angle;
-        if (normalizedAngle < startAngle) {
+        if(normalizedAngle < startAngle) {
             normalizedAngle += 360.0;  // 转换到正值范围
         }
         
@@ -3585,19 +3874,19 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         
         // 限制和应用步进
         newValue = clamp(newValue);
-        if (step > 0) {
+        if(step > 0) {
             newValue = applyStep(newValue);
         }
         
         // 更新值并触发回调
-        if (newValue != value) {
+        if(newValue != value) {
             value = newValue;
-            if (onChange) {
+            if(onChange) {
                 onChange(value);
             }
             // 通知父容器需要重绘
             if(this->parent != nullptr){
-                if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+                if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
                     p->setDirty();
                 }
             }
@@ -3608,7 +3897,7 @@ bool Knob::handleEvent(const mouse_msg& msg) {
         return true;
     }
     // 释放鼠标左键停止拖动
-    else if (msg.is_left() && msg.is_up()) {
+    else if(msg.is_left() && msg.is_up()) {
         dragging = false;
         if(mouseOwningFlag == this){
             mouseOwningFlag = nullptr;
@@ -3714,7 +4003,7 @@ Knob* KnobBuilder::build() {
     knob->setReadonly(readonly);
     knob->setScale(scale);
     
-    if (onChange) {
+    if(onChange) {
         knob->setOnChange(onChange);
     }
     
@@ -3722,7 +4011,7 @@ Knob* KnobBuilder::build() {
     //widgets.insert(knob);
     
     // 如果有标识符，注册到ID映射
-    if (!identifier.empty()) {
+    if(!identifier.empty()) {
         IdToWidget[identifier] = knob;
     }
     
@@ -3733,21 +4022,47 @@ std::map<std::wstring,Widget*> IdToWidget;
 
 Widget* getWidgetById(const std::wstring& identifier){
     auto it = IdToWidget.find(identifier);
-    if (it != IdToWidget.end()) {
+    if(it != IdToWidget.end()) {
         return it->second;
     }
     return nullptr;
 }
 
 void assignOrder(std::vector<Widget*> widgetWithOrder){
-    swap(widgetWithOrder,widgets);
-    for(Widget* w : widgetWithOrder){
-        w->reset();
+    for (Widget* w : widgets) {
+        // 被取出了
+        widgetBackendRedraw.insert(w);
+    }
+    for (Widget* w : widgetWithOrder) {
+        // 被放入了
+        widgetBackendRedraw.erase(w);
+    }
+    swap(widgets, widgetWithOrder);
+    for(auto w : widgets){
+        assert(widgetBackendRedraw.find(w) == widgetBackendRedraw.end());
+        if(auto p = dynamic_cast<Panel*>(w)){
+            p->setDirty();
+        }
+        if(auto b = dynamic_cast<Box*>(w)){
+            b->setDirty();
+        }
     }
 }
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
+    for(auto w : widgets){
+        widgetBackendRedraw.erase(w);
+    }
+    for(auto w : widgets){
+        assert(widgetBackendRedraw.find(w) == widgetBackendRedraw.end());
+        if(auto p = dynamic_cast<Panel*>(w)){
+            p->setDirty();
+        }
+        if(auto b = dynamic_cast<Box*>(w)){
+            b->setDirty();
+        }
+    }
 }
 
 // ============ ScrollBar 实现 ============
@@ -3764,7 +4079,7 @@ void ScrollBar::getThumbRect(double scale, double& outY, double& outH) const {
     double btnSize = getButtonSize(scale);
     double trackHeight = barHeight_ - btnSize * 2;  // 轨道高度
 
-    if (contentHeight_ <= viewHeight_ || contentHeight_ <= 0) {
+    if(contentHeight_ <= viewHeight_ || contentHeight_ <= 0) {
         outY = 0;
         outH = trackHeight;
         return;
@@ -3773,7 +4088,7 @@ void ScrollBar::getThumbRect(double scale, double& outY, double& outH) const {
     // 滑块高度与可见比例成正比，最小高度为20像素
     double ratio = viewHeight_ / contentHeight_;
     outH = trackHeight * ratio;
-    if (outH < 20) outH = 20;
+    if(outH < 20) outH = 20;
 
     // 滑块位置
     double scrollRange = trackHeight - outH;
@@ -3783,11 +4098,12 @@ void ScrollBar::getThumbRect(double scale, double& outY, double& outH) const {
 void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double size, bool up, color_t color) {
     // 绘制三角形箭头
     ege_point points[3];
-    if (up) {
+    if(up) {
         points[0] = {static_cast<float>(centerX), static_cast<float>(centerY - size * 0.4)};
         points[1] = {static_cast<float>(centerX - size * 0.4), static_cast<float>(centerY + size * 0.3)};
         points[2] = {static_cast<float>(centerX + size * 0.4), static_cast<float>(centerY + size * 0.3)};
-    } else {
+    }
+    else {
         points[0] = {static_cast<float>(centerX), static_cast<float>(centerY + size * 0.4)};
         points[1] = {static_cast<float>(centerX - size * 0.4), static_cast<float>(centerY - size * 0.3)};
         points[2] = {static_cast<float>(centerX + size * 0.4), static_cast<float>(centerY - size * 0.3)};
@@ -3797,45 +4113,49 @@ void ScrollBar::drawArrow(PIMAGE dst, double centerX, double centerY, double siz
 }
 
 void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
-    if (!isNeeded()) return;
+    if(!isNeeded()) return;
 
     // 长按按钮或轨道时持续滚动（三阶段）
     bool anyPressed = topBtnPressed_ || bottomBtnPressed_ || trackPressed_;
-    if (anyPressed) {
+    if(anyPressed) {
         double elapsed = getMs() - pressStartTime_;
         // 阶段1: 0~100ms 初始慢速滚动（首次点击已在handleEvent中设置了targetScrollPos_）
         // 阶段2: 100~400ms 停顿，不滚动
         // 阶段3: 400ms+ 快速持续滚动
         double step = 0;
-        if (elapsed > 400) {
+        if(elapsed > 400) {
             step = 0.012;
-        } else if (elapsed <= 100) {
+        }
+        else if(elapsed <= 100) {
             step = 0.004;
         }
         // 100~400ms 停顿期 step=0
 
-        if (step > 0) {
-            if (topBtnPressed_) {
+        if(step > 0) {
+            if(topBtnPressed_) {
                 targetScrollPos_ -= step;
-            } else if (bottomBtnPressed_) {
+            }
+            else if(bottomBtnPressed_) {
                 targetScrollPos_ += step;
-            } else if (trackPressed_) {
+            }
+            else if(trackPressed_) {
                 targetScrollPos_ += step * trackScrollDir_;
                 // 不超过点击位置
-                if (trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
-                if (trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
+                if(trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
+                if(trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
             }
-            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-            if (parentPanel_) parentPanel_->setDirty();
+            if(targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if(targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            if(parentPanel_) parentPanel_->setDirty();
         }
 
-        if (parentPanel_ && !btnScrollActive_) {
+        if(parentPanel_ && !btnScrollActive_) {
             parentPanel_->setAlwaysDirty(true);
             btnScrollActive_ = true;
         }
-    } else if (btnScrollActive_) {
-        if (parentPanel_) {
+    }
+    else if(btnScrollActive_) {
+        if(parentPanel_) {
             parentPanel_->setAlwaysDirty(false);
         }
         btnScrollActive_ = false;
@@ -3843,25 +4163,31 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
 
     // 平滑滚动：scrollPos_ 向 targetScrollPos_ 插值
     double diff = targetScrollPos_ - scrollPos_;
-    if (diff != 0) {
+    if(diff != 0) {
         double lerpFactor = 0.18;  // 插值系数，越大越快到达目标
         double maxScroll = contentHeight_ - viewHeight_;
-        if (maxScroll <= 0 || std::abs(diff) * maxScroll < 1.0) {
+        if(maxScroll <= 0 || std::abs(diff) * maxScroll < 1.0) {
             scrollPos_ = targetScrollPos_;  // 接近目标时直接到达（像素级精度）
-        } else {
+        }
+        else {
             scrollPos_ += diff * lerpFactor;
         }
-        if (parentPanel_) parentPanel_->setDirty();
+        if(parentPanel_) parentPanel_->setDirty();
         // 动画进行中，保持持续重绘
-        if (!smoothScrollActive_ && parentPanel_) {
+        if(!smoothScrollActive_ && parentPanel_) {
             parentPanel_->setAlwaysDirty(true);
             smoothScrollActive_ = true;
         }
-    } else if (smoothScrollActive_) {
-        if (parentPanel_) {
+    }
+    else if(smoothScrollActive_) {
+        if(parentPanel_) {
             parentPanel_->setAlwaysDirty(false);
         }
         smoothScrollActive_ = false;
+    }
+
+    if(BackendFlag) {
+        return;
     }
 
     double btnSize = getButtonSize(scale);
@@ -3872,17 +4198,19 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     ege_fillrect(x, y, w, barHeight_, dst);
 
     // === 顶部按钮 ===
-    if (topBtnPressed_) {
+    if(topBtnPressed_) {
         setfillcolor(EGEARGB(255, 96, 96, 96), dst);
-    } else if (topBtnHovered_) {
+    }
+    else if(topBtnHovered_) {
         setfillcolor(EGEARGB(255, 218, 218, 218), dst);
-    } else {
+    }
+    else {
         setfillcolor(EGEARGB(255, 240, 240, 240), dst);
     }
     ege_fillrect(x, y, w, btnSize, dst);
 
     // 顶部按钮阴影效果
-    if (topBtnHovered_ && !topBtnPressed_) {
+    if(topBtnHovered_ && !topBtnPressed_) {
         setfillcolor(EGEARGB(30, 0, 0, 0), dst);
         ege_fillrect(x, y, w, btnSize, dst);
     }
@@ -3893,17 +4221,19 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
 
     // === 底部按钮 ===
     double bottomBtnY = y + barHeight_ - btnSize;
-    if (bottomBtnPressed_) {
+    if(bottomBtnPressed_) {
         setfillcolor(EGEARGB(255, 96, 96, 96), dst);
-    } else if (bottomBtnHovered_) {
+    }
+    else if(bottomBtnHovered_) {
         setfillcolor(EGEARGB(255, 218, 218, 218), dst);
-    } else {
+    }
+    else {
         setfillcolor(EGEARGB(255, 240, 240, 240), dst);
     }
     ege_fillrect(x, bottomBtnY, w, btnSize, dst);
 
     // 底部按钮阴影效果
-    if (bottomBtnHovered_ && !bottomBtnPressed_) {
+    if(bottomBtnHovered_ && !bottomBtnPressed_) {
         setfillcolor(EGEARGB(30, 0, 0, 0), dst);
         ege_fillrect(x, bottomBtnY, w, btnSize, dst);
     }
@@ -3922,20 +4252,23 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
     double thumbY, thumbH;
     getThumbRect(scale, thumbY, thumbH);
 
-    if (thumbPressed_) {
+    if(thumbPressed_) {
         setfillcolor(EGEARGB(255, 136, 136, 136), dst);
-    } else if (thumbHovered_) {
+    }
+    else if(thumbHovered_) {
         setfillcolor(EGEARGB(255, 168, 168, 168), dst);
-    } else {
+    }
+    else {
         setfillcolor(EGEARGB(255, 205, 205, 205), dst);
     }
     ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
 
     // 滑块阴影效果
-    if (thumbHovered_ && !thumbPressed_) {
+    if(thumbHovered_ && !thumbPressed_) {
         setfillcolor(EGEARGB(25, 0, 0, 0), dst);
         ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
-    } else if (thumbPressed_) {
+    }
+    else if(thumbPressed_) {
         setfillcolor(EGEARGB(40, 0, 0, 0), dst);
         ege_fillrect(x + 1, trackY + thumbY, w - 2, thumbH, dst);
     }
@@ -3951,7 +4284,7 @@ void ScrollBar::draw(PIMAGE dst, double x, double y, double scale) {
 }
 
 bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double scrollBarTop, double scale) {
-    if (!isNeeded()) return false;
+    if(!isNeeded()) return false;
 
     double mx = msg.x;
     double my = msg.y;
@@ -3996,40 +4329,40 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
     topBtnHovered_ = inTopBtn && !thumbDragging_;
     bottomBtnHovered_ = inBottomBtn && !thumbDragging_;
     thumbHovered_ = inThumb && !thumbDragging_;
-    if (thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
+    if(thumbDragging_) thumbHovered_ = true;  // 拖动中始终显示悬停
     bool hoverChanged = (topBtnHovered_ != oldTopHover) || (bottomBtnHovered_ != oldBottomHover) || (thumbHovered_ != oldThumbHover);
-    if (hoverChanged && parentPanel_) parentPanel_->setDirty();
+    if(hoverChanged && parentPanel_) parentPanel_->setDirty();
 
     // 处理事件
-    if (msg.is_left() && msg.is_down()) {
-        if (inTopBtn) {
+    if(msg.is_left() && msg.is_down()) {
+        if(inTopBtn) {
             topBtnPressed_ = true;
             pressStartTime_ = getMs();
             double step = 0.05;
             targetScrollPos_ = scrollPos_ - step;
-            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-            if (parentPanel_) parentPanel_->setDirty();
+            if(targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if(parentPanel_) parentPanel_->setDirty();
             return true;
         }
-        if (inBottomBtn) {
+        if(inBottomBtn) {
             bottomBtnPressed_ = true;
             pressStartTime_ = getMs();
             double step = 0.05;
             targetScrollPos_ = scrollPos_ + step;
-            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-            if (parentPanel_) parentPanel_->setDirty();
+            if(targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            if(parentPanel_) parentPanel_->setDirty();
             return true;
         }
-        if (inThumb) {
+        if(inThumb) {
             thumbPressed_ = true;
             thumbDragging_ = true;
             dragOffset_ = my - absoluteThumbTop;
             mouseOwningFlag = nullptr;  // 滚动条自行管理拖动
-            if (parentPanel_) parentPanel_->setDirty();
+            if(parentPanel_) parentPanel_->setDirty();
             return true;
         }
         // 点击轨道空白区域，开始持续滚动
-        if (inScrollBar && !inTopBtn && !inBottomBtn) {
+        if(inScrollBar && !inTopBtn && !inBottomBtn) {
             trackPressed_ = true;
             pressStartTime_ = getMs();
             // 判断点击在滑块上方还是下方
@@ -4038,64 +4371,64 @@ bool ScrollBar::handleEvent(const mouse_msg& msg, double scrollBarLeft, double s
             double trackHeight = barHeight_ - btnSize * 2;
             double ratio = viewHeight_ / contentHeight_;
             double thumbHeight = trackHeight * ratio;
-            if (thumbHeight < 20) thumbHeight = 20;
+            if(thumbHeight < 20) thumbHeight = 20;
             double scrollRange = trackHeight - thumbHeight;
-            if (scrollRange > 0) {
+            if(scrollRange > 0) {
                 trackClickPos_ = (my - trackTop - thumbHeight / 2) / scrollRange;
-                if (trackClickPos_ < 0) trackClickPos_ = 0;
-                if (trackClickPos_ > 1.0) trackClickPos_ = 1.0;
+                if(trackClickPos_ < 0) trackClickPos_ = 0;
+                if(trackClickPos_ > 1.0) trackClickPos_ = 1.0;
             }
             // 首次点击设置目标位置
             double step = 0.05;
             targetScrollPos_ = scrollPos_ + step * trackScrollDir_;
-            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            if(targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if(targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
             // 不超过点击位置
-            if (trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
-            if (trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
-            if (parentPanel_) parentPanel_->setDirty();
+            if(trackScrollDir_ > 0 && targetScrollPos_ > trackClickPos_) targetScrollPos_ = trackClickPos_;
+            if(trackScrollDir_ < 0 && targetScrollPos_ < trackClickPos_) targetScrollPos_ = trackClickPos_;
+            if(parentPanel_) parentPanel_->setDirty();
             return true;
         }
     }
-    else if (msg.is_left() && msg.is_up()) {
+    else if(msg.is_left() && msg.is_up()) {
         topBtnPressed_ = false;
         bottomBtnPressed_ = false;
         trackPressed_ = false;
         trackScrollDir_ = 0;
         thumbPressed_ = false;
         thumbDragging_ = false;
-        if (parentPanel_) parentPanel_->setDirty();
+        if(parentPanel_) parentPanel_->setDirty();
         return inScrollBar;
     }
-    else if (msg.is_move()) {
-        if (thumbDragging_) {
+    else if(msg.is_move()) {
+        if(thumbDragging_) {
             double trackHeight = barHeight_ - btnSize * 2;
             double ratio = viewHeight_ / contentHeight_;
             double thumbHeight = trackHeight * ratio;
-            if (thumbHeight < 20) thumbHeight = 20;
+            if(thumbHeight < 20) thumbHeight = 20;
             double scrollRange = trackHeight - thumbHeight;
-            if (scrollRange > 0) {
+            if(scrollRange > 0) {
                 double newThumbTop = my - dragOffset_ - trackTop;
                 scrollPos_ = newThumbTop / scrollRange;
-                if (scrollPos_ < 0) scrollPos_ = 0;
-                if (scrollPos_ > 1.0) scrollPos_ = 1.0;
+                if(scrollPos_ < 0) scrollPos_ = 0;
+                if(scrollPos_ > 1.0) scrollPos_ = 1.0;
                 targetScrollPos_ = scrollPos_;
             }
-            if (parentPanel_) parentPanel_->setDirty();
+            if(parentPanel_) parentPanel_->setDirty();
             return true;
         }
-        if (parentPanel_ && inScrollBar) parentPanel_->setDirty();
+        if(parentPanel_ && inScrollBar) parentPanel_->setDirty();
         return inScrollBar;
     }
     else if(msg.is_wheel()) {
         double maxScroll = contentHeight_ - viewHeight_;
-        if (maxScroll > 0) {
+        if(maxScroll > 0) {
             double fixedPixels = 60.0;  // 每次滚轮固定滚动60像素
             double step = fixedPixels / maxScroll * (msg.wheel / -120.0);
             targetScrollPos_ += step;
-            if (targetScrollPos_ < 0) targetScrollPos_ = 0;
-            if (targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
-            if (parentPanel_) parentPanel_->setDirty();
+            if(targetScrollPos_ < 0) targetScrollPos_ = 0;
+            if(targetScrollPos_ > 1.0) targetScrollPos_ = 1.0;
+            if(parentPanel_) parentPanel_->setDirty();
         }
         return true;
     }
@@ -4109,8 +4442,8 @@ void ScrollBar::setContentRange(double contentHeight, double viewHeight) {
 }
 
 void ScrollBar::setScrollPosition(double pos) {
-    if (pos < 0) pos = 0;
-    if (pos > 1.0) pos = 1.0;
+    if(pos < 0) pos = 0;
+    if(pos > 1.0) pos = 1.0;
     scrollPos_ = pos;
     targetScrollPos_ = pos;
 }
@@ -4140,10 +4473,11 @@ void ScrollBar::setParentPanel(Panel* p) {
 
 void Panel::enableScrollBar(bool enable, double scrollBarWidth) {
     scrollBarEnabled_ = enable;
-    if (enable && !scrollBar_) {
+    if(enable && !scrollBar_) {
         scrollBar_ = new ScrollBar(scrollBarWidth, height);
         scrollBar_->setParentPanel(this);
-    } else if (!enable && scrollBar_) {
+    }
+    else if(!enable && scrollBar_) {
         delete scrollBar_;
         scrollBar_ = nullptr;
     }
@@ -4184,43 +4518,48 @@ void Box::draw(PIMAGE dst, double x, double y) {
     double layerHeight = this->height + 8;
 
     if(!needRedraw && !needRedrawAlways){
-        putimage_withalpha(dst,layer,left,top);
+        if(!BackendFlag) {
+            putimage_withalpha(dst,layer,left,top);
+        }
         return;
     }
 
     // 计算滚动偏移并进行平滑插值（与Panel/ScrollBar实现保持一致，但Box无滚动条）
     double layoutScrollOffset = 0;
-    if (layout) {
+    if(layout) {
         LayoutResult extentResult = layout->apply(*this, 0);
         double contentH = extentResult.contentMaxY - extentResult.contentMinY;
         double viewH = height / (scale > 0 ? scale : 1.0);
         double maxScroll = contentH - viewH;
 
-        if (maxScroll > 0) {
+        if(maxScroll > 0) {
             // 平滑滚动：boxScrollPos_ 向 targetBoxScrollPos_ 插值（同ScrollBar逻辑）
             double diff = targetBoxScrollPos_ - boxScrollPos_;
-            if (diff != 0) {
+            if(diff != 0) {
                 double lerpFactor = 0.18;
-                if (std::abs(diff) * maxScroll < 1.0) {
+                if(std::abs(diff) * maxScroll < 1.0) {
                     boxScrollPos_ = targetBoxScrollPos_;  // 接近目标时直接到达（像素级精度）
-                } else {
+                }
+                else {
                     boxScrollPos_ += diff * lerpFactor;
                 }
                 this->setDirty();
-                if (!smoothScrollActive_) {
+                if(!smoothScrollActive_) {
                     this->setAlwaysDirty(true);
                     smoothScrollActive_ = true;
                 }
-            } else if (smoothScrollActive_) {
+            }
+            else if(smoothScrollActive_) {
                 this->setAlwaysDirty(false);
                 smoothScrollActive_ = false;
             }
             layoutScrollOffset = boxScrollPos_ * maxScroll;
-        } else {
+        }
+        else {
             // 内容未超出视口，重置滚动状态
             boxScrollPos_ = 0;
             targetBoxScrollPos_ = 0;
-            if (smoothScrollActive_) {
+            if(smoothScrollActive_) {
                 this->setAlwaysDirty(false);
                 smoothScrollActive_ = false;
             }
@@ -4228,7 +4567,7 @@ void Box::draw(PIMAGE dst, double x, double y) {
     }
 
     // 应用布局（带滚动偏移）
-    if (layout) layout->apply(*this, layoutScrollOffset);
+    if(layout) layout->apply(*this, layoutScrollOffset);
 
     // 使用真正的透明色(PRGB32模式下alpha=0时RGB也应为0)
     setbkcolor_f(EGEARGB(0, 0, 0, 0), layer);
@@ -4248,6 +4587,7 @@ void Box::draw(PIMAGE dst, double x, double y) {
 
     double savedAbsPosX = absolutPosDeltaX;
     double savedAbsPosY = absolutPosDeltaY;
+    needRedraw = false;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
@@ -4265,12 +4605,35 @@ void Box::draw(PIMAGE dst, double x, double y) {
                             (childCX - halfW < globalDrawingRight) &&
                             (childCY + halfH > globalDrawingTop) &&
                             (childCY - halfH < globalDrawingBottom);
-        if (withinBounds || children[i]->getDrawingState() != 0) {
+        if(withinBounds || children[i]->getDrawingState() != 0) {
             children[i]->draw(layer, childX, childY);
         }
 
         absolutPosDeltaX = savedAbsPosX;
         absolutPosDeltaY = savedAbsPosY;
+    }
+
+    
+    if(boundingBoxEnabled) {
+        // 绘制边框
+        setlinecolor(RED, layer);
+        setcolor(RED, layer);
+        setlinestyle(PS_SOLID, 0U,1,layer);
+        ege_line(4, 4, layerWidth - 4, 4, layer);
+        ege_line(layerWidth - 4, 4, layerWidth - 4, layerHeight - 4, layer);
+        ege_line(layerWidth - 4, layerHeight - 4, 4, layerHeight - 4, layer);
+        ege_line(4, layerHeight - 4, 4, 4, layer);
+        // 在四角绘制加粗一点点的线
+        setlinecolor(GREEN, layer);
+        setlinestyle(PS_SOLID, 0U,4,layer);
+        ege_line(4, 4, 14, 4, layer);
+        ege_line(4, 4, 4, 14, layer);
+        ege_line(layerWidth - 14, 4, layerWidth - 4, 4, layer);
+        ege_line(layerWidth - 4, 4, layerWidth - 4, 14, layer);
+        ege_line(4, layerHeight - 14, 4, layerHeight - 4, layer);
+        ege_line(4, layerHeight - 4, 14, layerHeight - 4, layer);
+        ege_line(layerWidth - 14, layerHeight - 4, layerWidth - 4, layerHeight - 4, layer);
+        ege_line(layerWidth - 4, layerHeight - 4, layerWidth - 4, layerHeight - 14, layer);
     }
 
     // 恢复全局可绘制区域
@@ -4283,8 +4646,9 @@ void Box::draw(PIMAGE dst, double x, double y) {
     scaleChanged = false;
     
     // 粘贴到主窗口
-    putimage_withalpha(dst,layer,left,top);
-    needRedraw = false;
+    if(!BackendFlag) {
+        putimage_withalpha(dst,layer,left,top);
+    }
 }
 
 void Box::draw() {
@@ -4305,7 +4669,7 @@ void Box::setScale(double s){
 
     needRedraw = true;
     if(this->parent != nullptr){
-        if (Panel* p = dynamic_cast<Panel*>(this->parent)) {
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
         }
     }
@@ -4313,24 +4677,34 @@ void Box::setScale(double s){
 
 bool Box::handleEvent(const mouse_msg& msg) {
     // 滚轮事件：无滚动条的平滑滚动（与Panel/ScrollBar实现保持一致）
-    if (msg.is_wheel() && isInside(msg.x, msg.y)) {
-        if (layout) {
+    if(msg.is_wheel() && isInside(msg.x, msg.y)) {
+        if(layout) {
             LayoutResult extentResult = layout->apply(*this, 0);
             double contentH = extentResult.contentMaxY - extentResult.contentMinY;
             double viewH = height / (scale > 0 ? scale : 1.0);
             double maxScroll = contentH - viewH;
-            if (maxScroll > 0) {
+            if(maxScroll > 0) {
                 double fixedPixels = 60.0;  // 每次滚轮固定滚动60像素（同ScrollBar）
                 double step = fixedPixels / maxScroll * (msg.wheel / -120.0);
                 targetBoxScrollPos_ += step;
-                if (targetBoxScrollPos_ < 0) targetBoxScrollPos_ = 0;
-                if (targetBoxScrollPos_ > 1.0) targetBoxScrollPos_ = 1.0;
+                if(targetBoxScrollPos_ < 0) targetBoxScrollPos_ = 0;
+                if(targetBoxScrollPos_ > 1.0) targetBoxScrollPos_ = 1.0;
                 this->setDirty();
             }
         }
         return true;
     }
     return Panel::handleEvent(msg);
+}
+
+void Box::enableBoundingBox() {
+    boundingBoxEnabled = true;
+    needRedraw = true;
+}
+
+void Box::disableBoundingBox() {
+    boundingBoxEnabled = false;
+    needRedraw = true;
 }
 
 void Box::reset(){
@@ -4401,7 +4775,7 @@ Box* BoxBuilder::build() {
     
     // 配置内置的FlexLayout
     auto flexLayout = std::dynamic_pointer_cast<FlexLayout>(box->getLayout());
-    if (flexLayout) {
+    if(flexLayout) {
         flexLayout->setDirection(direction);
         flexLayout->setAlign(align);
         flexLayout->setSpacing(spacing);
@@ -4413,7 +4787,7 @@ Box* BoxBuilder::build() {
         box->addChild(child, 0, 0);  // 初始偏移为0，由layout计算
     }
     
-    if (!identifier.empty()) {
+    if(!identifier.empty()) {
         IdToWidget[identifier] = box;
     }
     

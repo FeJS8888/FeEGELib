@@ -31,6 +31,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Windows 系统 API
@@ -57,6 +58,7 @@ extern bool needReflushCursor;              ///< 是否需要刷新鼠标光标
 extern LPSTR current_cursor;                ///< 当前鼠标光标句柄
 extern WNDPROC g_oldWndProc;                ///< 原窗口过程函数指针
 extern FontManager fontManager;             ///< 全局字体管理器
+extern bool BackendFlag;
 
 /**
  * @class Position
