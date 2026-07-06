@@ -14,6 +14,7 @@ using namespace FeEGE;
 
 class Layout;
 class ScrollBar;
+class Box;
 extern Widget* mouseOwningFlag;
 extern Widget* focusingWidget;
 extern std::vector<Widget*> widgetOrder;
@@ -1121,7 +1122,7 @@ private:
 };
 
 
-class RadioController {
+class RadioController{
 public:
     RadioController(double cx, double cy, double r, double gap, double scale, RadioStyle style);
 
@@ -1129,7 +1130,7 @@ public:
     void setDefault(const std::wstring& val);
     void setOnChange(std::function<void(const std::wstring&)> cb);
     std::wstring getValue();
-    void build();
+    Box* build();
 
 protected:
     std::wstring identifier;
@@ -1823,12 +1824,23 @@ public:
      */
     bool handleEvent(const mouse_msg& msg) override;
 
+    /**
+     * @brief 显示边界盒
+     */
+    void enableBoundingBox();
+
+    /**
+     * @brief 隐藏边界盒
+     */
+    void disableBoundingBox();
+
     void reset() override;
 
-private:
+protected:
     double targetBoxScrollPos_ = 0.0;  ///< 目标滚动位置（0~1）
     double boxScrollPos_ = 0.0;        ///< 当前滚动位置（0~1，平滑插值）
     bool smoothScrollActive_ = false;  ///< 是否正在进行平滑滚动动画
+    bool boundingBoxEnabled = false; ///< 是否显示边界盒
 };
 
 /**

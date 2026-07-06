@@ -422,8 +422,8 @@ bool Panel::handleEvent(const mouse_msg& msg){
         // 不可见子控件恰好命中真实鼠标位置而错误触发IDC_IBEAM。
         if(msg.is_move() && (mouseOwningFlag == nullptr || mouseOwningFlag == this)) {
             mouse_msg leaveMsg = msg;
-            leaveMsg.x = -99999;
-            leaveMsg.y = -99999;
+            leaveMsg.x = -9999;
+            leaveMsg.y = -9999;
             for (Widget* w : children) {
                 w->handleEvent(leaveMsg);
             }
@@ -2699,6 +2699,8 @@ void Radio::setPosition(double x, double y) {
 void Radio::setScale(double s) {
     scale = s;
     radius = origin_radius * scale;
+    width = radius * 2;
+    height = radius * 2;
 }
 
 void Radio::setStyle(RadioStyle s) {
@@ -2883,10 +2885,19 @@ std::wstring RadioController::getValue(){
     return currentValue;
 }
 
-void RadioController::build() {
+Box* RadioController::build() {
+    Box* bx = BoxBuilder()
+        .setCenter(cx, cy)
+        .setAlign(LayoutAlign::Start)
+        .setPadding(5)
+        .setSpacing(gap)
+        .setDirection(LayoutDirection::Column)
+        .setSize(radius * 2 + 10, (radius * 2 + gap) * values.size() - gap + 10)
+        .build();
+    
     for (size_t i = 0; i < values.size(); ++i) {
         std::wstring val = values[i];
-        RadioBuilder()
+        Radio* r = RadioBuilder()
             .setCenter(cx, cy + i * gap)
             .setRadius(radius)
             .setScale(scale)
@@ -2898,7 +2909,9 @@ void RadioController::build() {
                 if(onChange) onChange(val);
             })
             .build();
+        bx->addChild(r,0,0);
     }
+    return bx;
 }
 
 RadioControllerBuilder& RadioControllerBuilder::setCenter(double x, double y) {
@@ -4600,6 +4613,29 @@ void Box::draw(PIMAGE dst, double x, double y) {
         absolutPosDeltaY = savedAbsPosY;
     }
 
+    
+    if(boundingBoxEnabled) {
+        // 绘制边框
+        setlinecolor(RED, layer);
+        setcolor(RED, layer);
+        setlinestyle(PS_SOLID, 0U,1,layer);
+        ege_line(4, 4, layerWidth - 4, 4, layer);
+        ege_line(layerWidth - 4, 4, layerWidth - 4, layerHeight - 4, layer);
+        ege_line(layerWidth - 4, layerHeight - 4, 4, layerHeight - 4, layer);
+        ege_line(4, layerHeight - 4, 4, 4, layer);
+        // 在四角绘制加粗一点点的线
+        setlinecolor(GREEN, layer);
+        setlinestyle(PS_SOLID, 0U,4,layer);
+        ege_line(4, 4, 14, 4, layer);
+        ege_line(4, 4, 4, 14, layer);
+        ege_line(layerWidth - 14, 4, layerWidth - 4, 4, layer);
+        ege_line(layerWidth - 4, 4, layerWidth - 4, 14, layer);
+        ege_line(4, layerHeight - 14, 4, layerHeight - 4, layer);
+        ege_line(4, layerHeight - 4, 14, layerHeight - 4, layer);
+        ege_line(layerWidth - 14, layerHeight - 4, layerWidth - 4, layerHeight - 4, layer);
+        ege_line(layerWidth - 4, layerHeight - 4, layerWidth - 4, layerHeight - 14, layer);
+    }
+
     // 恢复全局可绘制区域
     globalDrawingLeft = oldDrawingLeft;
     globalDrawingRight = oldDrawingRight;
@@ -4659,6 +4695,16 @@ bool Box::handleEvent(const mouse_msg& msg) {
         return true;
     }
     return Panel::handleEvent(msg);
+}
+
+void Box::enableBoundingBox() {
+    boundingBoxEnabled = true;
+    needRedraw = true;
+}
+
+void Box::disableBoundingBox() {
+    boundingBoxEnabled = false;
+    needRedraw = true;
 }
 
 void Box::reset(){
