@@ -380,6 +380,7 @@ protected:
     int iconSize = 100;                         ///< 图标尺寸
     ege_path clippath;
     bool disabled = false;
+    bool lastInside = false;
 
 public:
     /**

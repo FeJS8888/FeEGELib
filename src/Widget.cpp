@@ -790,7 +790,26 @@ void Button::catchMouseOwningFlag(const mouse_msg& msg){
 
 bool Button::handleEvent(const mouse_msg& msg) {
     bool inside = isInside(msg.x, msg.y);
-    if(disabled) return inside;
+    if(disabled){
+        if(inside){
+            setCursor(IDC_NO);
+            lastInside = true;
+            return true;
+        }
+        else if(lastInside){
+            setCursor(IDC_ARROW);
+            lastInside = false;
+            return false;
+        }
+    }
+
+    if(inside){
+        lastInside = true;
+    }
+    else{
+        setCursor(IDC_ARROW);
+        lastInside = false;
+    }
     
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
@@ -1296,11 +1315,15 @@ void InputBox::updateIMEPosition() {
 
 bool InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
-    if(disabled) return inside;
 
     // 鼠标移入移出处理
     if(inside) {
-        setCursor(IDC_IBEAM);
+        if(disabled){
+            setCursor(IDC_NO);
+            wcout<<L"QWQ\n";
+            return true;
+        }
+        else setCursor(IDC_IBEAM);
         lastInside = true;
     }
     else {
@@ -1310,6 +1333,8 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
             lastInside = false;
         }
     }
+
+    if(disabled) return false;
 
     // 处理其它控件焦点
     if(msg.is_left() && msg.is_up()){
