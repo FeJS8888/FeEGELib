@@ -441,7 +441,6 @@ bool Panel::handleEvent(const mouse_msg& msg){
 	for(Widget* w : children){
         bool state = w->handleEvent(msg);
         if(state){
-            wcout<<L"========"<<frame<<L"========\n";
             if(msg.is_left() && msg.is_down() && focusingWidget == nullptr){
                 focusingWidget = this;
             }
@@ -806,7 +805,7 @@ bool Button::handleEvent(const mouse_msg& msg) {
     if(inside){
         lastInside = true;
     }
-    else{
+    else if(lastInside){
         setCursor(IDC_ARROW);
         lastInside = false;
     }
@@ -1317,16 +1316,24 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
     const bool inside = isInside(msg.x, msg.y);
 
     // 鼠标移入移出处理
-    if(inside) {
-        if(disabled){
+    if(disabled) {
+        if(inside) {
             setCursor(IDC_NO);
-            wcout<<L"QWQ\n";
+            lastInside = true;
             return true;
         }
-        else setCursor(IDC_IBEAM);
+        else if(lastInside) {
+            setCursor(IDC_ARROW);
+            lastInside = false;
+            return false;
+        }
+    }
+
+    if(inside) {
+        setCursor(IDC_IBEAM);
         lastInside = true;
     }
-    else {
+    else if(lastInside){
         if(lastInside) {
             setCursor(IDC_ARROW);
             needReflushCursor = true;
@@ -3011,7 +3018,6 @@ bool Toggle::handleEvent(const mouse_msg& msg) {
             // 记录是否在区域内按下
             pressedIn = hovered;
             mouseOwningFlag = this;
-            wcout<<L"????? "<<msg.x<<L" "<<msg.y<<L" "<<cx<<L" "<<cy<<L"\n";
             return true;
         }
         else if(msg.is_up()) {
