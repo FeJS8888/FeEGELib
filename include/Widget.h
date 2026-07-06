@@ -1259,6 +1259,8 @@ public:
 
     int getTextWidth() const;
     int getTextHeight() const;
+    int getWidth() const;
+    int getHeight() const;
     int getMaxWidth() const;
     TextAlign getAlign() const;
     int getLineSpacing() const;
