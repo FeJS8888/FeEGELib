@@ -116,7 +116,6 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     double layerWidth = this->width + 8;
     double layerHeight = this->height + 8;
 
-
     if(!needRedraw && !needRedrawAlways){
         if(!BackendFlag) {
             putimage_withalpha(dst,layer,left,top);
@@ -184,6 +183,7 @@ void Panel::draw(PIMAGE dst, double x, double y) {
 
     double savedAbsPosX = absolutPosDeltaX;
     double savedAbsPosY = absolutPosDeltaY;
+    needRedraw = false;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x * scale;
         double childY = layerHeight / 2 + childOffsets[i].y * scale;
@@ -237,7 +237,6 @@ void Panel::draw(PIMAGE dst, double x, double y) {
     if(!BackendFlag) {
         putimage_withalpha(dst,layer,left,top);
     }
-    needRedraw = false;
 }
 
 bool Panel::isBackendDirty() const {
@@ -606,6 +605,7 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
+            else assert(false && "Button's parent is not a Panel");
         }
         bool state = (btn->getClickState() && (btn->getMCounter() == counter)) || (age < life);
         if(!state){
@@ -615,6 +615,7 @@ bool Ripple::alive() const {
                     btn->setDrawing(false);
                 }
             }
+            else assert(false && "Button's parent is not a Panel");
         }
         return state;
     }
@@ -628,6 +629,7 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
+            else assert(false && "InputBox's parent is not a Panel");
         }
         bool state =  (ib->getClickState() && (ib->getMCounter() == counter)) || (age < life);
         if(!state){
@@ -637,6 +639,7 @@ bool Ripple::alive() const {
                     ib->setDrawing(false);
                 }
             }
+            else assert(false && "InputBox's parent is not a Panel");
         }
         return state;
     }
@@ -2273,10 +2276,10 @@ Slider* SliderBuilder::build() {
     slider->create(x,y, width, height);
     slider->setColor(bgColor, fgColor);
     slider->setThickness(thickness);
-    slider->setProgress(progress);
     slider->setScale(scale);
     slider->setStep(step);
     if(onChange) slider->setOnChange(onChange);
+    slider->setProgress(progress);
     slider->setOrientation(orientation);
     //widgets.insert(slider);
     return slider;
@@ -2347,6 +2350,14 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
     currentProgress += (targetProgress - currentProgress) * 0.15;
     if(fabs(currentProgress - targetProgress) < 0.005)
         currentProgress = targetProgress;
+    
+    needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
+    if(needRedraw && this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+            p->setNeedRedraw(true);
+        }
+    }
 
     if(!needRedraw && fabs(currentProgress - targetProgress) < 1e-4) {
         if(!BackendFlag) {
@@ -2369,7 +2380,6 @@ void ProgressBar::draw(PIMAGE dst, double x, double y) {
     if(!BackendFlag) {
         putimage_withalpha(dst, barLayer, left, top);
     }
-    needRedraw = fabs(currentProgress - targetProgress) > 1e-4;
 }
 
 void ProgressBar::draw() {
@@ -3618,13 +3628,17 @@ void Knob::draw(PIMAGE dst, double x, double y) {
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             if(isAnimating){
-                p->setAlwaysDirty(true);
-                p->setDirty();
-                this->setDrawing(true);
+                if(!dirtyFlag) {
+                    p->setAlwaysDirty(true);
+                    p->setDirty();
+                    this->setDrawing(true);
+                    dirtyFlag = true;
+                }
             }
-            else {
+            else if(dirtyFlag) {
                 p->setAlwaysDirty(false);
                 this->setDrawing(false);
+                dirtyFlag = false;
             }
         }
     }
@@ -4002,22 +4016,17 @@ Widget* getWidgetById(const std::wstring& identifier){
 }
 
 void assignOrder(std::vector<Widget*> widgetWithOrder){
-    std::unordered_set<Widget*> newWidgetsSet(widgetWithOrder.begin(), widgetWithOrder.end());
-    std::unordered_set<Widget*> currentWidgetsSet(widgets.begin(), widgets.end());
     for (Widget* w : widgets) {
         // 被取出了
-        if(newWidgetsSet.find(w) == newWidgetsSet.end()) {
-            widgetBackendRedraw.insert(w);
-        }
+        widgetBackendRedraw.insert(w);
     }
     for (Widget* w : widgetWithOrder) {
         // 被放入了
-        if(currentWidgetsSet.find(w) != currentWidgetsSet.end()) {
-            widgetBackendRedraw.erase(w);
-        }
+        widgetBackendRedraw.erase(w);
     }
-    swap(widgetWithOrder,widgets);
+    swap(widgets, widgetWithOrder);
     for(auto w : widgets){
+        assert(widgetBackendRedraw.find(w) == widgetBackendRedraw.end());
         if(auto p = dynamic_cast<Panel*>(w)){
             p->setDirty();
         }
@@ -4029,6 +4038,18 @@ void assignOrder(std::vector<Widget*> widgetWithOrder){
 
 void emplaceOrder(const std::vector<Widget*>& widgetWithOrder){
     widgets.insert(widgets.end(),widgetWithOrder.begin(),widgetWithOrder.end());
+    for(auto w : widgets){
+        widgetBackendRedraw.erase(w);
+    }
+    for(auto w : widgets){
+        assert(widgetBackendRedraw.find(w) == widgetBackendRedraw.end());
+        if(auto p = dynamic_cast<Panel*>(w)){
+            p->setDirty();
+        }
+        if(auto b = dynamic_cast<Box*>(w)){
+            b->setDirty();
+        }
+    }
 }
 
 // ============ ScrollBar 实现 ============
@@ -4553,6 +4574,7 @@ void Box::draw(PIMAGE dst, double x, double y) {
 
     double savedAbsPosX = absolutPosDeltaX;
     double savedAbsPosY = absolutPosDeltaY;
+    needRedraw = false;
     for (int i = children.size() - 1; i >= 0; -- i) {
         double childX = layerWidth / 2 + childOffsets[i].x;
         double childY = layerHeight / 2 + childOffsets[i].y;
@@ -4591,7 +4613,6 @@ void Box::draw(PIMAGE dst, double x, double y) {
     if(!BackendFlag) {
         putimage_withalpha(dst,layer,left,top);
     }
-    needRedraw = false;
 }
 
 void Box::draw() {

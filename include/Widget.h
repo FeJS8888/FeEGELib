@@ -1447,6 +1447,7 @@ protected:
     int lastMouseX = 0;              ///< 上次鼠标X坐标
     int lastMouseY = 0;              ///< 上次鼠标Y坐标
     bool hovered = false;            ///< 是否鼠标悬停
+    bool dirtyFlag = false;
 
     std::function<void(double)> onChange;  ///< 值改变回调
 
