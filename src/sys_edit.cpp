@@ -87,7 +87,7 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	        m_focus = true;
 			// call textbox's own message process to show caret
 			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
-			CreateCaret(m_hwnd, (HBITMAP)NULL, 1, 1);
+			// CreateCaret(m_hwnd, (HBITMAP)NULL, 1, 1);
 			InputBox* p = static_cast<InputBox*>(m_object);
 			p->updateIMEPosition();
 	        return lr;
