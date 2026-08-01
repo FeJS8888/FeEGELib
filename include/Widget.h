@@ -677,6 +677,8 @@ public:
 
     virtual void deleteFocus(const mouse_msg& msg) override ;
     void updateIMEPosition();
+    
+    bool haveIMEString() const ;
 
     void reset() override;
 

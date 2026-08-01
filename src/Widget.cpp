@@ -1076,6 +1076,7 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
     ege_path_reset(&clippath);
     ege_path_addroundrect(&clippath,4,4,width,height,radius);
 
+    // inv.create(true, 2);
     inv.create(false, 2);
     inv.visible(false);
     inv.move(-1, -1);
@@ -1126,9 +1127,10 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     if(on_focus) {
         adjustScrollForCursor();
         inv.setfocus();
-        wchar_t str[512];
-        inv.gettext(512, str);
-        setContent(str,true);
+        std::vector<wchar_t> str;
+        str.resize(inv.gettextlength() + 5);
+        inv.gettext(str.size(), str.data());
+        setContent(std::wstring(str.data()),true);
 
         // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
         if(!dragging && IMECompositionString.empty()) {
@@ -1313,6 +1315,10 @@ void InputBox::updateIMEPosition() {
     InputPositionX = m_ime_pos_x;
     InputPositionY = m_ime_pos_y;
     SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
+}
+
+bool InputBox::haveIMEString() const {
+    return !IMECompositionString.empty();
 }
 
 bool InputBox::handleEvent(const mouse_msg& msg) {

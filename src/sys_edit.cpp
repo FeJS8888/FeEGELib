@@ -130,6 +130,12 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 		}
 		case WM_KEYDOWN:{
 			InputBox* p = static_cast<InputBox*>(m_object);
+			if (wParam == 'A' && (GetKeyState(VK_CONTROL) & 0x8000) && !p->haveIMEString()) {
+				// Ctrl+A 全选
+				int len = p->getContent().size();
+				::SendMessageW(m_hwnd, EM_SETSEL, 0, len);
+				return 0;
+			}
 			switch (wParam) {
                 case VK_LEFT: {
 					// 方向键不应继续维持鼠标拖动状态。
@@ -152,7 +158,11 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
             }
 			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 		}
-		case WM_CHAR:
+		case WM_CHAR:{
+			if (wParam == 1 && (GetKeyState(VK_CONTROL) & 0x8000)) {
+				return 0;
+			}
+		}
         case WM_PASTE:
         case WM_CUT:
         case WM_SETTEXT:{

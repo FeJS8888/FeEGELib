@@ -308,6 +308,8 @@ public:
      */
     void gettext(int maxlen, LPWSTR text) { ::SendMessageW(m_hwnd, WM_GETTEXT, (WPARAM)maxlen, (LPARAM)text); }
 
+    int gettextlength() const { return (int)::SendMessageW(m_hwnd, WM_GETTEXTLENGTH, 0, 0); }
+
     /**
      * @brief 设置最大文本长度
      * @param maxlen 最大长度
