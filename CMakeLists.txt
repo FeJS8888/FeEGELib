@@ -7,6 +7,15 @@ set(CMAKE_CXX_STANDARD 23)
 set(EGE_BUILD_DEMO OFF CACHE BOOL "Do not build xege demos" FORCE)
 set(EGE_BUILD_TEST OFF CACHE BOOL "Do not build xege tests" FORCE)
 set(EGE_BUILD_TEMP OFF CACHE BOOL "Do not build xege temp" FORCE)
+# 如果 3rdparty/xege 文件夹不存在，自动 git clone
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/xege/CMakeLists.txt")
+    include(FetchContent)
+    FetchContent_Populate(xege 
+        GIT_REPOSITORY https://github.com/FeJS8888/xege.git # 请替换为实际的 xege 仓库地址
+        SOURCE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/xege"
+    )
+endif()
+
 add_subdirectory(3rdparty/xege)
 
 # 库源文件
