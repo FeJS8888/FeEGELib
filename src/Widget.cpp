@@ -605,7 +605,15 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
-            else assert(false && "Button's parent is not a Panel");
+            else if (Box* b = dynamic_cast<Box*>(btn->getParent())) {
+                if(!m_setDirtyState){
+                    b->setAlwaysDirty(true);
+                    btn->setDrawing(true);
+                    m_setDirtyState = true;
+                }
+                b->setDirty();
+            }
+            else assert(false && "Button's parent is not a Panel or a Box");
         }
         bool state = (btn->getClickState() && (btn->getMCounter() == counter)) || (age < life);
         if(!state){
@@ -614,8 +622,12 @@ bool Ripple::alive() const {
                     p->setAlwaysDirty(false);
                     btn->setDrawing(false);
                 }
+                else if(Box* b = dynamic_cast<Box*>(btn->getParent())) {
+                    b->setAlwaysDirty(false);
+                    btn->setDrawing(false);
+                }
+                else assert(false && "Button's parent is not a Panel or a Box");
             }
-            else assert(false && "Button's parent is not a Panel");
         }
         return state;
     }
@@ -629,7 +641,15 @@ bool Ripple::alive() const {
                 }
                 p->setDirty();
             }
-            else assert(false && "InputBox's parent is not a Panel");
+            else if(Box* b = dynamic_cast<Box*>(ib->getParent())) {
+                if(!m_setDirtyState){
+                    b->setAlwaysDirty(true);
+                    ib->setDrawing(true);
+                    m_setDirtyState = true;
+                }
+                b->setDirty();
+            }
+            else assert(false && "InputBox's parent is not a Panel or a Box");
         }
         bool state =  (ib->getClickState() && (ib->getMCounter() == counter)) || (age < life);
         if(!state){
@@ -638,8 +658,12 @@ bool Ripple::alive() const {
                     p->setAlwaysDirty(false);
                     ib->setDrawing(false);
                 }
+                else if(Box* b = dynamic_cast<Box*>(ib->getParent())) {
+                    b->setAlwaysDirty(false);
+                    ib->setDrawing(false);
+                }
+                else assert(false && "InputBox's parent is not a Panel or a Box");
             }
-            else assert(false && "InputBox's parent is not a Panel");
         }
         return state;
     }
@@ -3474,6 +3498,7 @@ Text* TextBuilder::build() {
     //widgets.insert(txt);
     return txt;
 }
+// fix: 在鼠标拖动时，需要持续显示阴影
 Knob::Knob(double cx, double cy, double r)
     : cx(cx), cy(cy), radius(r), origin_radius(r) {
     // 初始化内部范围为外部范围
