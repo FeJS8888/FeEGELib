@@ -1472,14 +1472,14 @@ try {
 	while(!closeGraph && is_run()) {
 		reflush();
 		textpen::clearAll();
-		if(!is_run()) return;
+		if(!is_run()) break;
 		for(auto it : globalListenFrameFunctionSet) it.second();
 #ifndef NO_THREAD
 #ifdef Ppause
 		if(regPause){
 			if(FeEGE::getkey('p') || FeEGE::getkey('P')) {
 				this_thread::sleep_for(chrono::milliseconds(200));
-				while(!FeEGE::getkey('p') && !FeEGE::getkey('P')) this_thread::sleep_for(chrono::milliseconds(1));
+				while(!FeEGE::getkey('p') && !FeEGE::getkey('P') && is_run()) this_thread::sleep_for(chrono::milliseconds(1));
 				this_thread::sleep_for(chrono::milliseconds(200));
 			}
 		}
@@ -1488,9 +1488,9 @@ try {
 		if(FeEGE::getkey(VK_ESCAPE)) break;
 #endif
 #endif
-		if(!is_run()) return;
+		if(!is_run()) break;
 		delay_fps(120);
-		if(!is_run()) return;
+		if(!is_run()) break;
 	}
 
 	closegraph();
