@@ -1448,7 +1448,48 @@ void reflush() {
 	::SetCursorPos(pt.x, pt.y);    // 设置回当前鼠标位置，触发鼠标事件
 }
 
+void InitSystemDpiAwareness()
+{
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    
+    if (hUser32) {
+        typedef BOOL (WINAPI *pfnSetProcessDpiAwarenessContext)(HANDLE);
+        pfnSetProcessDpiAwarenessContext pSetDpiV2 = 
+            (pfnSetProcessDpiAwarenessContext)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+        
+        if (pSetDpiV2) {
+            pSetDpiV2((HANDLE)-4);
+            return;
+        }
+    }
+
+    HMODULE hShcore = LoadLibraryW(L"shcore.dll");
+    if (hShcore) {
+        typedef HRESULT (WINAPI *pfnSetProcessDpiAwareness)(int);
+        pfnSetProcessDpiAwareness pSetDpiV1 = 
+            (pfnSetProcessDpiAwareness)GetProcAddress(hShcore, "SetProcessDpiAwareness");
+        
+        if (pSetDpiV1) {
+            pSetDpiV1(2);
+            FreeLibrary(hShcore);
+            return;
+        }
+        FreeLibrary(hShcore);
+    }
+
+    if (hUser32) {
+        typedef BOOL (WINAPI *pfnSetProcessDPIAware)();
+        pfnSetProcessDPIAware pSetDpiVista = 
+            (pfnSetProcessDPIAware)GetProcAddress(hUser32, "SetProcessDPIAware");
+        
+        if (pSetDpiVista) {
+            pSetDpiVista();
+        }
+    }
+}
+
 void init(int x,int y,int mode){
+	InitSystemDpiAwareness();
 	// setinitmode(mode | INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
 	initgraph(x,y,mode | INIT_NOFORCEEXIT | INIT_RENDERMANUAL);
 	initXY();
