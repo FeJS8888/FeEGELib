@@ -756,7 +756,7 @@ void Button::draw(PIMAGE dst,double x,double y){
 	    double iconH = getheight(icon) * scale * iconSize / 100;
 	    double iconX = width / 2 - iconW / 2;
 	    double iconY = height / 2 - iconH / 2;
-	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getwidth(icon),true);
+	    putimage_alphablend(btnLayer,icon,iconX,iconY,iconW,iconH,255,0, 0,getwidth(icon), getheight(icon),true);
 	}
     
     // 更新并绘制 ripples
@@ -766,15 +766,11 @@ void Button::draw(PIMAGE dst,double x,double y){
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
 
-    ege_setfont(23 * scale, L"宋体", btnLayer);
-    float w,h;
-    measuretext(content.c_str(),&w,&h,btnLayer);
-    
     // 按钮文字
     setbkmode(TRANSPARENT, btnLayer);
     settextcolor(BLACK, btnLayer);
-    ege_outtextxy(width / 2 - w / 2, 
-                 height / 2 - h / 2, 
+    ege_outtextxy(width / 2 - contentWidth / 2, 
+                 height / 2 - contentHeight / 2, 
                  content.c_str(), btnLayer);
     
     // ege_resetclippath(btnLayer);
@@ -918,6 +914,8 @@ bool Button::isInside(double x, double y) const {
 void Button::setContent(const wstring& str){
     if(content == str) return;
 	content = str;
+    ege_setfont(23 * scale, L"宋体", btnLayer);
+    measuretext(content.c_str(),&contentWidth,&contentHeight,btnLayer);
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {

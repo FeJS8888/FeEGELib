@@ -373,6 +373,7 @@ protected:
     PIMAGE maskLayer = nullptr;                 ///< 遮罩图层
     PIMAGE bgLayer = nullptr;                   ///< 背景图层
     std::wstring content;                       ///< 按钮文本
+    float contentWidth = 0, contentHeight = 0;        ///< 文本宽高
     std::function<void(void)> on_click_event = nullptr;  ///< 点击事件回调
     color_t color;                              ///< 按钮颜色
     bool m_clicking = false;                    ///< 是否正在点击
