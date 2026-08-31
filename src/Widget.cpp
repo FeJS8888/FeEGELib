@@ -1085,7 +1085,8 @@ Button* ButtonBuilder::build() {
 }
 
 // InputBoxBuilder 实现
-InputBox::InputBox(double cx, double cy, double w, double h, double r) {
+InputBox::InputBox(double cx, double cy, double w, double h, double r, bool multiline) {
+    this->multiline = multiline;
     this->cx = cx;
     this->cy = cy;
     origin_width = width = w;
@@ -1098,8 +1099,7 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
     ege_path_reset(&clippath);
     ege_path_addroundrect(&clippath,4,4,width,height,radius);
 
-    // inv.create(true, 2);
-    inv.create(false, 2);
+    inv.create(multiline, multiline ? 0 : 2);
     inv.visible(false);
     inv.move(-1, -1);
     inv.size(0, 0);
@@ -1116,6 +1116,13 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r) {
 }
 
 InputBox::~InputBox() {
+    // 原生 EDIT 的窗口消息可能在成员析构期间继续到达，先解除反向指针，
+    // 避免 WM_KILLFOCUS/IME/延迟同步消息访问已经结束生命周期的 InputBox。
+    inv.setparent(nullptr);
+    if(focusingWidget == this) focusingWidget = nullptr;
+    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    on_focus = false;
+    dragging = false;
     if(btnLayer) delimage(btnLayer);
 }
 
@@ -1132,6 +1139,346 @@ double InputBoxSinDoubleForCursor(double time) {
     return (sine_value + 1.0) / 2.0;
 }
 
+void InputBox::rebuildTextLayout() {
+    if(!btnLayer) return;
+
+    ege_setfont((int)std::max(1.0, text_height * scale), L"宋体", btnLayer);
+    layoutPaddingX = 14.0 * scale;
+    layoutPaddingY = std::max(6.0, 8.0 * scale);
+
+    layoutDisplayContent = IMECompositionString.empty()
+        ? content
+        : content.substr(0, std::max(0, std::min(cursor_pos, (int)content.size())))
+          + IMECompositionString
+          + content.substr(std::max(0, std::min(cursor_pos, (int)content.size())));
+
+    int compositionStart = std::max(0, std::min(cursor_pos, (int)content.size()));
+    int compositionLength = (int)IMECompositionString.size();
+    displayToContent.resize(layoutDisplayContent.size() + 1);
+    for(int i = 0; i <= (int)layoutDisplayContent.size(); ++i) {
+        if(IMECompositionString.empty() || i <= compositionStart) {
+            displayToContent[i] = i;
+        }
+        else if(i < compositionStart + compositionLength) {
+            displayToContent[i] = compositionStart;
+        }
+        else {
+            displayToContent[i] = i - compositionLength;
+        }
+    }
+
+    float fontWidth = 0.0f, fontHeight = 0.0f;
+    measuretext(L"a", &fontWidth, &fontHeight, btnLayer);
+    layoutLineHeight = std::max((double)fontHeight, text_height * scale) + 4.0;
+
+    const float availableWidth = std::max(1.0f, (float)(width - 2.0 * layoutPaddingX));
+    textLines.clear();
+    const int textLength = (int)layoutDisplayContent.size();
+    int lineStart = 0;
+    int i = 0;
+
+    auto measureRange = [&](int begin, int end) {
+        if(end <= begin) return 0.0f;
+        float measuredWidth = 0.0f, measuredHeight = 0.0f;
+        measuretext(layoutDisplayContent.substr(begin, end - begin).c_str(),
+                    &measuredWidth, &measuredHeight, btnLayer);
+        return measuredWidth;
+    };
+
+    auto appendLine = [&](int begin, int end, bool hardBreak) {
+        TextLineLayout line;
+        line.start = begin;
+        line.end = end;
+        line.width = measureRange(begin, end);
+        line.hardBreak = hardBreak;
+        textLines.push_back(line);
+    };
+
+    if(!multiline) {
+        appendLine(0, textLength, false);
+    }
+    while(multiline && i < textLength) {
+        if(layoutDisplayContent[i] == L'\r' || layoutDisplayContent[i] == L'\n') {
+            appendLine(lineStart, i, true);
+            if(layoutDisplayContent[i] == L'\r' && i + 1 < textLength && layoutDisplayContent[i + 1] == L'\n') {
+                i += 2;
+            }
+            else {
+                ++i;
+            }
+            lineStart = i;
+            continue;
+        }
+
+        if(measureRange(lineStart, i + 1) > availableWidth && i > lineStart) {
+            appendLine(lineStart, i, false);
+            lineStart = i;
+            continue;
+        }
+        ++i;
+    }
+    if(multiline) appendLine(lineStart, textLength, false);
+
+    if(textLines.empty()) appendLine(0, 0, false);
+
+    // 保证光标/换行后的首行都能落入合法滚动范围。
+    double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
+    double maxScroll = std::max(0.0, textLines.size() * layoutLineHeight - viewportHeight);
+    scroll_offset_y = std::max(0.0, std::min(scroll_offset_y, maxScroll));
+    scroll_target_y = std::max(0.0, std::min(scroll_target_y, maxScroll));
+}
+
+int InputBox::displayPositionForContentPosition(int contentPos) const {
+    contentPos = std::max(0, std::min(contentPos, (int)content.size()));
+    if(IMECompositionString.empty() || contentPos <= cursor_pos) return contentPos;
+    return contentPos + (int)IMECompositionString.size();
+}
+
+int InputBox::contentPositionForDisplayPosition(int displayPos) const {
+    if(displayToContent.empty()) return std::max(0, std::min(displayPos, (int)content.size()));
+    displayPos = std::max(0, std::min(displayPos, (int)displayToContent.size() - 1));
+    return displayToContent[displayPos];
+}
+
+int InputBox::lineIndexForDisplayPosition(int displayPos) const {
+    if(textLines.empty()) return 0;
+    displayPos = std::max(0, std::min(displayPos, (int)layoutDisplayContent.size()));
+    for(size_t i = 0; i < textLines.size(); ++i) {
+        const TextLineLayout& line = textLines[i];
+        if(displayPos == line.start || (displayPos >= line.start && displayPos < line.end)) {
+            return (int)i;
+        }
+        if(displayPos == line.end) {
+            bool isNewline = displayPos < (int)layoutDisplayContent.size() &&
+                (layoutDisplayContent[displayPos] == L'\r' || layoutDisplayContent[displayPos] == L'\n');
+            if(isNewline || i + 1 == textLines.size() || textLines[i + 1].start != displayPos) {
+                return (int)i;
+            }
+        }
+        if(displayPos < line.start) return (int)std::max<int>(0, (int)i - 1);
+    }
+    return (int)textLines.size() - 1;
+}
+
+float InputBox::xForDisplayPositionOnLine(int displayPos, int lineIndex) const {
+    if(textLines.empty()) return 0.0f;
+    lineIndex = std::max(0, std::min(lineIndex, (int)textLines.size() - 1));
+    const TextLineLayout& line = textLines[lineIndex];
+    int position = std::max(line.start, std::min(displayPos, line.end));
+    if(position <= line.start) return 0.0f;
+    float x = 0.0f, h = 0.0f;
+    measuretext(layoutDisplayContent.substr(line.start, position - line.start).c_str(), &x, &h, btnLayer);
+    return x;
+}
+
+float InputBox::xForDisplayPosition(int displayPos) const {
+    return xForDisplayPositionOnLine(displayPos, lineIndexForDisplayPosition(displayPos));
+}
+
+int InputBox::charPositionFromLocal(float localX, float localY) const {
+    if(textLines.empty()) return 0;
+
+    double contentY = localY - layoutPaddingY + (multiline ? scroll_offset_y : 0.0);
+    int lineIndex = (int)std::floor(contentY / std::max(1.0, layoutLineHeight));
+    lineIndex = std::max(0, std::min(lineIndex, (int)textLines.size() - 1));
+    const TextLineLayout& line = textLines[lineIndex];
+    float targetX = localX - (float)layoutPaddingX + (multiline ? 0.0f : scroll_offset);
+    targetX = std::max(0.0f, targetX);
+
+    int bestDisplayPos = line.start;
+    float bestDistance = std::numeric_limits<float>::max();
+    for(int pos = line.start; pos <= line.end; ++pos) {
+        float x = xForDisplayPositionOnLine(pos, lineIndex);
+        float distance = std::fabs(x - targetX);
+        if(distance < bestDistance) {
+            bestDistance = distance;
+            bestDisplayPos = pos;
+        }
+    }
+    return contentPositionForDisplayPosition(bestDisplayPos);
+}
+
+int InputBox::charPositionFromLocalX(float localX) const {
+    return charPositionFromLocal(localX, (float)(height / 2.0));
+}
+
+void InputBox::ensureCursorVisible() {
+    rebuildTextLayout();
+    int caretDisplayPos = displayPositionForContentPosition(cursor_pos);
+    if(!IMECompositionString.empty()) {
+        int compositionStart = std::max(0, std::min(cursor_pos, (int)content.size()));
+        caretDisplayPos = compositionStart + std::max(0, std::min(IMECursorPos, (int)IMECompositionString.size()));
+    }
+
+    if(multiline) {
+        int lineIndex = lineIndexForDisplayPosition(caretDisplayPos);
+        double caretTop = lineIndex * layoutLineHeight;
+        double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
+        if(caretTop - scroll_offset_y < 0.0) scroll_offset_y = caretTop;
+        if(caretTop + layoutLineHeight - scroll_offset_y > viewportHeight) {
+            scroll_offset_y = caretTop + layoutLineHeight - viewportHeight;
+        }
+        double maxScroll = std::max(0.0, textLines.size() * layoutLineHeight - viewportHeight);
+        scroll_offset_y = std::max(0.0, std::min(scroll_offset_y, maxScroll));
+        scroll_target_y = scroll_offset_y;
+        cursorVisibilityDirty = false;
+    }
+    else {
+        adjustScrollForCursor();
+        cursorVisibilityDirty = false;
+    }
+}
+
+void InputBox::setSelectionAndCursor(int anchor, int active) {
+    anchor = std::max(0, std::min(anchor, (int)content.size()));
+    active = std::max(0, std::min(active, (int)content.size()));
+    dragBegin = anchor;
+    dragEnd = active;
+    cursor_pos = active;
+    inv.movecursor(std::min(anchor, active), std::max(anchor, active));
+    hasPreferredCursorX = false;
+    ensureCursorVisible();
+    needRedraw = true;
+}
+
+void InputBox::selectAll() {
+    setSelectionAndCursor(0, (int)content.size());
+}
+
+bool InputBox::handleKeyDown(unsigned int key) {
+    if(!on_focus) return false;
+    if(key == 'A' && (GetKeyState(VK_CONTROL) & 0x8000)) {
+        selectAll();
+        return true;
+    }
+    if(!multiline) return false;
+    if(key == VK_RETURN) return false;
+
+    bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    int current = std::max(0, std::min(cursor_pos, (int)content.size()));
+    int anchor = (dragBegin != dragEnd) ? dragBegin : current;
+    int next = current;
+    bool verticalMove = false;
+
+    auto previousWord = [&](int p) {
+        while(p > 0 && iswspace(content[p - 1])) --p;
+        while(p > 0 && !iswspace(content[p - 1])) --p;
+        return p;
+    };
+    auto nextWord = [&](int p) {
+        while(p < (int)content.size() && iswspace(content[p])) ++p;
+        while(p < (int)content.size() && !iswspace(content[p])) ++p;
+        return p;
+    };
+
+    rebuildTextLayout();
+    int currentDisplay = displayPositionForContentPosition(current);
+    int currentLine = lineIndexForDisplayPosition(currentDisplay);
+    const TextLineLayout& line = textLines[currentLine];
+    float currentX = xForDisplayPositionOnLine(currentDisplay, currentLine);
+
+    switch(key) {
+        case VK_LEFT:
+            next = ctrl ? previousWord(current) : std::max(0, current - 1);
+            break;
+        case VK_RIGHT:
+            next = ctrl ? nextWord(current) : std::min((int)content.size(), current + 1);
+            break;
+        case VK_HOME:
+            next = ctrl ? 0 : contentPositionForDisplayPosition(line.start);
+            break;
+        case VK_END:
+            next = ctrl ? (int)content.size() : contentPositionForDisplayPosition(line.end);
+            break;
+        case VK_UP:
+        case VK_DOWN: {
+            verticalMove = true;
+            if(!hasPreferredCursorX) {
+                preferredCursorX = currentX;
+                hasPreferredCursorX = true;
+            }
+            int targetLine = currentLine + (key == VK_UP ? -1 : 1);
+            if(targetLine < 0 || targetLine >= (int)textLines.size()) return true;
+            const TextLineLayout& target = textLines[targetLine];
+            next = contentPositionForDisplayPosition(target.start);
+            float bestDistance = std::numeric_limits<float>::max();
+            for(int p = target.start; p <= target.end; ++p) {
+                float distance = std::fabs(xForDisplayPositionOnLine(p, targetLine) - (float)preferredCursorX);
+                if(distance < bestDistance) {
+                    bestDistance = distance;
+                    next = contentPositionForDisplayPosition(p);
+                }
+            }
+            break;
+        }
+        case VK_PRIOR:
+        case VK_NEXT: {
+            verticalMove = true;
+            int pageLines = std::max(1, (int)std::floor((height - 2.0 * layoutPaddingY) / layoutLineHeight));
+            int targetLine = currentLine + (key == VK_PRIOR ? -pageLines : pageLines);
+            targetLine = std::max(0, std::min(targetLine, (int)textLines.size() - 1));
+            const TextLineLayout& target = textLines[targetLine];
+            next = contentPositionForDisplayPosition(target.start);
+            float bestDistance = std::numeric_limits<float>::max();
+            for(int p = target.start; p <= target.end; ++p) {
+                float distance = std::fabs(xForDisplayPositionOnLine(p, targetLine) - currentX);
+                if(distance < bestDistance) {
+                    bestDistance = distance;
+                    next = contentPositionForDisplayPosition(p);
+                }
+            }
+            break;
+        }
+        default:
+            return false;
+    }
+
+    if(!shift && dragBegin != dragEnd) {
+        if(key == VK_LEFT || key == VK_UP || key == VK_PRIOR || key == VK_HOME) {
+            next = std::min(dragBegin, dragEnd);
+        }
+        else if(key == VK_RIGHT || key == VK_DOWN || key == VK_NEXT || key == VK_END) {
+            next = std::max(dragBegin, dragEnd);
+        }
+        anchor = next;
+    }
+    else if(!shift) {
+        anchor = next;
+    }
+
+    if(!verticalMove) hasPreferredCursorX = false;
+    setSelectionAndCursor(shift ? anchor : next, next);
+    return true;
+}
+
+bool InputBox::handleNativeKeyDown(unsigned int key) {
+    return handleKeyDown(key);
+}
+
+void InputBox::scrollBy(double pixels) {
+    if(!multiline) return;
+    rebuildTextLayout();
+    double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
+    double maxScroll = std::max(0.0, textLines.size() * layoutLineHeight - viewportHeight);
+    scroll_target_y = std::max(0.0, std::min(scroll_target_y + pixels, maxScroll));
+    scroll_offset_y = scroll_target_y;
+    cursorVisibilityDirty = false;
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::updateDragAutoScroll(int mouseX, int mouseY) {
+    if(!multiline || !dragging) return;
+    int side = mouseY < (int)top ? -1 : (mouseY > (int)(top + height) ? 1 : 0);
+    dragVerticalSide = side;
+    if(side != 0) {
+        scrollBy(side * layoutLineHeight * 0.75);
+        lastDragTick = std::chrono::duration<double>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    }
+}
+
 void InputBox::draw(PIMAGE dst, double x, double y) {
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
@@ -1145,33 +1492,47 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
         return;
     }
 
-    ege_setfont(23 * scale, L"宋体", btnLayer);
+    ege_setfont((int)std::max(1.0, text_height * scale), L"宋体", btnLayer);
     if(on_focus) {
-        adjustScrollForCursor();
-        inv.setfocus();
-        std::vector<wchar_t> str;
-        str.resize(inv.gettextlength() + 5);
-        inv.gettext(str.size(), str.data());
-        setContent(std::wstring(str.data()),true);
+        if(!multiline) adjustScrollForCursor();
 
-        // 非拖动状态下，从 sys_edit 同步光标和选区（支持键盘选区显示）
-        if(!dragging && IMECompositionString.empty()) {
-            DWORD selStart = 0, selEnd = 0;
-            SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
-            int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
-            int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
-            // EM_GETSEL 始终返回归一化的 (min, max)。
-            // 如果结果与我们最后通过 inv.movecursor(dragBegin, dragEnd) 设置的选区一致，
-            // 说明是键盘外部没有改变选区，此时 cursor_pos 已由拖动逻辑正确维护
-            // （鼠标松开处即 dragEnd，可能在 dragBegin 左侧），不应覆盖。
-            // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
-            bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
-                                   newEnd   == std::max(dragBegin, dragEnd));
-            if(!selMatchesOurs) {
-                dragBegin  = newStart;
-                dragEnd    = newEnd;
-                needRedraw = true;
-                if(cursor_pos != newEnd) moveCursor(newEnd);
+        if(inv.m_hwnd && ::IsWindow(inv.m_hwnd)) {
+            inv.setfocus();
+
+            // WM_GETTEXTLENGTH 的结果来自原生控件，先验证范围再分配缓冲区，
+            // 避免失效句柄或异常返回值导致负数转 size_t 后的大额分配。
+            constexpr int MAX_SYNC_TEXT_LENGTH = 16 * 1024 * 1024;
+            int nativeLength = inv.gettextlength();
+            if(nativeLength >= 0 && nativeLength <= MAX_SYNC_TEXT_LENGTH) {
+                std::vector<wchar_t> str((size_t)nativeLength + 1, L'\0');
+                LRESULT copied = ::SendMessageW(
+                    inv.m_hwnd, WM_GETTEXT, (WPARAM)str.size(), (LPARAM)str.data());
+                if(copied >= 0) {
+                    size_t actualLength = std::min(
+                        str.size() - 1, (size_t)copied);
+                    setContent(std::wstring(str.data(), actualLength), true);
+                }
+            }
+
+            // 非拖动状态下，从 sys_edit 同步内容、光标和选区。
+            if(!dragging && IMECompositionString.empty()) {
+                DWORD selStart = 0, selEnd = 0;
+                SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+                int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
+                int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
+                // EM_GETSEL 始终返回归一化的 (min, max)。
+                // 如果结果与我们最后通过 inv.movecursor(dragBegin, dragEnd) 设置的选区一致，
+                // 说明是键盘外部没有改变选区，此时 cursor_pos 已由拖动逻辑正确维护
+                // （鼠标松开处即 dragEnd，可能在 dragBegin 左侧），不应覆盖。
+                // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
+                bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
+                                       newEnd   == std::max(dragBegin, dragEnd));
+                if(!selMatchesOurs) {
+                    dragBegin  = newStart;
+                    dragEnd    = newEnd;
+                    needRedraw = true;
+                    if(cursor_pos != newEnd) moveCursor(newEnd);
+                }
             }
         }
     }
@@ -1196,6 +1557,130 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     }
     // 优化：使用C++20 std::erase_if替代erase-remove惯用法
     std::erase_if(ripples, [](const Ripple& r) { return !r.alive(); });
+
+    if(multiline) {
+        rebuildTextLayout();
+        if(dragging && dragVerticalSide != 0 && lastDragMouseX >= 0 && lastDragMouseY >= 0) {
+            double now = std::chrono::duration<double>(
+                std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+            if(lastDragTick == 0.0 || now - lastDragTick >= DRAG_ADVANCE_INTERVAL) {
+                int savedMouseX = lastDragMouseX;
+                int savedMouseY = lastDragMouseY;
+                scrollBy(dragVerticalSide * layoutLineHeight * 0.75);
+                lastDragTick = now;
+
+                // 滚动后，同一屏幕坐标对应的字符也可能改变，重新计算拖选末端。
+                lastDragMouseX = -1;
+                lastDragMouseY = -1;
+                int dragPos = charPositionFromLocal(
+                    (float)(savedMouseX - (int)left),
+                    (float)(savedMouseY - (int)top));
+                dragEnd = dragPos;
+                moveCursor(dragPos);
+                inv.movecursor(dragBegin, dragEnd);
+                lastDragMouseX = savedMouseX;
+                lastDragMouseY = savedMouseY;
+            }
+        }
+        if(on_focus && cursorVisibilityDirty) {
+            ensureCursorVisible();
+            rebuildTextLayout();
+        }
+        setbkmode(TRANSPARENT, btnLayer);
+        settextcolor(BLACK, btnLayer);
+
+        if(on_focus) {
+            setfillcolor(EGEARGB(50, 30, 30, 30), btnLayer);
+            ege_fillrect(0, 0, width, height, btnLayer);
+        }
+
+        float unusedWidth = 0.0f, textRealHeight = 0.0f;
+        measuretext(L"a", &unusedWidth, &textRealHeight, btnLayer);
+        HDC contentDC = getHDC(btnLayer);
+        int savedDC = SaveDC(contentDC);
+        IntersectClipRect(contentDC,
+            (int)layoutPaddingX, (int)layoutPaddingY,
+            (int)std::max(layoutPaddingX + 1, this->width - layoutPaddingX),
+            (int)std::max(layoutPaddingY + 1, this->height - layoutPaddingY));
+
+        if(on_focus && dragBegin != dragEnd) {
+            int selStart = std::max(0, std::min(std::min(dragBegin, dragEnd), (int)content.size()));
+            int selEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), (int)content.size()));
+            int displayStart = displayPositionForContentPosition(selStart);
+            int displayEnd = displayPositionForContentPosition(selEnd);
+            setfillcolor(EGEARGB(180, 0, 120, 215), btnLayer);
+            for(size_t lineIndex = 0; lineIndex < textLines.size(); ++lineIndex) {
+                const TextLineLayout& line = textLines[lineIndex];
+                int begin = std::max(displayStart, line.start);
+                int end = std::min(displayEnd, line.end);
+                // 行区间采用 [start, end)。自动换行边界处，上一行的 end
+                // 与下一行的 start 相同；选区恰好停在该边界时，下一行
+                // 不应被误绘制成从 x=0 开始的零宽高亮。
+                if(begin >= end) continue;
+                float x1 = (float)(layoutPaddingX + xForDisplayPositionOnLine(begin, (int)lineIndex));
+                float x2 = (float)(layoutPaddingX + xForDisplayPositionOnLine(end, (int)lineIndex));
+                if(x2 <= x1) x2 = x1 + 2.0f;
+                double lineY = layoutPaddingY + lineIndex * layoutLineHeight - scroll_offset_y;
+                ege_fillrect(x1, lineY, x2 - x1, layoutLineHeight, btnLayer);
+            }
+        }
+
+        for(size_t lineIndex = 0; lineIndex < textLines.size(); ++lineIndex) {
+            const TextLineLayout& line = textLines[lineIndex];
+            double lineY = layoutPaddingY + lineIndex * layoutLineHeight - scroll_offset_y;
+            std::wstring lineText = layoutDisplayContent.substr(line.start, line.end - line.start);
+            ege_outtextxy(layoutPaddingX, lineY, lineText.c_str(), btnLayer);
+        }
+
+        if(on_focus) {
+            int caretDisplayPos = displayPositionForContentPosition(cursor_pos);
+            if(!IMECompositionString.empty()) {
+                int compositionStart = std::max(0, std::min(cursor_pos, (int)content.size()));
+                caretDisplayPos = compositionStart + std::max(0, std::min(IMECursorPos, (int)IMECompositionString.size()));
+            }
+            int caretLine = lineIndexForDisplayPosition(caretDisplayPos);
+            double caretX = layoutPaddingX + xForDisplayPosition(caretDisplayPos);
+            double caretY = layoutPaddingY + caretLine * layoutLineHeight - scroll_offset_y;
+            std::chrono::duration<double> elapsed_time =
+                std::chrono::high_resolution_clock::now() - start_time;
+            double cursor_opacity = InputBoxSinDoubleForCursor(elapsed_time.count());
+            setfillcolor(EGEARGB((char)(cursor_opacity * 255), 255, 255, 0), btnLayer);
+            ege_fillrect(caretX, caretY - 2, 2, textRealHeight + 7, btnLayer);
+
+            if(!IMECompositionString.empty()) {
+                int compositionStart = std::max(0, std::min(cursor_pos, (int)content.size()));
+                int imeStart = displayPositionForContentPosition(compositionStart);
+                int imeEnd = imeStart + (int)IMECompositionString.size();
+                setlinestyle(DOTTED_LINE, 0U, 1, btnLayer);
+                setlinecolor(EGEARGB(255, 0, 0, 0), btnLayer);
+                for(size_t lineIndex = 0; lineIndex < textLines.size(); ++lineIndex) {
+                    const TextLineLayout& line = textLines[lineIndex];
+                    int begin = std::max(imeStart, line.start);
+                    int end = std::min(imeEnd, line.end);
+                    if(begin >= end) continue;
+                    double yLine = layoutPaddingY + lineIndex * layoutLineHeight - scroll_offset_y + textRealHeight + 2;
+                    ege_line(layoutPaddingX + xForDisplayPositionOnLine(begin, (int)lineIndex), yLine,
+                             layoutPaddingX + xForDisplayPositionOnLine(end, (int)lineIndex), yLine, btnLayer);
+                }
+                setlinestyle(SOLID_LINE, 0U, 1, btnLayer);
+            }
+
+            InputPositionX = m_ime_pos_x = left + caretX + absolutPosDeltaX;
+            InputPositionY = m_ime_pos_y = top + caretY + textRealHeight + 2 + absolutPosDeltaY;
+            SetIMEPosition(getHWnd(), InputPositionX, InputPositionY);
+        }
+
+        RestoreDC(contentDC, savedDC);
+        for(auto& r : ripples) r.draw(btnLayer);
+        ege_resetclippath(btnLayer);
+        setlinewidth(1, btnLayer);
+        setlinecolor(EGEACOLOR(255, color), btnLayer);
+        ege_drawpath(&clippath, btnLayer);
+        if(!BackendFlag) putimage_withalpha(dst, btnLayer, left, top);
+        needRedraw = false;
+        scaleChanged = false;
+        return;
+    }
 
     // 优化：仅在缩放改变时设置字体
     double currentFontScale = scale * text_height;
@@ -1317,6 +1802,10 @@ void InputBox::deleteFocus(const mouse_msg& msg){
     on_focus = false;
     dragging = false;
     dragSide = 0;
+    dragVerticalSide = 0;
+    lastDragMouseX = -1;
+    lastDragMouseY = -1;
+    lastDragTick = 0.0;
     dragBegin = 0;
     dragEnd = 0;
     inv.killfocus();
@@ -1381,9 +1870,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
         // 鼠标抬起时结束拖动选择
         if(dragging) {
-            dragging = false;
-            dragSide = 0;
-            mouseOwningFlag = nullptr;
+        dragging = false;
+        dragSide = 0;
+        dragVerticalSide = 0;
+        lastDragMouseX = -1;
+        lastDragMouseY = -1;
+        lastDragTick = 0.0;
+        mouseOwningFlag = nullptr;
         }
     }
 
@@ -1413,14 +1906,19 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         }
 
         // 计算点击位置对应的字符下标
-        int best_pos = charPositionFromLocalX((float)localX);
+        rebuildTextLayout();
+        int best_pos = charPositionFromLocal((float)localX, (float)localY);
 
         moveCursor(best_pos);
+        cursorVisibilityDirty = true;
+        ensureCursorVisible();
         // 开始拖动选择，锚点与光标初始相同
         dragBegin = best_pos;
         dragEnd = best_pos;
         dragging = true;
         lastDragMouseX = msg.x; // 记录点击时的屏幕 X，防止后续合成 MOUSEMOVE 误触发
+        lastDragMouseY = msg.y;
+        lastDragTick = 0.0;
         inv.movecursor(dragBegin, dragEnd);
         needRedraw = true;
         if(this->parent != nullptr){
@@ -1443,7 +1941,13 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
     // 鼠标移动时更新拖动选择范围
     if(msg.is_move() && dragging && on_focus) {
-        applyDragMove(msg.x);
+        applyDragMove(msg.x, msg.y);
+        return true;
+    }
+
+    if(multiline && msg.is_wheel() && inside) {
+        rebuildTextLayout();
+        scrollBy((double)(msg.wheel / -120.0) * layoutLineHeight * 3.0);
         return true;
     }
 
@@ -1497,9 +2001,31 @@ bool InputBox::isInside(double x, double y) const {
 }
 
 void InputBox::setContent(const std::wstring& s,bool flag) {
-    if(content == s) return;
-    content = s;
-    if(!flag) inv.settext(s.c_str());
+    std::wstring normalized = s;
+    if(multiline) {
+        std::wstring converted;
+        converted.reserve(normalized.size() + 8);
+        for(size_t i = 0; i < normalized.size(); ++i) {
+            if(normalized[i] == L'\n' && (i == 0 || normalized[i - 1] != L'\r')) {
+                converted += L"\r\n";
+            }
+            else {
+                converted += normalized[i];
+            }
+        }
+        normalized.swap(converted);
+    }
+    if(content == normalized) return;
+    content = normalized;
+    cursor_pos = std::max(0, std::min(cursor_pos, (int)content.size()));
+    dragBegin = dragEnd = cursor_pos;
+    cursorVisibilityDirty = true;
+    if(!flag) inv.settext(content.c_str());
+    if(multiline && !flag) {
+        rebuildTextLayout();
+        scroll_offset_y = 0;
+        scroll_target_y = 0;
+    }
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1543,6 +2069,8 @@ void InputBox::setScale(double s){
     // 按比例缩放滚动偏移，保持文本相对位置
     if(old_scale > 0) {
         scroll_offset = scroll_offset * (s / old_scale);
+        scroll_offset_y = scroll_offset_y * (s / old_scale);
+        scroll_target_y = scroll_target_y * (s / old_scale);
     }
 
     if(btnLayer) delimage(btnLayer);
@@ -1552,6 +2080,7 @@ void InputBox::setScale(double s){
     ege_path_addroundrect(&clippath,4,4,width,height,radius);
     
     needRedraw = true;
+    cursorVisibilityDirty = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
             p->setDirty();
@@ -1563,6 +2092,7 @@ void InputBox::setScale(double s){
 void InputBox::setTextHeight(double height){
     if(sgn(height - text_height) == 0) return;
     text_height = height;
+    cursorVisibilityDirty = true;
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1576,8 +2106,12 @@ double InputBox::getTextHeight(){
 }
 
 void InputBox::moveCursor(int pos){
+    int contentLength = (int)std::min(
+        content.size(), (size_t)std::numeric_limits<int>::max());
+    pos = std::max(0, std::min(pos, contentLength));
     if(cursor_pos == pos) return;
     cursor_pos = pos;
+    cursorVisibilityDirty = true;
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1587,7 +2121,10 @@ void InputBox::moveCursor(int pos){
 }
 
 void InputBox::setIMECompositionString(const std::wstring& str){
-    IMECompositionString = str;
+    const size_t maxLength = (size_t)std::numeric_limits<int>::max();
+    IMECompositionString = str.substr(0, std::min(str.size(), maxLength));
+    IMECursorPos = std::max(0, std::min(IMECursorPos, (int)IMECompositionString.size()));
+    cursorVisibilityDirty = true;
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1597,7 +2134,8 @@ void InputBox::setIMECompositionString(const std::wstring& str){
 }
 
 void InputBox::setIMECursorPos(int pos){
-    IMECursorPos = pos;
+    IMECursorPos = std::max(0, std::min(pos, (int)IMECompositionString.size()));
+    cursorVisibilityDirty = true;
     needRedraw = true;
     if(this->parent != nullptr){
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -1683,67 +2221,18 @@ int InputBox::getMCounter(){
     return m_counter;
 }
 
-int InputBox::charPositionFromLocalX(float localX) const {
-    const float padding = 14 * scale;
-    float click_x = localX - padding + scroll_offset;
-
-    // When IME composition is active the display string differs from content:
-    //   display = content[0..cursor_pos] + IMECompositionString + content[cursor_pos..]
-    // Searching against content alone causes clicks after the IME overlay to be
-    // mapped to positions that are too small (the IME string's pixel width is
-    // ignored).  We therefore search against the display string and convert the
-    // result back to a content index.
-    bool imeActive = !IMECompositionString.empty();
-    std::wstring displayContent;
-    int cp = 0; // IME insertion point in content
-    if(imeActive) {
-        cp = std::max(0, std::min(cursor_pos, (int)content.size()));
-        displayContent = content.substr(0, cp) + IMECompositionString + content.substr(cp);
-    }
-    const std::wstring& searchText = imeActive ? displayContent : content;
-
-    int l = 0, r = (int)searchText.length();
-    int best_pos = 0;
-    float min_dist = 1e9f, tmp, char_x = 0;
-    while (l <= r) {
-        int mid = (l + r) / 2;
-        measuretext(searchText.substr(0, mid).c_str(), &char_x, &tmp, btnLayer);
-        float dist = fabsf(char_x - click_x);
-        if(dist < min_dist) { min_dist = dist; best_pos = mid; }
-        if(char_x < click_x) l = mid + 1;
-        else if(char_x > click_x) r = mid - 1;
-        else { best_pos = mid; break; }
-    }
-
-    // Convert display position back to a content position.
-    if(imeActive) {
-        int imeLen = (int)IMECompositionString.size();
-        if(best_pos <= cp) {
-            // Before or at IME start: 1-to-1 mapping with content.
-            return best_pos;
-        }
-        else if(best_pos < cp + imeLen) {
-            // Inside the IME composition area: clamp to its start so that the
-            // click target is the IME insertion point.
-            return cp;
-        }
-        else {
-            // After the IME composition: subtract the IME string length.
-            return best_pos - imeLen;
-        }
-    }
-    return best_pos;
-}
-
-void InputBox::applyDragMove(int mouseX) {
+void InputBox::applyDragMove(int mouseX, int mouseY) {
     // 跳过鼠标未实际移动的合成 MOUSEMOVE（由 SetCursorPos 每帧触发）。
     // 若 IME 提交刚刚改变了文本内容，相同像素 X 会映射到新内容中不同的字符下标，
     // 从而产生虚假选区。只有鼠标真正移动后才重新计算。
-    if(mouseX == lastDragMouseX) return;
+    if(mouseX == lastDragMouseX && mouseY == lastDragMouseY) return;
     lastDragMouseX = mouseX;
 
+    if(multiline) updateDragAutoScroll(mouseX, mouseY);
+
     float localX = (float)(mouseX - (int)left);
-    int best_pos = charPositionFromLocalX(localX);
+    float localY = (float)(mouseY - (int)top);
+    int best_pos = charPositionFromLocal(localX, localY);
     dragEnd = best_pos;
     // 光标跟随选区末端
     if(cursor_pos != dragEnd) moveCursor(dragEnd);
@@ -1753,6 +2242,7 @@ void InputBox::applyDragMove(int mouseX) {
     if(mouseX < (int)left) dragSide = -1;
     else if(mouseX > (int)(left + width)) dragSide = 1;
     else dragSide = 0;
+    lastDragMouseY = mouseY;
     needRedraw = true;
     if(this->parent != nullptr) {
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
@@ -1764,11 +2254,15 @@ void InputBox::releaseMouseOwningFlag(const mouse_msg& msg){
         // 鼠标抬起：正式结束拖动选择
         dragging = false;
         dragSide = 0;
+        dragVerticalSide = 0;
+        lastDragMouseX = -1;
+        lastDragMouseY = -1;
+        lastDragTick = 0.0;
         mouseOwningFlag = nullptr;
     }
     else if(msg.is_move() && dragging && on_focus) {
         // 鼠标移动到所有控件外部时，仍继续更新拖动选择
-        applyDragMove(msg.x);
+        applyDragMove(msg.x, msg.y);
     }
 }
 
@@ -1777,7 +2271,7 @@ void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
     // 外层 Panel 会通过 catchMouseOwningFlag 通知 mouseOwningFlag。
     // 此处继续处理拖动选择，保证选区可以延伸到内层 Panel 边界之外。
     if(msg.is_move() && dragging && on_focus) {
-        applyDragMove(msg.x);
+        applyDragMove(msg.x, msg.y);
     }
 }
 
@@ -1790,6 +2284,7 @@ void InputBox::deleteSelectedText() {
     content.erase(sel_s, sel_e - sel_s);
     cursor_pos = sel_s;
     dragBegin = dragEnd = sel_s;
+    cursorVisibilityDirty = true;
     inv.settext(content.c_str());
     inv.movecursor(sel_s, sel_s);
     needRedraw = true;
@@ -1802,6 +2297,11 @@ void InputBox::cancelDrag() {
     if(!dragging) return;
     dragging = false;
     dragSide = 0;
+    dragVerticalSide = 0;
+    lastDragMouseX = -1;
+    lastDragMouseY = -1;
+    lastDragTick = 0.0;
+    dragVerticalSide = 0;
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     // 收起选区到当前光标处。
     // dragging=false 之后，draw-loop 的 EM_GETSEL 同步块会在下一帧
@@ -1812,31 +2312,45 @@ void InputBox::cancelDrag() {
 }
 
 void InputBox::markIMEStart() {
-    imeStartPos = cursor_pos;
+    int contentLength = (int)std::min(
+        content.size(), (size_t)std::numeric_limits<int>::max());
+    imeStartPos = std::max(0, std::min(cursor_pos, contentLength));
 }
 
 void InputBox::commitIMEString(const std::wstring& compStr) {
     setIMECompositionString(L"");
     if(compStr.empty()) return;
 
-    int insertAt = std::max(0, std::min(imeStartPos, (int)content.size()));
+    const size_t maxInt = (size_t)std::numeric_limits<int>::max();
+    if(content.size() > maxInt) return;
+    const size_t availableLength = maxInt - content.size();
+    if(availableLength == 0) return;
+
+    const size_t committedLength = std::min(compStr.size(), availableLength);
+    if(committedLength == 0) return;
+    const std::wstring committed = compStr.substr(0, committedLength);
+    const int compositionLength = (int)committedLength;
+    const int oldLength = (int)content.size();
+    const int insertAt = std::max(0, std::min(imeStartPos, oldLength));
 
     // cursor_pos may already have been updated to the new click target (path 2:
     // click inside same box) before this is called.  Shift it past the inserted
     // text when it falls at or after the insertion point so the position stays
     // consistent.  For the WM_KILLFOCUS path (path 1: click outside), cursor_pos
     // still equals imeStartPos, so finalPos naturally lands right after the insert.
-    int savedPos = cursor_pos;
-    int finalPos = (savedPos < insertAt) ? savedPos : savedPos + (int)compStr.size();
-    finalPos = std::max(0, std::min(finalPos, (int)(content.size() + compStr.size())));
+    int savedPos = std::max(0, std::min(cursor_pos, oldLength));
+    int finalPos = (savedPos < insertAt) ? savedPos : savedPos + compositionLength;
+    finalPos = std::max(0, std::min(finalPos, oldLength + compositionLength));
 
-    content.insert(insertAt, compStr);
+    content.insert(insertAt, committed);
     cursor_pos = finalPos;
+    cursorVisibilityDirty = true;
     dragEnd = finalPos;
     // Shift dragBegin past the inserted text if it was at or after the insertion point.
     // Do NOT unconditionally override dragBegin: the click handler has already set it to
     // the correct drag anchor (click position). We only need to adjust it for the insertion.
-    if(dragBegin >= insertAt) dragBegin += (int)compStr.size();
+    dragBegin = std::max(0, std::min(dragBegin, oldLength));
+    if(dragBegin >= insertAt) dragBegin += compositionLength;
 
     inv.settext(content.c_str());
     inv.movecursor(dragBegin, dragEnd);
@@ -1850,6 +2364,11 @@ void InputBox::commitIMEString(const std::wstring& compStr) {
 void InputBox::reset(){
     ripples.clear();
     ripples.shrink_to_fit();
+    if(multiline) {
+        scroll_offset_y = 0;
+        scroll_target_y = 0;
+        dragVerticalSide = 0;
+    }
 }
 
 void InputBox::disable(){
@@ -1913,8 +2432,13 @@ InputBoxBuilder& InputBoxBuilder::setScale(double s) {
     return *this;
 }
 
+InputBoxBuilder& InputBoxBuilder::setMultiline(bool value) {
+    multiline = value;
+    return *this;
+}
+
 InputBox* InputBoxBuilder::build() {
-    auto input = new InputBox(cx, cy, width, height, radius);
+    auto input = new InputBox(cx, cy, width, height, radius, multiline);
     input->setContent(content);
     input->setMaxlen(maxLength);
     input->setScale(scale);

@@ -55,6 +55,13 @@ public:
         CTL_INIT; // must be the first linef
         directdraw(true);
         m_hwnd = NULL;
+        m_hFont = NULL;
+        m_hBrush = NULL;
+        m_color = 0;
+        m_bgcolor = 0xFFFFFF;
+        m_callback = 0;
+        m_focus = false;
+        m_object = nullptr;
     }
 
     /**
@@ -71,17 +78,23 @@ public:
     int create(bool multiline = false, int scrollbar = 2)
     {
         if (m_hwnd) {
-            destroy();
+            if (!destroy()) return -1;
         }
 
         msg_createwindow msg = {NULL};
+        HWND parentWindow = getHWnd();
+        if (!parentWindow) return -1;
+
         msg.hEvent           = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+        if (!msg.hEvent) return -1;
         msg.classname        = L"EDIT";
         msg.id               = egeControlBase::allocId();
         msg.style            = WS_CHILD | WS_BORDER | ES_LEFT | ES_WANTRETURN;
 
         if (multiline) {
-            msg.style |= ES_MULTILINE | WS_VSCROLL;
+            // 原生 EDIT 只作为输入/IME 后端使用，界面由 InputBox 自绘制；
+            // 保留多行与自动换行能力，但不显示原生滚动条。
+            msg.style |= ES_MULTILINE | ES_AUTOVSCROLL;
         } else {
             msg.style |= ES_AUTOHSCROLL;
         }
@@ -89,8 +102,16 @@ public:
         msg.exstyle = WS_EX_CLIENTEDGE; // | WS_EX_STATICEDGE;
         msg.param   = this;
 
-        ::PostMessageW(getHWnd(), WM_USER + 1, 1, (LPARAM)&msg);
-        ::WaitForSingleObject(msg.hEvent, INFINITE);
+        if (!::PostMessageW(parentWindow, WM_USER + 1, 1, (LPARAM)&msg)) {
+            ::CloseHandle(msg.hEvent);
+            return -1;
+        }
+        DWORD waitResult = ::WaitForSingleObject(msg.hEvent, INFINITE);
+        ::CloseHandle(msg.hEvent);
+        if (waitResult != WAIT_OBJECT_0 || !msg.hwnd || !::IsWindow(msg.hwnd)) {
+            m_hwnd = NULL;
+            return -1;
+        }
 
         m_hwnd    = msg.hwnd;
         m_hFont   = NULL;
@@ -101,14 +122,16 @@ public:
 
         ::SetWindowLongPtrW(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
         m_callback = ::GetWindowLongPtrW(m_hwnd, GWLP_WNDPROC);
+        if (!m_callback) {
+            destroy();
+            return -1;
+        }
         ::SetWindowLongPtrW(m_hwnd, GWLP_WNDPROC, (LONG_PTR)getProcfunc());
         {
             WCHAR fontname[] = L"SimSun";
             setfont(30, 0, fontname);
         }
         visible(false);
-
-        ::CloseHandle(msg.hEvent);
 
         return 0;
     }
@@ -119,23 +142,49 @@ public:
      */
     int destroy()
     {
-        if (m_hwnd) {
-            visible(false);
-            msg_createwindow msg = {NULL};
-            msg.hwnd             = m_hwnd;
-            msg.hEvent           = ::CreateEvent(NULL, TRUE, FALSE, NULL);
-            ::SendMessage(m_hwnd, WM_SETFONT, 0, 0);
-            ::DeleteObject(m_hFont);
-            ::PostMessageW(getHWnd(), WM_USER + 1, 0, (LPARAM)&msg);
-            ::WaitForSingleObject(msg.hEvent, INFINITE);
-            ::CloseHandle(msg.hEvent);
-            if (m_hBrush) {
-                ::DeleteObject(m_hBrush);
-            }
-            m_hwnd = NULL;
-            return 1;
+        if (!m_hwnd) return 0;
+
+        HWND hwnd = m_hwnd;
+        visible(false);
+        if (::IsWindow(hwnd)) {
+            ::SendMessage(hwnd, WM_SETFONT, 0, 0);
         }
-        return 0;
+        if (m_hFont) {
+            ::DeleteObject(m_hFont);
+            m_hFont = NULL;
+        }
+
+        bool destroyed = !::IsWindow(hwnd);
+        if (!destroyed) {
+            DWORD ownerThread = ::GetWindowThreadProcessId(hwnd, NULL);
+            if (ownerThread == ::GetCurrentThreadId()) {
+                destroyed = ::DestroyWindow(hwnd) != FALSE;
+            }
+            else {
+                HWND parentWindow = getHWnd();
+                HANDLE event = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+                if (parentWindow && event) {
+                    msg_createwindow msg = {NULL};
+                    msg.hwnd = hwnd;
+                    msg.hEvent = event;
+                    if (::PostMessageW(parentWindow, WM_USER + 1, 0, (LPARAM)&msg) &&
+                        ::WaitForSingleObject(event, INFINITE) == WAIT_OBJECT_0) {
+                        destroyed = !::IsWindow(hwnd);
+                    }
+                }
+                if (event) ::CloseHandle(event);
+            }
+        }
+
+        if (!destroyed) return 0;
+        if (m_hBrush) {
+            ::DeleteObject(m_hBrush);
+            m_hBrush = NULL;
+        }
+        m_hwnd = NULL;
+        m_callback = 0;
+        m_focus = false;
+        return 1;
     }
     
     /**
@@ -160,7 +209,9 @@ public:
      * @param end 结束位置
      */
     void movecursor(int begin,int end){
-        SendMessageW(m_hwnd, EM_SETSEL, begin, end);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            SendMessageW(m_hwnd, EM_SETSEL, begin, end);
+        }
     }
 
     /**
@@ -174,7 +225,7 @@ public:
      */
     int getCursorPos()
     {
-        if (m_hwnd)
+        if (m_hwnd && ::IsWindow(m_hwnd))
         {
             DWORD start = 0, end = 0;
             SendMessageW(m_hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
@@ -199,7 +250,9 @@ public:
     void visible(bool bvisible)
     {
         egeControlBase::visible(bvisible);
-        ::ShowWindow(m_hwnd, (int)bvisible);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::ShowWindow(m_hwnd, (int)bvisible);
+        }
     }
 
     /**
@@ -210,6 +263,7 @@ public:
      */
     void setfont(int h, int w, LPCSTR fontface)
     {
+        if (!fontface) return;
         EGE_CONVERT_TO_WSTR_WITH(fontface, { setfont(h, w, wStr); });
     }
 
@@ -221,6 +275,7 @@ public:
      */
     void setfont(int h, int w, LPCWSTR fontface)
     {
+        if (!m_hwnd || !::IsWindow(m_hwnd) || !fontface) return;
         LOGFONTW lf         = {0};
         lf.lfHeight         = h;
         lf.lfWidth          = w;
@@ -252,7 +307,9 @@ public:
     void move(int x, int y)
     {
         egeControlBase::move(x, y);
-        ::MoveWindow(m_hwnd, m_x, m_y, m_w, m_h, TRUE);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::MoveWindow(m_hwnd, m_x, m_y, m_w, m_h, TRUE);
+        }
     }
 
     /**
@@ -263,7 +320,9 @@ public:
     void size(int w, int h)
     {
         egeControlBase::size(w, h);
-        ::MoveWindow(m_hwnd, m_x, m_y, m_w, m_h, TRUE);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::MoveWindow(m_hwnd, m_x, m_y, m_w, m_h, TRUE);
+        }
     }
 
     /**
@@ -272,6 +331,7 @@ public:
      */
     void settext(LPCSTR text)
     {
+        if (!text) return;
         EGE_CONVERT_TO_WSTR_WITH(text, { settext(wStr); });
     }
     
@@ -280,41 +340,73 @@ public:
      */
     void killfocus()
 	{
+	    if (!m_hwnd || !::IsWindow(m_hwnd)) return;
 	    // 将焦点设置回主窗口或 NULL（无焦点）
 	    msg_createwindow msg = {NULL};
 		msg.hwnd = GetForegroundWindow(); // 注意这里，这样可以不改变窗口活动状态
 		msg.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		PostMessageW(getHWnd(), WM_USER + 2, 0, (LPARAM)&msg);
-		WaitForSingleObject(msg.hEvent, INFINITE);
+		if (!msg.hEvent) return;
+	    HWND parentWindow = getHWnd();
+		if (parentWindow &&
+		    PostMessageW(parentWindow, WM_USER + 2, 0, (LPARAM)&msg)) {
+			WaitForSingleObject(msg.hEvent, INFINITE);
+		}
+		CloseHandle(msg.hEvent);
 	}
 
     /**
      * @brief 设置文本(Unicode版本)
      * @param text 文本内容
      */
-    void settext(LPCWSTR text) { ::SendMessageW(m_hwnd, WM_SETTEXT, 0, (LPARAM)text); }
+    void settext(LPCWSTR text)
+    {
+        if (m_hwnd && ::IsWindow(m_hwnd) && text) {
+            ::SendMessageW(m_hwnd, WM_SETTEXT, 0, (LPARAM)text);
+        }
+    }
 
     /**
      * @brief 获取文本(ANSI版本)
      * @param maxlen 最大长度
      * @param text 输出文本缓冲区
      */
-    void gettext(int maxlen, LPSTR text) { ::SendMessageA(m_hwnd, WM_GETTEXT, (WPARAM)maxlen, (LPARAM)text); }
+    void gettext(int maxlen, LPSTR text)
+    {
+        if (m_hwnd && ::IsWindow(m_hwnd) && maxlen > 0 && text) {
+            ::SendMessageA(m_hwnd, WM_GETTEXT, (WPARAM)maxlen, (LPARAM)text);
+        }
+    }
 
     /**
      * @brief 获取文本(Unicode版本)
      * @param maxlen 最大长度
      * @param text 输出文本缓冲区
      */
-    void gettext(int maxlen, LPWSTR text) { ::SendMessageW(m_hwnd, WM_GETTEXT, (WPARAM)maxlen, (LPARAM)text); }
+    void gettext(int maxlen, LPWSTR text)
+    {
+        if (m_hwnd && ::IsWindow(m_hwnd) && maxlen > 0 && text) {
+            ::SendMessageW(m_hwnd, WM_GETTEXT, (WPARAM)maxlen, (LPARAM)text);
+        }
+    }
 
-    int gettextlength() const { return (int)::SendMessageW(m_hwnd, WM_GETTEXTLENGTH, 0, 0); }
+    int gettextlength() const
+    {
+        if (!m_hwnd || !::IsWindow(m_hwnd)) return -1;
+        LRESULT length = ::SendMessageW(m_hwnd, WM_GETTEXTLENGTH, 0, 0);
+        if (length < 0 || length > INT_MAX) return -1;
+        return (int)length;
+    }
 
     /**
      * @brief 设置最大文本长度
      * @param maxlen 最大长度
      */
-    void setmaxlen(int maxlen) { ::SendMessageW(m_hwnd, EM_LIMITTEXT, (WPARAM)maxlen, 0); }
+    void setmaxlen(int maxlen)
+    {
+        if (m_hwnd && ::IsWindow(m_hwnd) && maxlen >= 0) {
+            ::SendMessageW(m_hwnd, EM_LIMITTEXT, (WPARAM)maxlen, 0);
+        }
+    }
 
     /**
      * @brief 设置文本颜色
@@ -323,7 +415,9 @@ public:
     void setcolor(color_t color)
     {
         m_color = color;
-        ::InvalidateRect(m_hwnd, NULL, TRUE);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::InvalidateRect(m_hwnd, NULL, TRUE);
+        }
     }
 
     /**
@@ -334,7 +428,9 @@ public:
     {
         m_bgcolor = bgcolor;
         //::RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
-        ::InvalidateRect(m_hwnd, NULL, TRUE);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::InvalidateRect(m_hwnd, NULL, TRUE);
+        }
     }
 
     /**
@@ -343,8 +439,10 @@ public:
      */
     void setreadonly(bool readonly)
     {
-        ::SendMessageW(m_hwnd, EM_SETREADONLY, (WPARAM)readonly, 0);
-        ::InvalidateRect(m_hwnd, NULL, TRUE);
+        if (m_hwnd && ::IsWindow(m_hwnd)) {
+            ::SendMessageW(m_hwnd, EM_SETREADONLY, (WPARAM)readonly, 0);
+            ::InvalidateRect(m_hwnd, NULL, TRUE);
+        }
     }
 
     /**
@@ -352,11 +450,17 @@ public:
      */
     void setfocus()
     {
+        if (!m_hwnd || !::IsWindow(m_hwnd)) return;
         msg_createwindow msg = {NULL};
         msg.hwnd             = m_hwnd;
         msg.hEvent           = ::CreateEvent(NULL, TRUE, FALSE, NULL);
-        ::PostMessageW(getHWnd(), WM_USER + 2, 0, (LPARAM)&msg);
-        ::WaitForSingleObject(msg.hEvent, INFINITE);
+        if (!msg.hEvent) return;
+        HWND parentWindow = getHWnd();
+        if (parentWindow &&
+            ::PostMessageW(parentWindow, WM_USER + 2, 0, (LPARAM)&msg)) {
+            ::WaitForSingleObject(msg.hEvent, INFINITE);
+        }
+        ::CloseHandle(msg.hEvent);
     }
 
     void killIME();

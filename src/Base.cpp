@@ -96,6 +96,7 @@ int fixed(double x){
 
 void SetIMEPosition(HWND hwnd, int x, int y)
 {
+    if (!hwnd || !::IsWindow(hwnd)) return;
     HIMC hIMC = ImmGetContext(hwnd);
     if (!hIMC) return;
 
@@ -135,20 +136,27 @@ LRESULT CALLBACK FeEGEProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
  */
 std::wstring GetImeCompositionString(HWND hwnd, DWORD dwIndex) {
     std::wstring result;
+    if (!hwnd || !::IsWindow(hwnd)) return result;
     HIMC hIMC = ImmGetContext(hwnd);
 
     if (!hIMC)
         return result;
 
     LONG size = ImmGetCompositionStringW(hIMC, dwIndex, NULL, 0);
-    if (size > 0) {
-        int wcharCount = size / sizeof(wchar_t);
+    constexpr LONG MAX_IME_STRING_BYTES = 16L * 1024L * 1024L;
+    if (size > 0 && size <= MAX_IME_STRING_BYTES &&
+        size % (LONG)sizeof(wchar_t) == 0) {
+        size_t wcharCount = (size_t)size / sizeof(wchar_t);
 
         // 安全地读取数据（避免 resize 留下脏数据）
         std::vector<wchar_t> buffer(wcharCount + 1, L'\0');  // +1 保险空位
-        ImmGetCompositionStringW(hIMC, dwIndex, buffer.data(), size);
-
-        result.assign(buffer.begin(), buffer.begin() + wcharCount);
+        LONG copiedBytes = ImmGetCompositionStringW(
+            hIMC, dwIndex, buffer.data(), size);
+        if (copiedBytes > 0) {
+            size_t copiedChars = std::min(
+                wcharCount, (size_t)copiedBytes / sizeof(wchar_t));
+            result.assign(buffer.data(), copiedChars);
+        }
     }
 
     ImmReleaseContext(hwnd, hIMC);
