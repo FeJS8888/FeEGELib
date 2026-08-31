@@ -3372,6 +3372,16 @@ void Text::updateLayout() {
 
     height = textHeight;
     width = (maxWidth > 0) ? maxWidth : textWidth;
+
+    needRedraw = true;
+    if(this->parent != nullptr){
+        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
+            p->setDirty();
+        }
+        if(Box* b = dynamic_cast<Box*>(this->parent)) {
+            b->setDirty();
+        }
+    }
 }
 
 // 默认绘制
