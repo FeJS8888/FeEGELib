@@ -562,6 +562,7 @@ protected:
     bool lastInside = false;
     std::wstring IMECompositionString = L"";
     int IMECursorPos = 0;
+    bool imeCompositionActive = false;
     float scroll_offset = 0;
     float m_ime_pos_x = 0;
     float m_ime_pos_y = 0;
@@ -587,6 +588,7 @@ protected:
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
+    int maxLength = std::numeric_limits<int>::max();
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
     int lastDragMouseX = -1; // 上次 applyDragMove 处理的屏幕 X，用于跳过内容变化后的重复合成 MOUSEMOVE
@@ -612,10 +614,19 @@ protected:
     int charPositionFromLocalX(float localX) const;
     void ensureCursorVisible();
     void setSelectionAndCursor(int anchor, int active);
-    bool handleKeyDown(unsigned int key);
+    bool handleKeyDown(unsigned int key, bool shift, bool ctrl);
     void selectAll();
     void scrollBy(double pixels);
     void updateDragAutoScroll(int mouseX, int mouseY);
+    void processPendingNativeEvents();
+    void insertInputText(const std::wstring& text);
+    void deleteBackward();
+    void deleteForward();
+    void syncNativeEditState();
+    void beginIMEComposition();
+    void clearIMEComposition();
+    void clearFocusState();
+    void copySelectedTextToClipboard() const;
 
     /// 在拖动选择期间，更新 dragEnd / cursor_pos / scroll / sys_edit 选区到给定鼠标位置
     void applyDragMove(int mouseX, int mouseY);
@@ -697,7 +708,7 @@ public:
     bool isMultiline() const { return multiline; }
 
     /** @brief 处理隐藏原生编辑框转发的键盘导航 */
-    bool handleNativeKeyDown(unsigned int key);
+    bool handleNativeKeyDown(unsigned int key, bool shift = false, bool ctrl = false);
 
     void moveCursor(int pos);
 

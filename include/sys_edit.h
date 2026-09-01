@@ -12,6 +12,12 @@
 #ifndef SYS_EDIT_H
 #define SYS_EDIT_H
 
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <ege/egecontrolbase.h>
 #include "Base.h"
 
@@ -39,6 +45,36 @@ namespace FeEGE
 class sys_edit : public egeControlBase
 {
 public:
+    /**
+     * @brief 原生 EDIT 在 UI 线程采集到的输入事件。
+     *
+     * sys_edit 的窗口过程运行在 xEGE 的 UI 消息线程，而 InputBox 的
+     * 状态和绘制运行在应用线程。窗口过程只能向此队列写入数据，不能直接
+     * 调用 InputBox，避免跨线程同时读写 std::wstring/布局缓存。
+     */
+    struct PendingInputEvent {
+        enum class Type {
+            KeyDown,
+            TextInput,
+            Copy,
+            Cut,
+            DeleteSelection,
+            ImeStart,
+            ImeUpdate,
+            ImeResult,
+            ImeCommit,
+            ImeEnd,
+            FocusLost,
+        };
+
+        Type type = Type::TextInput;
+        unsigned int key = 0;
+        bool shift = false;
+        bool ctrl = false;
+        std::wstring text;
+        int imeCursorPos = 0;
+    };
+
     CTL_PREINIT(sys_edit, egeControlBase)
     {
         // do sth. before sub objects' construct function call
@@ -61,7 +97,12 @@ public:
         m_bgcolor = 0xFFFFFF;
         m_callback = 0;
         m_focus = false;
-        m_object = nullptr;
+        m_multiline = false;
+        m_imeComposing = false;
+        m_imeCancelling = false;
+        m_suppressedBackspaceChars = 0;
+        m_suppressedReturnChars = 0;
+        m_destroying.store(false, std::memory_order_relaxed);
     }
 
     /**
@@ -77,8 +118,10 @@ public:
      */
     int create(bool multiline = false, int scrollbar = 2)
     {
+        m_destroying.store(false, std::memory_order_release);
         if (m_hwnd) {
             if (!destroy()) return -1;
+            m_destroying.store(false, std::memory_order_release);
         }
 
         msg_createwindow msg = {NULL};
@@ -119,6 +162,11 @@ public:
         m_color   = 0x0;
         m_bgcolor = 0xFFFFFF;
         m_focus = false;
+        m_multiline = multiline;
+        m_imeComposing = false;
+        m_imeCancelling = false;
+        m_suppressedBackspaceChars = 0;
+        m_suppressedReturnChars = 0;
 
         ::SetWindowLongPtrW(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
         m_callback = ::GetWindowLongPtrW(m_hwnd, GWLP_WNDPROC);
@@ -144,6 +192,7 @@ public:
     {
         if (!m_hwnd) return 0;
 
+        m_destroying.store(true, std::memory_order_release);
         HWND hwnd = m_hwnd;
         visible(false);
         if (::IsWindow(hwnd)) {
@@ -156,8 +205,7 @@ public:
 
         bool destroyed = !::IsWindow(hwnd);
         if (!destroyed) {
-            DWORD ownerThread = ::GetWindowThreadProcessId(hwnd, NULL);
-            if (ownerThread == ::GetCurrentThreadId()) {
+            if (isWindowOwnedByCurrentThread(hwnd)) {
                 destroyed = ::DestroyWindow(hwnd) != FALSE;
             }
             else {
@@ -176,7 +224,10 @@ public:
             }
         }
 
-        if (!destroyed) return 0;
+        if (!destroyed) {
+            m_destroying.store(false, std::memory_order_release);
+            return 0;
+        }
         if (m_hBrush) {
             ::DeleteObject(m_hBrush);
             m_hBrush = NULL;
@@ -184,6 +235,19 @@ public:
         m_hwnd = NULL;
         m_callback = 0;
         m_focus = false;
+        m_imeComposing = false;
+        m_imeCancelling = false;
+        m_suppressedBackspaceChars = 0;
+        m_suppressedReturnChars = 0;
+        {
+            std::lock_guard<std::mutex> lock(m_pendingInputMutex);
+            m_pendingInputEvents.clear();
+        }
+        {
+            std::lock_guard<std::mutex> lock(m_pendingNativeStateMutex);
+            m_hasPendingNativeState = false;
+            m_pendingNativeState = PendingNativeState{};
+        }
         return 1;
     }
     
@@ -192,16 +256,28 @@ public:
      * @return 是否有焦点
      */
     bool hasFocus() const {
-	    return m_focus;
+	    return m_focus.load(std::memory_order_acquire);
 	}
 
     /**
-     * @brief 设置父对象
-     * @param p 父对象指针
+     * @brief 取走 UI 线程采集的待处理输入事件。
+     *
+     * 必须由 InputBox 的应用线程调用。交换队列时只持有队列锁，不会在
+     * 持锁状态下发送任何窗口消息。
      */
-    void setparent(void* p){
-        m_object = p;
+    void takePendingInputEvents(std::vector<PendingInputEvent>& events) {
+        std::lock_guard<std::mutex> lock(m_pendingInputMutex);
+        events.swap(m_pendingInputEvents);
     }
+
+    /**
+     * @brief 请求将应用线程的输入模型镜像到隐藏的原生 EDIT。
+     *
+     * 请求只保存最新快照，并投递给拥有 EDIT 的 UI 线程。UI 线程会在
+     * 没有 IME 组合时一次性执行 WM_SETTEXT 和 EM_SETSEL，因此应用线程
+     * 不会在原生输入法事务中跨线程发送同步消息。
+     */
+    void queueNativeState(const std::wstring& text, int selectionBegin, int selectionEnd);
 
     /**
      * @brief 移动光标到指定位置
@@ -341,12 +417,16 @@ public:
     void killfocus()
 	{
 	    if (!m_hwnd || !::IsWindow(m_hwnd)) return;
+	    HWND parentWindow = getHWnd();
+	    if (isWindowOwnedByCurrentThread(m_hwnd)) {
+	        ::SetFocus(parentWindow);
+	        return;
+	    }
 	    // 将焦点设置回主窗口或 NULL（无焦点）
 	    msg_createwindow msg = {NULL};
-		msg.hwnd = GetForegroundWindow(); // 注意这里，这样可以不改变窗口活动状态
+		msg.hwnd = parentWindow;
 		msg.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (!msg.hEvent) return;
-	    HWND parentWindow = getHWnd();
 		if (parentWindow &&
 		    PostMessageW(parentWindow, WM_USER + 2, 0, (LPARAM)&msg)) {
 			WaitForSingleObject(msg.hEvent, INFINITE);
@@ -451,6 +531,10 @@ public:
     void setfocus()
     {
         if (!m_hwnd || !::IsWindow(m_hwnd)) return;
+        if (isWindowOwnedByCurrentThread(m_hwnd)) {
+            ::SetFocus(m_hwnd);
+            return;
+        }
         msg_createwindow msg = {NULL};
         msg.hwnd             = m_hwnd;
         msg.hEvent           = ::CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -465,6 +549,29 @@ public:
 
     void killIME();
 
+private:
+    struct PendingNativeState {
+        std::wstring text;
+        int selectionBegin = 0;
+        int selectionEnd = 0;
+    };
+
+    void enqueueInputEvent(PendingInputEvent event) {
+        if (m_destroying.load(std::memory_order_acquire)) return;
+        std::lock_guard<std::mutex> lock(m_pendingInputMutex);
+        m_pendingInputEvents.emplace_back(std::move(event));
+    }
+
+    // Must run on the UI/window thread.  It never holds either mutex while
+    // calling the original EDIT window procedure, which can dispatch nested
+    // Windows messages.
+    void applyPendingNativeState();
+
+    static bool isWindowOwnedByCurrentThread(HWND window) {
+        return window != NULL &&
+            ::GetWindowThreadProcessId(window, NULL) == ::GetCurrentThreadId();
+    }
+
 public:
     HWND     m_hwnd;        ///< 窗口句柄
     HFONT    m_hFont;       ///< 字体句柄
@@ -472,11 +579,25 @@ public:
     color_t  m_color;       ///< 文本颜色
     color_t  m_bgcolor;     ///< 背景颜色
     LONG_PTR m_callback;    ///< 回调函数指针
-    bool m_focus;           ///< 焦点状态
-    void* m_object;         ///< 关联对象指针
+    std::atomic_bool m_focus; ///< 焦点状态（由 UI 线程写、可能被应用线程读取）
+
+private:
+    std::mutex m_pendingInputMutex;
+    std::vector<PendingInputEvent> m_pendingInputEvents;
+    std::mutex m_pendingNativeStateMutex;
+    PendingNativeState m_pendingNativeState;
+    bool m_hasPendingNativeState = false;
+    std::atomic_bool m_destroying{false};
+    bool m_multiline = false;
+    // UI 线程在 WM_IME_START/ENDCOMPOSITION 间保持该标记。原生 EDIT
+    // 镜像也只由 UI 线程据此决定何时应用，避免跨线程检查后的竞态。
+    std::atomic_bool m_imeComposing{false};
+    bool m_imeCancelling = false;
+    unsigned int m_suppressedBackspaceChars = 0;
+    unsigned int m_suppressedReturnChars = 0;
 };
 
 #undef EGE_CONVERT_TO_WSTR_WITH
 
-} // namespace ege
+} // namespace FeEGE
 #endif /*EGE_SYS_EDIT_H*/

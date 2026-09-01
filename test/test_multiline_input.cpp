@@ -29,7 +29,7 @@ int main() {
     Text* instructions = TextBuilder()
         .setPosition(600, 82)
         .setAlign(TextAlign::Center)
-        .setContent(L"Click either editor. Try Enter, wheel scrolling, drag selection, Ctrl+A, paste, and arrow keys.")
+        .setContent(L"Try Backspace/Delete (with and without selection), Ctrl+A, paste/cut, single- and multi-character Chinese IME confirmation, Enter, wheel scrolling, and arrows.")
         .setFont(15, L"Microsoft YaHei")
         .setColor(EGERGB(90, 100, 115))
         .build();

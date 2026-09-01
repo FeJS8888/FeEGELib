@@ -1085,6 +1085,99 @@ Button* ButtonBuilder::build() {
 }
 
 // InputBoxBuilder 实现
+namespace {
+
+constexpr size_t MAX_INPUTBOX_CLIPBOARD_CHARS =
+    (16u * 1024u * 1024u) / sizeof(wchar_t);
+
+std::wstring normalizeInputBoxText(const std::wstring& source, bool multiline) {
+    std::wstring normalized;
+    normalized.reserve(source.size() + (multiline ? 8 : 0));
+
+    for (size_t i = 0; i < source.size(); ++i) {
+        const wchar_t character = source[i];
+        if (character == L'\r' || character == L'\n') {
+            if (!multiline) {
+                // A native single-line EDIT does not accept line breaks as
+                // editable content. Match that behavior for queued paste and
+                // text-input events.
+                if (character == L'\r' && i + 1 < source.size() && source[i + 1] == L'\n') ++i;
+                continue;
+            }
+            normalized += L"\r\n";
+            if (character == L'\r' && i + 1 < source.size() && source[i + 1] == L'\n') ++i;
+            continue;
+        }
+        normalized += character;
+    }
+    return normalized;
+}
+
+bool isHighSurrogate(wchar_t character) {
+    return character >= 0xD800 && character <= 0xDBFF;
+}
+
+bool isLowSurrogate(wchar_t character) {
+    return character >= 0xDC00 && character <= 0xDFFF;
+}
+
+int previousInputBoundary(const std::wstring& text, int position) {
+    position = std::max(0, std::min(position, static_cast<int>(text.size())));
+    if (position >= 2 && text[position - 2] == L'\r' && text[position - 1] == L'\n') {
+        return position - 2;
+    }
+    if (position >= 2 && isHighSurrogate(text[position - 2]) &&
+        isLowSurrogate(text[position - 1])) {
+        return position - 2;
+    }
+    return std::max(0, position - 1);
+}
+
+int nextInputBoundary(const std::wstring& text, int position) {
+    position = std::max(0, std::min(position, static_cast<int>(text.size())));
+    if (position + 1 < static_cast<int>(text.size()) && text[position] == L'\r' &&
+        text[position + 1] == L'\n') {
+        return position + 2;
+    }
+    if (position + 1 < static_cast<int>(text.size()) && isHighSurrogate(text[position]) &&
+        isLowSurrogate(text[position + 1])) {
+        return position + 2;
+    }
+    return std::min(static_cast<int>(text.size()), position + 1);
+}
+
+void putInputBoxClipboardText(const std::wstring& text) {
+    if (text.size() > MAX_INPUTBOX_CLIPBOARD_CHARS || !::OpenClipboard(nullptr)) return;
+    if (!::EmptyClipboard()) {
+        ::CloseClipboard();
+        return;
+    }
+
+    const size_t byteCount = (text.size() + 1) * sizeof(wchar_t);
+    HGLOBAL memory = ::GlobalAlloc(GMEM_MOVEABLE, byteCount);
+    if (!memory) {
+        ::CloseClipboard();
+        return;
+    }
+
+    wchar_t* target = static_cast<wchar_t*>(::GlobalLock(memory));
+    if (!target) {
+        ::GlobalFree(memory);
+        ::CloseClipboard();
+        return;
+    }
+    std::copy(text.begin(), text.end(), target);
+    target[text.size()] = L'\0';
+    ::GlobalUnlock(memory);
+
+    if (!::SetClipboardData(CF_UNICODETEXT, memory)) {
+        ::GlobalFree(memory);
+    }
+    ::CloseClipboard();
+}
+
+} // namespace
+
 InputBox::InputBox(double cx, double cy, double w, double h, double r, bool multiline) {
     this->multiline = multiline;
     this->cx = cx;
@@ -1103,8 +1196,8 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r, bool mult
     inv.visible(false);
     inv.move(-1, -1);
     inv.size(0, 0);
+    maxLength = 2147483640;
     inv.setmaxlen(2147483640);
-    inv.setparent(this);
     inv.killfocus();
     
     on_focus = false;
@@ -1116,9 +1209,8 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r, bool mult
 }
 
 InputBox::~InputBox() {
-    // 原生 EDIT 的窗口消息可能在成员析构期间继续到达，先解除反向指针，
-    // 避免 WM_KILLFOCUS/IME/延迟同步消息访问已经结束生命周期的 InputBox。
-    inv.setparent(nullptr);
+    // sys_edit 不再持有 InputBox 的反向裸指针；析构期间到达的 UI 消息
+    // 只会写入 sys_edit 自己的事件队列，不会访问已经结束生命周期的对象。
     if(focusingWidget == this) focusingWidget = nullptr;
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
     on_focus = false;
@@ -1335,7 +1427,7 @@ void InputBox::setSelectionAndCursor(int anchor, int active) {
     dragBegin = anchor;
     dragEnd = active;
     cursor_pos = active;
-    inv.movecursor(std::min(anchor, active), std::max(anchor, active));
+    syncNativeEditState();
     hasPreferredCursorX = false;
     ensureCursorVisible();
     needRedraw = true;
@@ -1345,17 +1437,37 @@ void InputBox::selectAll() {
     setSelectionAndCursor(0, (int)content.size());
 }
 
-bool InputBox::handleKeyDown(unsigned int key) {
+bool InputBox::handleKeyDown(unsigned int key, bool shift, bool ctrl) {
     if(!on_focus) return false;
-    if(key == 'A' && (GetKeyState(VK_CONTROL) & 0x8000)) {
+    if(key == 'A' && ctrl) {
         selectAll();
+        reflushCursorTick();
         return true;
     }
-    if(!multiline) return false;
-    if(key == VK_RETURN) return false;
 
-    bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-    bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    // A keyboard operation ends mouse capture, but must preserve an existing
+    // selection so Backspace/Delete and Shift navigation can consume it.
+    if(dragging) {
+        dragging = false;
+        dragSide = 0;
+        dragVerticalSide = 0;
+        lastDragMouseX = -1;
+        lastDragMouseY = -1;
+        lastDragTick = 0.0;
+        if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    }
+
+    if(key == VK_BACK) {
+        deleteBackward();
+        reflushCursorTick();
+        return true;
+    }
+    if(key == VK_DELETE) {
+        deleteForward();
+        reflushCursorTick();
+        return true;
+    }
+
     int current = std::max(0, std::min(cursor_pos, (int)content.size()));
     int anchor = (dragBegin != dragEnd) ? dragBegin : current;
     int next = current;
@@ -1372,6 +1484,10 @@ bool InputBox::handleKeyDown(unsigned int key) {
         return p;
     };
 
+    if(!multiline && (key == VK_UP || key == VK_DOWN || key == VK_PRIOR || key == VK_NEXT)) {
+        return false;
+    }
+
     rebuildTextLayout();
     int currentDisplay = displayPositionForContentPosition(current);
     int currentLine = lineIndexForDisplayPosition(currentDisplay);
@@ -1380,10 +1496,10 @@ bool InputBox::handleKeyDown(unsigned int key) {
 
     switch(key) {
         case VK_LEFT:
-            next = ctrl ? previousWord(current) : std::max(0, current - 1);
+            next = ctrl ? previousWord(current) : previousInputBoundary(content, current);
             break;
         case VK_RIGHT:
-            next = ctrl ? nextWord(current) : std::min((int)content.size(), current + 1);
+            next = ctrl ? nextWord(current) : nextInputBoundary(content, current);
             break;
         case VK_HOME:
             next = ctrl ? 0 : contentPositionForDisplayPosition(line.start);
@@ -1449,11 +1565,281 @@ bool InputBox::handleKeyDown(unsigned int key) {
 
     if(!verticalMove) hasPreferredCursorX = false;
     setSelectionAndCursor(shift ? anchor : next, next);
+    reflushCursorTick();
     return true;
 }
 
-bool InputBox::handleNativeKeyDown(unsigned int key) {
-    return handleKeyDown(key);
+bool InputBox::handleNativeKeyDown(unsigned int key, bool shift, bool ctrl) {
+    return handleKeyDown(key, shift, ctrl);
+}
+
+void InputBox::syncNativeEditState() {
+    if(!inv.m_hwnd || !::IsWindow(inv.m_hwnd)) return;
+
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    cursor_pos = std::max(0, std::min(cursor_pos, contentLength));
+    dragBegin = std::max(0, std::min(dragBegin, contentLength));
+    dragEnd = std::max(0, std::min(dragEnd, contentLength));
+
+    // The snapshot is applied by sys_edit's UI-thread window procedure.  It
+    // coalesces requests and waits until the native IME transaction is fully
+    // over before it calls WM_SETTEXT / EM_SETSEL on the hidden EDIT.
+    inv.queueNativeState(content, dragBegin, dragEnd);
+}
+
+void InputBox::insertInputText(const std::wstring& text) {
+    if(!on_focus || text.empty()) return;
+
+    std::wstring inserted = normalizeInputBoxText(text, multiline);
+    if(inserted.empty()) return;
+
+    if(dragging) {
+        dragging = false;
+        dragSide = 0;
+        dragVerticalSide = 0;
+        lastDragMouseX = -1;
+        lastDragMouseY = -1;
+        lastDragTick = 0.0;
+        if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    }
+
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    int selectionStart = std::max(0, std::min(std::min(dragBegin, dragEnd), contentLength));
+    int selectionEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), contentLength));
+    const int retainedLength = contentLength - (selectionEnd - selectionStart);
+    const int capacity = std::max(0, maxLength - retainedLength);
+    if(capacity <= 0) return;
+    if(inserted.size() > static_cast<size_t>(capacity)) {
+        inserted.resize(static_cast<size_t>(capacity));
+        // Do not leave a CRLF pair or a UTF-16 surrogate pair half inserted.
+        if(multiline && !inserted.empty() && inserted.back() == L'\r') inserted.pop_back();
+        if(inserted.size() >= 1 && isHighSurrogate(inserted.back())) inserted.pop_back();
+    }
+    if(inserted.empty()) return;
+
+    if(selectionStart != selectionEnd) {
+        content.erase(static_cast<size_t>(selectionStart),
+            static_cast<size_t>(selectionEnd - selectionStart));
+    }
+    content.insert(static_cast<size_t>(selectionStart), inserted);
+    cursor_pos = selectionStart + static_cast<int>(inserted.size());
+    dragBegin = dragEnd = cursor_pos;
+    cursorVisibilityDirty = true;
+    hasPreferredCursorX = false;
+    syncNativeEditState();
+    reflushCursorTick();
+
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::deleteBackward() {
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    int selectionStart = std::max(0, std::min(std::min(dragBegin, dragEnd), contentLength));
+    int selectionEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), contentLength));
+    if(selectionStart != selectionEnd) {
+        deleteSelectedText();
+        return;
+    }
+
+    const int position = std::max(0, std::min(cursor_pos, contentLength));
+    if(position == 0) return;
+    const int eraseStart = previousInputBoundary(content, position);
+    content.erase(static_cast<size_t>(eraseStart),
+        static_cast<size_t>(position - eraseStart));
+    cursor_pos = eraseStart;
+    dragBegin = dragEnd = cursor_pos;
+    cursorVisibilityDirty = true;
+    hasPreferredCursorX = false;
+    syncNativeEditState();
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::deleteForward() {
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    int selectionStart = std::max(0, std::min(std::min(dragBegin, dragEnd), contentLength));
+    int selectionEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), contentLength));
+    if(selectionStart != selectionEnd) {
+        deleteSelectedText();
+        return;
+    }
+
+    const int position = std::max(0, std::min(cursor_pos, contentLength));
+    if(position >= contentLength) return;
+    const int eraseEnd = nextInputBoundary(content, position);
+    content.erase(static_cast<size_t>(position),
+        static_cast<size_t>(eraseEnd - position));
+    cursor_pos = position;
+    dragBegin = dragEnd = cursor_pos;
+    cursorVisibilityDirty = true;
+    hasPreferredCursorX = false;
+    syncNativeEditState();
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::beginIMEComposition() {
+    if(!on_focus) return;
+
+    if(dragBegin != dragEnd) {
+        const int contentLength = static_cast<int>(std::min(
+            content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+        const int selectionStart = std::max(0,
+            std::min(std::min(dragBegin, dragEnd), contentLength));
+        const int selectionEnd = std::max(0,
+            std::min(std::max(dragBegin, dragEnd), contentLength));
+        if(selectionStart != selectionEnd) {
+            // The UI thread has already started an IME composition. Do not
+            // send WM_SETTEXT back into the hidden EDIT during that state;
+            // commit/cancel below mirrors the finished model in one step.
+            dragging = false;
+            dragSide = 0;
+            dragVerticalSide = 0;
+            lastDragMouseX = -1;
+            lastDragMouseY = -1;
+            lastDragTick = 0.0;
+            if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+            content.erase(static_cast<size_t>(selectionStart),
+                static_cast<size_t>(selectionEnd - selectionStart));
+            cursor_pos = selectionStart;
+            dragBegin = dragEnd = selectionStart;
+            hasPreferredCursorX = false;
+        }
+    }
+    else {
+        const int contentLength = static_cast<int>(std::min(
+            content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+        cursor_pos = std::max(0, std::min(cursor_pos, contentLength));
+        dragBegin = dragEnd = cursor_pos;
+    }
+
+    imeStartPos = cursor_pos;
+    imeCompositionActive = true;
+    IMECompositionString.clear();
+    IMECursorPos = 0;
+    cursorVisibilityDirty = true;
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::clearIMEComposition() {
+    const bool changed = imeCompositionActive || !IMECompositionString.empty() || IMECursorPos != 0;
+    imeCompositionActive = false;
+    IMECompositionString.clear();
+    IMECursorPos = 0;
+    if(!changed) return;
+    cursorVisibilityDirty = true;
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::copySelectedTextToClipboard() const {
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    const int selectionStart = std::max(0, std::min(std::min(dragBegin, dragEnd), contentLength));
+    const int selectionEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), contentLength));
+    if(selectionStart == selectionEnd) return;
+    putInputBoxClipboardText(content.substr(static_cast<size_t>(selectionStart),
+        static_cast<size_t>(selectionEnd - selectionStart)));
+}
+
+void InputBox::clearFocusState() {
+    if(!on_focus) return;
+
+    on_focus = false;
+    dragging = false;
+    dragSide = 0;
+    dragVerticalSide = 0;
+    lastDragMouseX = -1;
+    lastDragMouseY = -1;
+    lastDragTick = 0.0;
+    dragBegin = dragEnd = cursor_pos;
+    clearIMEComposition();
+    needRedraw = true;
+
+    if(Panel* p = dynamic_cast<Panel*>(parent)) {
+        p->setDirty();
+        p->setAlwaysDirty(false);
+    }
+    if(m_drawing > 0) setDrawing(false);
+    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    if(focusingWidget == this) focusingWidget = nullptr;
+}
+
+void InputBox::processPendingNativeEvents() {
+    std::vector<FeEGE::sys_edit::PendingInputEvent> events;
+    inv.takePendingInputEvents(events);
+
+    for(const auto& event : events) {
+        using EventType = FeEGE::sys_edit::PendingInputEvent::Type;
+        switch(event.type) {
+        case EventType::KeyDown:
+            if(on_focus) handleKeyDown(event.key, event.shift, event.ctrl);
+            break;
+        case EventType::TextInput:
+            insertInputText(event.text);
+            break;
+        case EventType::Copy:
+            if(on_focus) copySelectedTextToClipboard();
+            break;
+        case EventType::Cut:
+            if(on_focus) {
+                copySelectedTextToClipboard();
+                deleteSelectedText();
+                reflushCursorTick();
+            }
+            break;
+        case EventType::DeleteSelection:
+            if(on_focus) {
+                deleteSelectedText();
+                reflushCursorTick();
+            }
+            break;
+        case EventType::ImeStart:
+            beginIMEComposition();
+            break;
+        case EventType::ImeUpdate:
+            if(on_focus) {
+                if(!imeCompositionActive) beginIMEComposition();
+                imeCompositionActive = true;
+                setIMECompositionString(event.text);
+                setIMECursorPos(event.imeCursorPos);
+                reflushCursorTick();
+            }
+            break;
+        case EventType::ImeResult:
+            if(!imeCompositionActive && !on_focus) break;
+            if(!imeCompositionActive) {
+                imeStartPos = std::max(0, std::min(cursor_pos, static_cast<int>(content.size())));
+            }
+            imeCompositionActive = true;
+            commitIMEString(event.text);
+            reflushCursorTick();
+            break;
+        case EventType::ImeCommit:
+            if(!imeCompositionActive && !on_focus) break;
+            if(!imeCompositionActive) {
+                imeStartPos = std::max(0, std::min(cursor_pos, static_cast<int>(content.size())));
+            }
+            imeCompositionActive = true;
+            commitIMEString(event.text);
+            reflushCursorTick();
+            break;
+        case EventType::ImeEnd:
+            clearIMEComposition();
+            syncNativeEditState();
+            break;
+        case EventType::FocusLost:
+            clearFocusState();
+            break;
+        }
+    }
+
 }
 
 void InputBox::scrollBy(double pixels) {
@@ -1480,6 +1866,10 @@ void InputBox::updateDragAutoScroll(int mouseX, int mouseY) {
 }
 
 void InputBox::draw(PIMAGE dst, double x, double y) {
+    // All mutations caused by the native EDIT are applied here, on the same
+    // application thread that owns content, selection and layout caches.
+    processPendingNativeEvents();
+
     double left = x - width / 2 - 4;
     double top = y - height / 2 - 4;
     double width = this->width + 8;
@@ -1495,46 +1885,6 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     ege_setfont((int)std::max(1.0, text_height * scale), L"宋体", btnLayer);
     if(on_focus) {
         if(!multiline) adjustScrollForCursor();
-
-        if(inv.m_hwnd && ::IsWindow(inv.m_hwnd)) {
-            inv.setfocus();
-
-            // WM_GETTEXTLENGTH 的结果来自原生控件，先验证范围再分配缓冲区，
-            // 避免失效句柄或异常返回值导致负数转 size_t 后的大额分配。
-            constexpr int MAX_SYNC_TEXT_LENGTH = 16 * 1024 * 1024;
-            int nativeLength = inv.gettextlength();
-            if(nativeLength >= 0 && nativeLength <= MAX_SYNC_TEXT_LENGTH) {
-                std::vector<wchar_t> str((size_t)nativeLength + 1, L'\0');
-                LRESULT copied = ::SendMessageW(
-                    inv.m_hwnd, WM_GETTEXT, (WPARAM)str.size(), (LPARAM)str.data());
-                if(copied >= 0) {
-                    size_t actualLength = std::min(
-                        str.size() - 1, (size_t)copied);
-                    setContent(std::wstring(str.data(), actualLength), true);
-                }
-            }
-
-            // 非拖动状态下，从 sys_edit 同步内容、光标和选区。
-            if(!dragging && IMECompositionString.empty()) {
-                DWORD selStart = 0, selEnd = 0;
-                SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
-                int newStart = std::max(0, std::min((int)selStart, (int)content.size()));
-                int newEnd   = std::max(0, std::min((int)selEnd,   (int)content.size()));
-                // EM_GETSEL 始终返回归一化的 (min, max)。
-                // 如果结果与我们最后通过 inv.movecursor(dragBegin, dragEnd) 设置的选区一致，
-                // 说明是键盘外部没有改变选区，此时 cursor_pos 已由拖动逻辑正确维护
-                // （鼠标松开处即 dragEnd，可能在 dragBegin 左侧），不应覆盖。
-                // 只有当键盘操作真正改变了选区时，才同步光标到 newEnd。
-                bool selMatchesOurs = (newStart == std::min(dragBegin, dragEnd) &&
-                                       newEnd   == std::max(dragBegin, dragEnd));
-                if(!selMatchesOurs) {
-                    dragBegin  = newStart;
-                    dragEnd    = newEnd;
-                    needRedraw = true;
-                    if(cursor_pos != newEnd) moveCursor(newEnd);
-                }
-            }
-        }
     }
 
     std::wstring displayContent = IMECompositionString.size() ? 
@@ -1577,7 +1927,7 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
                     (float)(savedMouseY - (int)top));
                 dragEnd = dragPos;
                 moveCursor(dragPos);
-                inv.movecursor(dragBegin, dragEnd);
+                syncNativeEditState();
                 lastDragMouseX = savedMouseX;
                 lastDragMouseY = savedMouseY;
             }
@@ -1799,26 +2149,15 @@ void InputBox::draw(){
 }
 
 void InputBox::deleteFocus(const mouse_msg& msg){
-    on_focus = false;
-    dragging = false;
-    dragSide = 0;
-    dragVerticalSide = 0;
-    lastDragMouseX = -1;
-    lastDragMouseY = -1;
-    lastDragTick = 0.0;
-    dragBegin = 0;
-    dragEnd = 0;
+    (void)msg;
+    if(!on_focus) return;
+
+    // killfocus waits for the UI thread to process WM_KILLFOCUS. That thread
+    // only appends IME/focus events, so it is safe to consume them immediately
+    // here before clearing this widget's local focus state.
     inv.killfocus();
-    needRedraw = true;
-    if(this->parent != nullptr){
-        if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
-            p->setDirty();
-            p->setAlwaysDirty(false);
-        }
-    }
-    this->setDrawing(false);
-    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
-    if(focusingWidget == this) focusingWidget = nullptr;
+    processPendingNativeEvents();
+    clearFocusState();
 }
 
 // todo: 输入法位置会在 Win11 的输入的第一帧无法做到对齐
@@ -1829,10 +2168,13 @@ void InputBox::updateIMEPosition() {
 }
 
 bool InputBox::haveIMEString() const {
-    return !IMECompositionString.empty();
+    return imeCompositionActive || !IMECompositionString.empty();
 }
 
 bool InputBox::handleEvent(const mouse_msg& msg) {
+    // Keep mouse operations ordered after any keyboard/IME messages already
+    // collected by the UI thread.
+    processPendingNativeEvents();
     const bool inside = isInside(msg.x, msg.y);
 
     // 鼠标移入移出处理
@@ -1885,7 +2227,10 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         // 无论当前 IME 叠加串是否已同步到 IMECompositionString，
         // 鼠标按下都先同步结束 IME 组合，再立即进入勾选流程，
         // 避免“有候选时第一下无法开始拖选”的状态竞态。
-        ::SendMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
+        if(inv.m_hwnd && ::IsWindow(inv.m_hwnd)) {
+            ::SendMessageW(inv.m_hwnd, WM_USER + 100 + 2, 0, 0);
+            processPendingNativeEvents();
+        }
 
         int localX = msg.x - left;
         int localY = msg.y - top;
@@ -1919,7 +2264,7 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
         lastDragMouseX = msg.x; // 记录点击时的屏幕 X，防止后续合成 MOUSEMOVE 误触发
         lastDragMouseY = msg.y;
         lastDragTick = 0.0;
-        inv.movecursor(dragBegin, dragEnd);
+        syncNativeEditState();
         needRedraw = true;
         if(this->parent != nullptr){
             if(Panel* p = dynamic_cast<Panel*>(this->parent)) {
@@ -2001,26 +2346,13 @@ bool InputBox::isInside(double x, double y) const {
 }
 
 void InputBox::setContent(const std::wstring& s,bool flag) {
-    std::wstring normalized = s;
-    if(multiline) {
-        std::wstring converted;
-        converted.reserve(normalized.size() + 8);
-        for(size_t i = 0; i < normalized.size(); ++i) {
-            if(normalized[i] == L'\n' && (i == 0 || normalized[i - 1] != L'\r')) {
-                converted += L"\r\n";
-            }
-            else {
-                converted += normalized[i];
-            }
-        }
-        normalized.swap(converted);
-    }
+    std::wstring normalized = normalizeInputBoxText(s, multiline);
     if(content == normalized) return;
     content = normalized;
     cursor_pos = std::max(0, std::min(cursor_pos, (int)content.size()));
     dragBegin = dragEnd = cursor_pos;
     cursorVisibilityDirty = true;
-    if(!flag) inv.settext(content.c_str());
+    if(!flag) syncNativeEditState();
     if(multiline && !flag) {
         rebuildTextLayout();
         scroll_offset_y = 0;
@@ -2035,7 +2367,8 @@ void InputBox::setContent(const std::wstring& s,bool flag) {
 }
 
 void InputBox::setMaxlen(int maxlen) {
-    inv.setmaxlen(maxlen);
+    maxLength = std::max(0, maxlen);
+    inv.setmaxlen(maxLength);
 }
 
 void InputBox::setPosition(double x,double y){
@@ -2237,7 +2570,7 @@ void InputBox::applyDragMove(int mouseX, int mouseY) {
     // 光标跟随选区末端
     if(cursor_pos != dragEnd) moveCursor(dragEnd);
     // 同步选区到 sys_edit（EM_SETSEL），保证后续键盘操作在正确范围内进行
-    inv.movecursor(dragBegin, dragEnd);
+    syncNativeEditState();
     // 记录是否超出输入框边界（用于自动滚动推进）
     if(mouseX < (int)left) dragSide = -1;
     else if(mouseX > (int)(left + width)) dragSide = 1;
@@ -2277,16 +2610,24 @@ void InputBox::catchMouseOwningFlag(const mouse_msg& msg){
 
 void InputBox::deleteSelectedText() {
     if(dragBegin == dragEnd) return;
-    int sel_s = std::min(dragBegin, dragEnd);
-    int sel_e = std::max(dragBegin, dragEnd);
-    sel_s = std::max(0, std::min(sel_s, (int)content.size()));
-    sel_e = std::max(0, std::min(sel_e, (int)content.size()));
-    content.erase(sel_s, sel_e - sel_s);
+    const int contentLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    int sel_s = std::max(0, std::min(std::min(dragBegin, dragEnd), contentLength));
+    int sel_e = std::max(0, std::min(std::max(dragBegin, dragEnd), contentLength));
+    if(sel_s == sel_e) return;
+    dragging = false;
+    dragSide = 0;
+    dragVerticalSide = 0;
+    lastDragMouseX = -1;
+    lastDragMouseY = -1;
+    lastDragTick = 0.0;
+    if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
+    content.erase(static_cast<size_t>(sel_s), static_cast<size_t>(sel_e - sel_s));
     cursor_pos = sel_s;
     dragBegin = dragEnd = sel_s;
     cursorVisibilityDirty = true;
-    inv.settext(content.c_str());
-    inv.movecursor(sel_s, sel_s);
+    hasPreferredCursorX = false;
+    syncNativeEditState();
     needRedraw = true;
     if(this->parent != nullptr) {
         if(Panel* p = dynamic_cast<Panel*>(this->parent)) p->setDirty();
@@ -2303,12 +2644,11 @@ void InputBox::cancelDrag() {
     lastDragTick = 0.0;
     dragVerticalSide = 0;
     if(mouseOwningFlag == this) mouseOwningFlag = nullptr;
-    // 收起选区到当前光标处。
-    // dragging=false 之后，draw-loop 的 EM_GETSEL 同步块会在下一帧
-    // 从 EDIT 控件读取键盘操作后的实际光标/选区并更新 dragBegin/dragEnd/cursor_pos，
-    // 因此这里只需保证两者相等即可，具体值由同步块修正。
+    // InputBox is now the selection authority; there is no later native EDIT
+    // read-back that can replace this model state.
     dragBegin = cursor_pos;
     dragEnd   = cursor_pos;
+    syncNativeEditState();
 }
 
 void InputBox::markIMEStart() {
@@ -2318,47 +2658,46 @@ void InputBox::markIMEStart() {
 }
 
 void InputBox::commitIMEString(const std::wstring& compStr) {
-    setIMECompositionString(L"");
-    if(compStr.empty()) return;
+    std::wstring committed = normalizeInputBoxText(compStr, multiline);
+    clearIMEComposition();
+    if(committed.empty()) {
+        syncNativeEditState();
+        return;
+    }
 
-    const size_t maxInt = (size_t)std::numeric_limits<int>::max();
-    if(content.size() > maxInt) return;
-    const size_t availableLength = maxInt - content.size();
-    if(availableLength == 0) return;
-
-    const size_t committedLength = std::min(compStr.size(), availableLength);
-    if(committedLength == 0) return;
-    const std::wstring committed = compStr.substr(0, committedLength);
-    const int compositionLength = (int)committedLength;
-    const int oldLength = (int)content.size();
+    const int oldLength = static_cast<int>(std::min(
+        content.size(), static_cast<size_t>(std::numeric_limits<int>::max())));
+    if(oldLength >= maxLength) {
+        syncNativeEditState();
+        return;
+    }
     const int insertAt = std::max(0, std::min(imeStartPos, oldLength));
+    const size_t availableLength = static_cast<size_t>(maxLength - oldLength);
+    if(committed.size() > availableLength) {
+        committed.resize(availableLength);
+        if(multiline && !committed.empty() && committed.back() == L'\r') committed.pop_back();
+        if(!committed.empty() && isHighSurrogate(committed.back())) committed.pop_back();
+    }
+    if(committed.empty()) {
+        syncNativeEditState();
+        return;
+    }
 
-    // cursor_pos may already have been updated to the new click target (path 2:
-    // click inside same box) before this is called.  Shift it past the inserted
-    // text when it falls at or after the insertion point so the position stays
-    // consistent.  For the WM_KILLFOCUS path (path 1: click outside), cursor_pos
-    // still equals imeStartPos, so finalPos naturally lands right after the insert.
-    int savedPos = std::max(0, std::min(cursor_pos, oldLength));
-    int finalPos = (savedPos < insertAt) ? savedPos : savedPos + compositionLength;
+    const int compositionLength = static_cast<int>(committed.size());
+    const int savedPos = std::max(0, std::min(cursor_pos, oldLength));
+    int finalPos = savedPos < insertAt ? savedPos : savedPos + compositionLength;
     finalPos = std::max(0, std::min(finalPos, oldLength + compositionLength));
 
-    content.insert(insertAt, committed);
+    content.insert(static_cast<size_t>(insertAt), committed);
     cursor_pos = finalPos;
+    dragBegin = dragEnd = finalPos;
+    imeStartPos = finalPos;
     cursorVisibilityDirty = true;
-    dragEnd = finalPos;
-    // Shift dragBegin past the inserted text if it was at or after the insertion point.
-    // Do NOT unconditionally override dragBegin: the click handler has already set it to
-    // the correct drag anchor (click position). We only need to adjust it for the insertion.
-    dragBegin = std::max(0, std::min(dragBegin, oldLength));
-    if(dragBegin >= insertAt) dragBegin += compositionLength;
-
-    inv.settext(content.c_str());
-    inv.movecursor(dragBegin, dragEnd);
+    hasPreferredCursorX = false;
+    syncNativeEditState();
 
     needRedraw = true;
-    if(parent != nullptr) {
-        if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
-    }
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
 }
 
 void InputBox::reset(){
