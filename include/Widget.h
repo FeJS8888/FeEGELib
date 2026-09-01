@@ -532,6 +532,13 @@ private:
  */
 class InputBox : public Widget {
 protected:
+    struct TextLineLayout {
+        int start = 0;       ///< 在显示字符串中的起始索引
+        int end = 0;         ///< 在显示字符串中的结束索引（不含换行符）
+        float width = 0.0f;  ///< 该行实际绘制宽度
+        bool hardBreak = false;
+    };
+
     double radius;            ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
@@ -555,14 +562,33 @@ protected:
     bool lastInside = false;
     std::wstring IMECompositionString = L"";
     int IMECursorPos = 0;
+    bool imeCompositionActive = false;
     float scroll_offset = 0;
     float m_ime_pos_x = 0;
     float m_ime_pos_y = 0;
+
+    bool multiline = false;          ///< 是否为多行输入框
+    double scroll_offset_y = 0.0;    ///< 多行垂直滚动偏移（像素）
+    double scroll_target_y = 0.0;    ///< 多行滚动目标（预留平滑滚动）
+    int dragVerticalSide = 0;        ///< -1=上方，1=下方，0=无
+    int lastDragMouseY = -1;
+    double preferredCursorX = 0.0;   ///< 上下移动时保持的首选列位置
+    bool hasPreferredCursorX = false;
+
+    std::wstring layoutDisplayContent;
+    std::vector<TextLineLayout> textLines;
+    std::vector<float> displayCharX;
+    std::vector<int> displayToContent;
+    double layoutLineHeight = 23.0;
+    double layoutPaddingX = 14.0;
+    double layoutPaddingY = 8.0;
+    bool cursorVisibilityDirty = true;
 
     bool disabled = false;
 
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
+    int maxLength = std::numeric_limits<int>::max();
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
     int lastDragMouseX = -1; // 上次 applyDragMove 处理的屏幕 X，用于跳过内容变化后的重复合成 MOUSEMOVE
@@ -578,10 +604,32 @@ protected:
     float cachedCursorWithFullImeWidth = 0;  ///< 缓存的光标+完整IME位置宽度
 
     /// 根据鼠标相对输入框左边缘的 localX 坐标，二分查找最近字符索引
+    void rebuildTextLayout();
+    int displayPositionForContentPosition(int contentPos) const;
+    int contentPositionForDisplayPosition(int displayPos) const;
+    int lineIndexForDisplayPosition(int displayPos) const;
+    float xForDisplayPositionOnLine(int displayPos, int lineIndex) const;
+    float xForDisplayPosition(int displayPos) const;
+    int charPositionFromLocal(float localX, float localY) const;
     int charPositionFromLocalX(float localX) const;
+    void ensureCursorVisible();
+    void setSelectionAndCursor(int anchor, int active);
+    bool handleKeyDown(unsigned int key, bool shift, bool ctrl);
+    void selectAll();
+    void scrollBy(double pixels);
+    void updateDragAutoScroll(int mouseX, int mouseY);
+    void processPendingNativeEvents();
+    void insertInputText(const std::wstring& text);
+    void deleteBackward();
+    void deleteForward();
+    void syncNativeEditState();
+    void beginIMEComposition();
+    void clearIMEComposition();
+    void clearFocusState();
+    void copySelectedTextToClipboard() const;
 
     /// 在拖动选择期间，更新 dragEnd / cursor_pos / scroll / sys_edit 选区到给定鼠标位置
-    void applyDragMove(int mouseX);
+    void applyDragMove(int mouseX, int mouseY);
 
 public:
     /**
@@ -592,7 +640,7 @@ public:
      * @param h 高度
      * @param r 圆角半径
      */
-    InputBox(double cx, double cy, double w, double h, double r);
+    InputBox(double cx, double cy, double w, double h, double r, bool multiline = false);
 
     /**
      * @brief 析构函数
@@ -656,6 +704,12 @@ public:
     void setTextHeight(double height);
     double getTextHeight();
 
+    /** @brief 获取输入框是否为多行模式 */
+    bool isMultiline() const { return multiline; }
+
+    /** @brief 处理隐藏原生编辑框转发的键盘导航 */
+    bool handleNativeKeyDown(unsigned int key, bool shift = false, bool ctrl = false);
+
     void moveCursor(int pos);
 
     void setIMECompositionString(const std::wstring& str);
@@ -698,6 +752,7 @@ public:
     InputBoxBuilder& setMaxLength(int maxLen);
     InputBoxBuilder& setTextHeight(double height);
     InputBoxBuilder& setScale(double s);
+    InputBoxBuilder& setMultiline(bool multiline = true);
     InputBox* build();
 
 private:
@@ -709,6 +764,7 @@ private:
     int maxLength = 100;
     double scale = 1.0;
     double text_height = 23;
+    bool multiline = false;
 };
 
 
