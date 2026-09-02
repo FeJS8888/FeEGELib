@@ -11,6 +11,7 @@
 #include "Base.h"
 
 #include <memory>
+#include <atomic>
 
 using namespace FeEGE;
 
@@ -563,6 +564,15 @@ protected:
         std::wstring replacement;
     };
 
+    struct PendingVerticalNavigation {
+        int direction = 0;
+        bool extendSelection = false;
+        int selectionStart = 0;
+        int selectionEnd = 0;
+        unsigned long long generation = 0;
+        unsigned long long sequence = 0;
+    };
+
     double radius;            ///< 圆角半径
     double origin_width, origin_height;
     double origin_radius;
@@ -630,10 +640,17 @@ protected:
     int dragBegin = 0, dragEnd = 0;
     int dragSide = 0; // -1=左出界，1=右出界，0=无
     // Native EDIT is deliberately hidden and must not decide a multiline
-    // vertical move from its own client geometry.  Keep the desired visual X
-    // here so consecutive self-drawn Up/Down moves retain one column.
+    // vertical move from its own client geometry. Commands cross to the render
+    // thread before layout measurement; desired X preserves the visual column.
     float verticalNavigationX = 0.0f;
     bool verticalNavigationXValid = false;
+    int caretVisualLineHint = -1;
+    unsigned long long caretVisualLineLayoutVersion = 0;
+    std::vector<PendingVerticalNavigation> pendingVerticalNavigation;
+    mutable std::mutex pendingVerticalNavigationMutex;
+    std::atomic_ullong verticalNavigationGeneration{1};
+    unsigned long long nextVerticalNavigationSequence = 1;
+    std::atomic_ullong lastProcessedVerticalNavigationSequence{0};
     int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
     int lastDragMouseX = -1; // 上次 applyDragMove 处理的屏幕 X，用于跳过内容变化后的重复合成 MOUSEMOVE
     double lastDragTick = 0.0;
@@ -683,9 +700,13 @@ protected:
     int displayPositionForContentPosition(int contentPos) const;
     int contentPositionForDisplayPosition(int displayPos) const;
     int lineIndexForDisplayPosition(int displayPos) const;
+    int lineIndexForCaretDisplayPosition(int displayPos) const;
+    bool caretVisualLineHintIsValid(int displayPos) const;
+    void clearCaretVisualLineHint();
+    void setCaretVisualLineHint(int lineIndex, int displayPos);
     float xForDisplayPositionOnLine(int displayPos, int lineIndex) const;
     float xForDisplayPosition(int displayPos) const;
-    int charPositionFromLocal(float localX, float localY) const;
+    int charPositionFromLocal(float localX, float localY, int* visualLine = nullptr) const;
 
     /// 根据鼠标相对输入框左边缘的 localX 坐标，查找最近字符索引
     int charPositionFromLocalX(float localX) const;
@@ -701,7 +722,11 @@ protected:
     void syncNativeEditState();
     void flushPendingNativeEditState();
     void selectAllFromNativeEdit();
-    bool moveCursorVerticallyFromNativeEdit(int direction, bool extendSelection);
+    bool tryMoveCursorVertically(int direction, bool extendSelection);
+    void invalidatePendingVerticalNavigation();
+    bool hasPendingVerticalNavigation() const;
+    void processPendingVerticalNavigation();
+    bool enqueueVerticalNavigationFromNativeEdit(int direction, bool extendSelection);
     bool canApplyNativeTextPatches(int selectionStart, int selectionEnd) const;
     void applyNativeTextPatches();
     void applyNativeTextChange(const std::wstring& nativeText, int oldStart, int oldEnd,

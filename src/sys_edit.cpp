@@ -167,13 +167,11 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 				return lr;
 			}
 
-			// The hidden EDIT has a 0x0 client area, so its built-in Up/Down
-			// navigation cannot describe the visual rows drawn by InputBox.  Let
-			// InputBox calculate the adjacent cached visual line, then write the
-			// resulting anchor/caret back through EM_SETSEL.  IME owns arrows while
-			// composing, and Ctrl/Alt variants retain the native command meaning.
+			// The hidden EDIT cannot describe InputBox's visual rows. Queue the
+			// command here; layout and GDI+ measurement run on the render thread.
+			// IME owns arrows while composing, and Ctrl/Alt retain native meaning.
 			if((wParam == VK_UP || wParam == VK_DOWN) && !ctrl && !alt && !p->haveIMEString() &&
-			   p->moveCursorVerticallyFromNativeEdit(wParam == VK_UP ? -1 : 1, shift)) {
+			   p->enqueueVerticalNavigationFromNativeEdit(wParam == VK_UP ? -1 : 1, shift)) {
 				return 0;
 			}
 

@@ -1429,6 +1429,8 @@ void InputBox::invalidateTextLayout() {
     stableTextLayoutSuffixStart = -1;
     textLayoutComplete = false;
     textLayoutBuildCursor = 0;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
     ++textLayoutVersion;
     if(textLayoutVersion == 0) textLayoutVersion = 1;
 }
@@ -2125,6 +2127,35 @@ int InputBox::lineIndexForDisplayPosition(int displayPos) const {
     return (int)(nextLine - textLines.begin() - 1);
 }
 
+bool InputBox::caretVisualLineHintIsValid(int displayPos) const {
+    if(caretVisualLineHint < 0 || caretVisualLineHint >= (int)textLines.size() ||
+       caretVisualLineLayoutVersion != builtTextLayoutVersion) {
+        return false;
+    }
+    const TextLineLayout& line = textLines[caretVisualLineHint];
+    return displayPos >= line.start && displayPos <= line.end;
+}
+
+int InputBox::lineIndexForCaretDisplayPosition(int displayPos) const {
+    return caretVisualLineHintIsValid(displayPos)
+        ? caretVisualLineHint : lineIndexForDisplayPosition(displayPos);
+}
+
+void InputBox::clearCaretVisualLineHint() {
+    caretVisualLineHint = -1;
+    caretVisualLineLayoutVersion = 0;
+}
+
+void InputBox::setCaretVisualLineHint(int lineIndex, int displayPos) {
+    if(lineIndex < 0 || lineIndex >= (int)textLines.size() ||
+       displayPos < textLines[lineIndex].start || displayPos > textLines[lineIndex].end) {
+        clearCaretVisualLineHint();
+        return;
+    }
+    caretVisualLineHint = lineIndex;
+    caretVisualLineLayoutVersion = builtTextLayoutVersion;
+}
+
 float InputBox::xForDisplayPositionOnLine(int displayPos, int lineIndex) const {
     if(textLines.empty()) return 0.0f;
     lineIndex = std::max(0, std::min(lineIndex, (int)textLines.size() - 1));
@@ -2141,11 +2172,12 @@ float InputBox::xForDisplayPosition(int displayPos) const {
     return xForDisplayPositionOnLine(displayPos, lineIndexForDisplayPosition(displayPos));
 }
 
-int InputBox::charPositionFromLocal(float localX, float localY) const {
+int InputBox::charPositionFromLocal(float localX, float localY, int* visualLine) const {
     if(textLines.empty()) return 0;
     const double contentY = localY - layoutPaddingY + (multiline ? scroll_offset_y : 0.0);
     int lineIndex = (int)std::floor(contentY / std::max(1.0, layoutLineHeight));
     lineIndex = std::max(0, std::min(lineIndex, (int)textLines.size() - 1));
+    if(visualLine) *visualLine = lineIndex;
     const TextLineLayout& line = textLines[lineIndex];
     float targetX = localX - (float)layoutPaddingX + (multiline ? 0.0f : scroll_offset);
     targetX = std::max(0.0f, targetX);
@@ -2184,7 +2216,7 @@ void InputBox::ensureCursorVisible() {
         cursorVisibilityDirty = true;
         return;
     }
-    const int lineIndex = lineIndexForDisplayPosition(caretDisplayPos);
+    const int lineIndex = lineIndexForCaretDisplayPosition(caretDisplayPos);
     const double caretTop = lineIndex * layoutLineHeight;
     const double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
     if(caretTop - scroll_offset_y < 0.0) scroll_offset_y = caretTop;
@@ -2225,6 +2257,8 @@ void InputBox::selectAllFromNativeEdit() {
     dragEnd = length;
     cursor_pos = length;
     verticalNavigationXValid = false;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
     cursorVisibilityDirty = true;
     inv.movecursor(0, length);
     reflushCursorTick();
@@ -2232,43 +2266,38 @@ void InputBox::selectAllFromNativeEdit() {
     if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
 }
 
-bool InputBox::moveCursorVerticallyFromNativeEdit(int direction, bool extendSelection) {
-    if(!multiline || !inv.m_hwnd || (direction != -1 && direction != 1)) return false;
-
-    // A pending typed/deleted character changes the visual-line table.  Flush
-    // it synchronously here rather than navigate using a stale table.
-    flushPendingNativeEditState();
-    cancelDrag();
-    ensureTextLayout();
+bool InputBox::tryMoveCursorVertically(int direction, bool extendSelection) {
     if(textLines.empty()) return true;
 
-    DWORD rawStart = 0;
-    DWORD rawEnd = 0;
-    ::SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&rawStart, (LPARAM)&rawEnd);
     const int length = contentLength();
-    int selectionStart = std::max(0, std::min((int)rawStart, length));
-    int selectionEnd = std::max(0, std::min((int)rawEnd, length));
+    const int selectionStart = std::max(0, std::min(std::min(dragBegin, dragEnd), length));
+    const int selectionEnd = std::max(0, std::min(std::max(dragBegin, dragEnd), length));
 
     // Match EDIT's non-Shift behavior first: an existing range collapses to
     // its visual leading/trailing end.  Shift keeps the native anchor.
-    int anchor = selectionStart;
-    int caret = selectionEnd;
+    int anchor = std::max(0, std::min(dragBegin, length));
+    int caret = std::max(0, std::min(cursor_pos, length));
     if(!extendSelection && selectionStart != selectionEnd) {
         caret = direction < 0 ? std::min(selectionStart, selectionEnd)
                               : std::max(selectionStart, selectionEnd);
         anchor = caret;
+        clearCaretVisualLineHint();
     }
     else if(extendSelection) {
-        // EM_GETSEL returns the anchor first for selections created through
-        // EM_SETSEL, which is also how this InputBox owns its selection.
-        anchor = selectionStart;
-        caret = selectionEnd;
+        caret = std::max(0, std::min(dragEnd, length));
     }
 
     const int displayCaret = displayPositionForContentPosition(caret);
-    int sourceLine = lineIndexForDisplayPosition(displayCaret);
+    const bool haveLineHint = caretVisualLineHintIsValid(displayCaret);
+    // At the progressive build cursor the same logical position can also be
+    // the start of the next, not-yet-built visual line. Do not guess.
+    if(!textLayoutComplete && !haveLineHint && displayCaret >= textLayoutBuildCursor) {
+        return false;
+    }
+    int sourceLine = lineIndexForCaretDisplayPosition(displayCaret);
     sourceLine = std::max(0, std::min(sourceLine, (int)textLines.size() - 1));
     const int targetLine = sourceLine + direction;
+    if(targetLine >= (int)textLines.size() && !textLayoutComplete) return false;
     if(targetLine < 0 || targetLine >= (int)textLines.size()) {
         // Even at the document boundary, collapse a native selection in the
         // same way the visible editor does.  This prevents later WM_CHAR from
@@ -2277,7 +2306,6 @@ bool InputBox::moveCursorVerticallyFromNativeEdit(int direction, bool extendSele
         dragEnd = caret;
         cursor_pos = caret;
         inv.movecursor(anchor, caret);
-        verticalNavigationXValid = false;
         cursorVisibilityDirty = true;
         ensureCursorVisible();
         needRedraw = true;
@@ -2307,12 +2335,90 @@ bool InputBox::moveCursorVerticallyFromNativeEdit(int direction, bool extendSele
     dragBegin = anchor;
     dragEnd = newCaret;
     cursor_pos = newCaret;
+    setCaretVisualLineHint(targetLine, bestDisplayPosition);
     cursorVisibilityDirty = true;
     inv.movecursor(anchor, newCaret);
     ensureCursorVisible();
     reflushCursorTick();
     needRedraw = true;
     if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+    return true;
+}
+
+void InputBox::processPendingVerticalNavigation() {
+    std::vector<PendingVerticalNavigation> moves;
+    {
+        std::lock_guard<std::mutex> lock(pendingVerticalNavigationMutex);
+        moves.swap(pendingVerticalNavigation);
+    }
+
+    constexpr size_t maximumMovesPerFrame = 32;
+    size_t processed = 0;
+    while(processed < moves.size() && processed < maximumMovesPerFrame) {
+        const PendingVerticalNavigation move = moves[processed];
+        if(move.generation != verticalNavigationGeneration.load(std::memory_order_acquire)) {
+            ++processed;
+            continue;
+        }
+
+        if(lastProcessedVerticalNavigationSequence.load(std::memory_order_acquire) == 0) {
+            const int length = contentLength();
+            const int selectionStart = std::max(0, std::min(move.selectionStart, length));
+            const int selectionEnd = std::max(selectionStart, std::min(move.selectionEnd, length));
+            if(selectionStart == selectionEnd) {
+                dragBegin = dragEnd = cursor_pos = selectionStart;
+            }
+            else if(std::min(dragBegin, dragEnd) != selectionStart ||
+                    std::max(dragBegin, dragEnd) != selectionEnd) {
+                dragBegin = selectionStart;
+                dragEnd = cursor_pos = selectionEnd;
+                clearCaretVisualLineHint();
+            }
+        }
+
+        if(!tryMoveCursorVertically(move.direction, move.extendSelection)) break;
+        lastProcessedVerticalNavigationSequence.store(move.sequence, std::memory_order_release);
+        ++processed;
+    }
+
+    if(processed < moves.size()) {
+        std::lock_guard<std::mutex> lock(pendingVerticalNavigationMutex);
+        pendingVerticalNavigation.insert(pendingVerticalNavigation.begin(),
+            moves.begin() + processed, moves.end());
+    }
+    if(hasPendingVerticalNavigation()) needRedraw = true;
+}
+
+void InputBox::invalidatePendingVerticalNavigation() {
+    std::lock_guard<std::mutex> lock(pendingVerticalNavigationMutex);
+    pendingVerticalNavigation.clear();
+    verticalNavigationGeneration.fetch_add(1, std::memory_order_acq_rel);
+    nextVerticalNavigationSequence = 1;
+    lastProcessedVerticalNavigationSequence.store(0, std::memory_order_release);
+}
+
+bool InputBox::hasPendingVerticalNavigation() const {
+    std::lock_guard<std::mutex> lock(pendingVerticalNavigationMutex);
+    return !pendingVerticalNavigation.empty();
+}
+
+bool InputBox::enqueueVerticalNavigationFromNativeEdit(int direction, bool extendSelection) {
+    if(!multiline || !inv.m_hwnd || (direction != -1 && direction != 1)) return false;
+
+    DWORD rawStart = 0;
+    DWORD rawEnd = 0;
+    ::SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&rawStart, (LPARAM)&rawEnd);
+    {
+        std::lock_guard<std::mutex> lock(pendingVerticalNavigationMutex);
+        pendingVerticalNavigation.push_back({
+            direction,
+            extendSelection,
+            (int)std::min<DWORD>(rawStart, INT_MAX),
+            (int)std::min<DWORD>(rawEnd, INT_MAX),
+            verticalNavigationGeneration.load(std::memory_order_acquire),
+            nextVerticalNavigationSequence++
+        });
+    }
     return true;
 }
 
@@ -2412,6 +2518,8 @@ void InputBox::applyNativeTextChange(const std::wstring& nativeText, int oldStar
     dragBegin = std::max(0, std::min(dragBegin, length));
     dragEnd = std::max(0, std::min(dragEnd, length));
     verticalNavigationXValid = false;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
     cursorVisibilityDirty = true;
 }
 
@@ -2462,6 +2570,8 @@ void InputBox::applyNativeTextPatches() {
     }
     cursorVisibilityDirty = true;
     verticalNavigationXValid = false;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
 }
 
 void InputBox::syncNativeEditState() {
@@ -2478,6 +2588,8 @@ void InputBox::syncNativeEditState() {
 
     if(dragging) cancelDrag();
     bool stateChanged = false;
+    const int previousAnchor = dragBegin;
+    const int previousCaret = dragEnd;
 
     DWORD rawSelectionStart = 0;
     DWORD rawSelectionEnd = 0;
@@ -2574,10 +2686,35 @@ void InputBox::syncNativeEditState() {
             std::min((int)rawSelectionStart, contentLength()));
         const int newEnd = std::max(0,
             std::min((int)rawSelectionEnd, contentLength()));
-        if(dragBegin != newStart || dragEnd != newEnd || cursor_pos != newEnd) {
-            dragBegin = newStart;
-            dragEnd = newEnd;
-            if(cursor_pos != newEnd) moveCursor(newEnd);
+        int newAnchor = newStart;
+        int newCaret = newEnd;
+        if(newStart == newEnd) {
+            newAnchor = newCaret = newStart;
+        }
+        else if(previousAnchor == newStart) {
+            newAnchor = newStart;
+            newCaret = newEnd;
+        }
+        else if(previousAnchor == newEnd) {
+            newAnchor = newEnd;
+            newCaret = newStart;
+        }
+        else if(previousCaret == newStart) {
+            newAnchor = newEnd;
+            newCaret = newStart;
+        }
+        else if(previousCaret == newEnd) {
+            newAnchor = newStart;
+            newCaret = newEnd;
+        }
+        if(dragBegin != newAnchor || dragEnd != newCaret || cursor_pos != newCaret) {
+            dragBegin = newAnchor;
+            dragEnd = newCaret;
+            if(cursor_pos != newCaret) moveCursor(newCaret);
+            else {
+                clearCaretVisualLineHint();
+                invalidatePendingVerticalNavigation();
+            }
             verticalNavigationXValid = false;
             stateChanged = true;
         }
@@ -2609,7 +2746,8 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
     double width = this->width + 8;
     double height = this->height + 8;
     
-    if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged){
+    if(!on_focus && !ripples.size() && !needRedraw && !scaleChanged && !PanelScaleChanged &&
+       !hasPendingVerticalNavigation()){
         if(!BackendFlag) {
             putimage_withalpha(dst, btnLayer, left, top);
         }
@@ -2646,20 +2784,19 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
             if(now - lastDragTick >= DRAG_ADVANCE_INTERVAL) {
                 scrollBy(dragVerticalSide * layoutLineHeight * 0.75);
                 lastDragTick = now;
+                int dragLine = -1;
                 const int dragPos = charPositionFromLocal(
                     (float)(lastDragMouseX - (int)this->left),
-                    (float)(lastDragMouseY - (int)this->top));
+                    (float)(lastDragMouseY - (int)this->top), &dragLine);
                 dragEnd = dragPos;
                 if(cursor_pos != dragPos) moveCursor(dragPos);
+                setCaretVisualLineHint(dragLine, displayPositionForContentPosition(dragPos));
                 inv.movecursor(dragBegin, dragEnd);
             }
         }
-        if(on_focus && cursorVisibilityDirty) {
-            ensureCursorVisible();
-        }
-        else {
-            ensureTextLayout();
-        }
+        ensureTextLayout();
+        processPendingVerticalNavigation();
+        if(on_focus && cursorVisibilityDirty) ensureCursorVisible();
         const auto [firstVisibleLine, lastVisibleLine] = visibleTextLineRange();
 
         setbkmode(TRANSPARENT, btnLayer);
@@ -2709,8 +2846,9 @@ void InputBox::draw(PIMAGE dst, double x, double y) {
                 const int compositionStart = std::max(0, std::min(cursor_pos, contentLength()));
                 caretDisplayPos = compositionStart + std::max(0, std::min(IMECursorPos, (int)IMECompositionString.size()));
             }
-            const int caretLine = lineIndexForDisplayPosition(caretDisplayPos);
-            const double caretX = layoutPaddingX + xForDisplayPosition(caretDisplayPos);
+            const int caretLine = lineIndexForCaretDisplayPosition(caretDisplayPos);
+            const double caretX = layoutPaddingX +
+                xForDisplayPositionOnLine(caretDisplayPos, caretLine);
             const double caretY = layoutPaddingY + caretLine * layoutLineHeight - scroll_offset_y;
             const std::chrono::duration<double> elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
             const double cursor_opacity = InputBoxSinDoubleForCursor(elapsed_time.count());
@@ -2897,6 +3035,9 @@ void InputBox::deleteFocus(const mouse_msg& msg){
     lastDragTick = 0.0;
     dragBegin = 0;
     dragEnd = 0;
+    verticalNavigationXValid = false;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
     inv.killfocus();
     needRedraw = true;
     if(this->parent != nullptr){
@@ -2996,11 +3137,16 @@ bool InputBox::handleEvent(const mouse_msg& msg) {
 
         // 多行命中同时依据 X/Y；单行继续沿用原有横向命中逻辑。
         if(multiline) ensureTextLayout();
+        int clickedVisualLine = -1;
         int best_pos = multiline
-            ? charPositionFromLocal((float)localX, (float)localY)
+            ? charPositionFromLocal((float)localX, (float)localY, &clickedVisualLine)
             : charPositionFromLocalX((float)localX);
 
         moveCursor(best_pos);
+        if(multiline) {
+            verticalNavigationXValid = false;
+            setCaretVisualLineHint(clickedVisualLine, displayPositionForContentPosition(best_pos));
+        }
         cursorVisibilityDirty = true;
         if(multiline) ensureCursorVisible();
         // 开始拖动选择，锚点与光标初始相同
@@ -3219,6 +3365,8 @@ void InputBox::moveCursor(int pos){
     if(cursor_pos == pos) return;
     cursor_pos = pos;
     verticalNavigationXValid = false;
+    clearCaretVisualLineHint();
+    invalidatePendingVerticalNavigation();
     if(!IMECompositionString.empty()) invalidateTextLayout();
     cursorVisibilityDirty = true;
     needRedraw = true;
@@ -3403,10 +3551,17 @@ void InputBox::applyDragMove(int mouseX, int mouseY) {
     }
     float localX = (float)(mouseX - (int)left);
     float localY = (float)(mouseY - (int)top);
-    int best_pos = multiline ? charPositionFromLocal(localX, localY) : charPositionFromLocalX(localX);
+    int dragVisualLine = -1;
+    int best_pos = multiline
+        ? charPositionFromLocal(localX, localY, &dragVisualLine)
+        : charPositionFromLocalX(localX);
     dragEnd = best_pos;
     // 光标跟随选区末端
     if(cursor_pos != dragEnd) moveCursor(dragEnd);
+    if(multiline) {
+        verticalNavigationXValid = false;
+        setCaretVisualLineHint(dragVisualLine, displayPositionForContentPosition(dragEnd));
+    }
     // 同步选区到 sys_edit（EM_SETSEL），保证后续键盘操作在正确范围内进行
     inv.movecursor(dragBegin, dragEnd);
     // 记录是否超出输入框边界（用于自动滚动推进）
