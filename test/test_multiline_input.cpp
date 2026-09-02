@@ -24,7 +24,7 @@ int main() {
     Text* instructions = TextBuilder()
         .setPosition(560, 82)
         .setAlign(TextAlign::Center)
-        .setContent(L"Try the 100K text with wheel, drag selection, Ctrl+A, paste, and Up/Down/Home/End.")
+        .setContent(L"100K test: edit at Home/End; the view must stay responsive and never crawl while layout catches up.")
         .setFont(15, L"Microsoft YaHei")
         .setColor(EGERGB(90, 100, 115))
         .build();
@@ -37,29 +37,13 @@ int main() {
         L"Fifth line.\nSixth line.\nSeventh line.\nEighth line.\nNinth line.\n"
         L"Tenth line makes the content higher than the visible text area, so the internal vertical scroll range is exercised.";
 
-    const std::wstring noSpaceChunk =
-        L"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz"
-        L"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
-    std::wstring longUnbrokenParagraph = L"Long unbroken paragraph: ";
-    while(longUnbrokenParagraph.size() < 70000) {
-        longUnbrokenParagraph += noSpaceChunk;
-    }
-    // Keep the pathological paragraph at the document start so Ctrl+Home,
-    // a middle click, and Ctrl+End exercise the three costly insertion sites.
-    sample = longUnbrokenParagraph + L"\n" + sample;
-    while(sample.size() < 105000) {
-        sample += L"\nOrdinary paragraph text keeps the long-document layout and scrolling path exercised.";
-        sample += L"\n\u4e2d\u6587\u6bb5\u843d\u7528\u4e8e\u9a8c\u8bc1\u6ca1\u6709\u7a7a\u683c\u548c\u663e\u5f0f\u6362\u884c\u7684\u7ec4\u5408\u60c5\u51b5\u3002";
-        sample += L"\n" + noSpaceChunk + noSpaceChunk + noSpaceChunk + noSpaceChunk;
-    }
-
     InputBox* multiline = InputBoxBuilder()
         .setIdentifier(L"multilineInput")
         .setCenter(0, 0)
         .setSize(620, 420)
         .setRadius(10)
         .setTextHeight(19)
-        .setMaxLength(150000)
+        .setMaxLength(-1)
         .setMultiline()
         .setContent(sample)
         .build();

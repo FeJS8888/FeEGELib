@@ -1273,7 +1273,11 @@ InputBox::InputBox(double cx, double cy, double w, double h, double r, bool mult
     inv.create(multiline, multiline ? 0 : 2);
     inv.visible(false);
     inv.move(-1, -1);
-    inv.size(0, 0);
+    // A standard multiline EDIT with a zero-sized client area rejects
+    // WM_CHAR once its text contains a line break. Keep the hidden input/IME
+    // proxy large enough to have a valid formatting rectangle. AUTOHSCROLL
+    // prevents this small native control from owning the visible wrapping.
+    inv.size(multiline ? 64 : 0, multiline ? 64 : 0);
     inv.setmaxlen(2147483640);
     inv.setparent(this);
     inv.killfocus();
@@ -1421,6 +1425,8 @@ void InputBox::replaceContentRange(int begin, int end, const std::wstring& repla
 void InputBox::invalidateTextLayout() {
     textLayoutDirty = true;
     pendingTextLayoutChange.active = false;
+    stableTextLayoutSuffix.clear();
+    stableTextLayoutSuffixStart = -1;
     textLayoutComplete = false;
     textLayoutBuildCursor = 0;
     ++textLayoutVersion;
@@ -1571,7 +1577,19 @@ void InputBox::invalidateTextLayoutForContentChange(const std::wstring& oldText,
     pendingTextLayoutChange.newEnd = newChangedEnd;
     pendingTextLayoutChange.rebuildStart = rebuildStart;
     pendingTextLayoutChange.oldFirstLine = firstLine;
-    pendingTextLayoutChange.oldAfterLastLine = (int)textLines.size();
+    int suffixFirstLine = (int)textLines.size();
+    const bool preservesHardBreaks =
+        oldText.find_first_of(L"\r\n", (size_t)oldChangedStart) >= (size_t)oldChangedEnd &&
+        newText.find_first_of(L"\r\n", (size_t)newChangedStart) >= (size_t)newChangedEnd;
+    if(preservesHardBreaks) {
+        for(int lineIndex = firstLine; lineIndex < (int)textLines.size(); ++lineIndex) {
+            if(textLines[lineIndex].hardBreak && textLines[lineIndex].end >= oldChangedEnd) {
+                suffixFirstLine = lineIndex + 1;
+                break;
+            }
+        }
+    }
+    pendingTextLayoutChange.oldAfterLastLine = suffixFirstLine;
 }
 
 void InputBox::invalidateTextLayoutForKnownChange(int oldChangedStart, int oldChangedEnd,
@@ -1706,7 +1724,16 @@ void InputBox::invalidateTextLayoutForKnownChange(int oldChangedStart, int oldCh
     pendingTextLayoutChange.newEnd = oldChangedStart + (int)replacement.size();
     pendingTextLayoutChange.rebuildStart = rebuildStart;
     pendingTextLayoutChange.oldFirstLine = firstLine;
-    pendingTextLayoutChange.oldAfterLastLine = (int)textLines.size();
+    int suffixFirstLine = (int)textLines.size();
+    if(!hasBreak(replacement) && !rangeHasBreak(oldChangedStart, oldChangedEnd)) {
+        for(int lineIndex = firstLine; lineIndex < (int)textLines.size(); ++lineIndex) {
+            if(textLines[lineIndex].hardBreak && textLines[lineIndex].end >= oldChangedEnd) {
+                suffixFirstLine = lineIndex + 1;
+                break;
+            }
+        }
+    }
+    pendingTextLayoutChange.oldAfterLastLine = suffixFirstLine;
 }
 
 void InputBox::appendTextLines(const std::wstring& displayContent, int begin, int end,
@@ -1906,8 +1933,17 @@ void InputBox::appendNextTextLine(int& position, float availableWidth,
     }
 }
 
-void InputBox::beginProgressiveTextLayout(int firstLine, int displayStart) {
+void InputBox::beginProgressiveTextLayout(int firstLine, int displayStart,
+                                          int suffixFirstLine, int characterDelta) {
     firstLine = std::max(0, std::min(firstLine, (int)textLines.size()));
+    suffixFirstLine = std::max(firstLine, std::min(suffixFirstLine, (int)textLines.size()));
+    stableTextLayoutSuffix.assign(textLines.begin() + suffixFirstLine, textLines.end());
+    for(TextLineLayout& line : stableTextLayoutSuffix) {
+        line.start += characterDelta;
+        line.end += characterDelta;
+    }
+    stableTextLayoutSuffixStart = stableTextLayoutSuffix.empty()
+        ? -1 : stableTextLayoutSuffix.front().start;
     textLines.erase(textLines.begin() + firstLine, textLines.end());
     textLayoutBuildCursor = std::max(0, std::min(displayStart, displayTextLength()));
     textLayoutComplete = false;
@@ -1917,16 +1953,31 @@ void InputBox::continueTextLayout(float availableWidth) {
     if(textLayoutComplete) return;
 
     const int textLength = displayTextLength();
-    const double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
-    const int visibleLineCount = std::max(1,
-        (int)std::ceil(viewportHeight / std::max(1.0, layoutLineHeight)));
-    const int lineBudget = std::min(96, std::max(32, visibleLineCount + 12));
+    const auto startedAt = std::chrono::steady_clock::now();
+    constexpr auto timeBudget = std::chrono::microseconds(2000);
+    constexpr int maximumLineBudget = 96;
     int builtLines = 0;
-    while(textLayoutBuildCursor < textLength && builtLines < lineBudget) {
+    while(textLayoutBuildCursor < textLength && builtLines < maximumLineBudget) {
+        if(stableTextLayoutSuffixStart >= 0 &&
+           textLayoutBuildCursor == stableTextLayoutSuffixStart) {
+            textLines.insert(textLines.end(), stableTextLayoutSuffix.begin(),
+                stableTextLayoutSuffix.end());
+            stableTextLayoutSuffix.clear();
+            stableTextLayoutSuffixStart = -1;
+            textLayoutBuildCursor = textLength;
+            textLayoutComplete = true;
+            return;
+        }
+        if(stableTextLayoutSuffixStart >= 0 &&
+           textLayoutBuildCursor > stableTextLayoutSuffixStart) {
+            stableTextLayoutSuffix.clear();
+            stableTextLayoutSuffixStart = -1;
+        }
         const int oldCursor = textLayoutBuildCursor;
         appendNextTextLine(textLayoutBuildCursor, availableWidth, textLines);
         if(textLayoutBuildCursor <= oldCursor) break;
         ++builtLines;
+        if(std::chrono::steady_clock::now() - startedAt >= timeBudget) break;
     }
 
     if(textLayoutBuildCursor >= textLength) {
@@ -1938,6 +1989,8 @@ void InputBox::continueTextLayout(float availableWidth) {
             textLines.push_back(trailingLine);
         }
         textLayoutComplete = true;
+        stableTextLayoutSuffix.clear();
+        stableTextLayoutSuffixStart = -1;
     }
 }
 
@@ -1997,7 +2050,10 @@ void InputBox::ensureTextLayout() {
         if(pendingTextLayoutChange.active) {
             if(pendingTextLayoutChange.progressive) {
                 beginProgressiveTextLayout(pendingTextLayoutChange.oldFirstLine,
-                    pendingTextLayoutChange.rebuildStart);
+                    pendingTextLayoutChange.rebuildStart,
+                    pendingTextLayoutChange.oldAfterLastLine,
+                    (pendingTextLayoutChange.newEnd - pendingTextLayoutChange.newStart) -
+                    (pendingTextLayoutChange.oldEnd - pendingTextLayoutChange.oldStart));
                 layoutReused = true;
             }
             else {
@@ -2008,6 +2064,8 @@ void InputBox::ensureTextLayout() {
         if(!layoutReused) {
             pendingTextLayoutChange.active = false;
             textLines.clear();
+            stableTextLayoutSuffix.clear();
+            stableTextLayoutSuffixStart = -1;
             textLayoutBuildCursor = 0;
             textLayoutComplete = false;
         }
@@ -2021,8 +2079,10 @@ void InputBox::ensureTextLayout() {
     if(textLines.empty()) textLines.push_back({});
 
     const double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
-    const double maxScroll = std::max(0.0, textLines.size() * layoutLineHeight - viewportHeight);
-    scroll_offset_y = std::max(0.0, std::min(scroll_offset_y, maxScroll));
+    if(textLayoutComplete) {
+        const double maxScroll = std::max(0.0, textLines.size() * layoutLineHeight - viewportHeight);
+        scroll_offset_y = std::max(0.0, std::min(scroll_offset_y, maxScroll));
+    }
 }
 
 std::pair<int, int> InputBox::visibleTextLineRange() const {
@@ -2118,14 +2178,9 @@ void InputBox::ensureCursorVisible() {
         caretDisplayPos = compositionStart + std::max(0, std::min(IMECursorPos, (int)IMECompositionString.size()));
     }
     if(!textLayoutComplete && caretDisplayPos > textLayoutBuildCursor) {
-        // A long paragraph is still being repaired in later frames.  Keep the
-        // viewport at the materialized edge and leave the request pending;
-        // this avoids turning a distant caret move into an unbounded layout
-        // pass on the current input frame.
-        const double viewportHeight = std::max(1.0, height - 2.0 * layoutPaddingY);
-        const double maxMaterializedScroll = std::max(0.0,
-            textLines.size() * layoutLineHeight - viewportHeight);
-        scroll_offset_y = maxMaterializedScroll;
+        // Do not expose progressive layout as a scrolling animation. Keep the
+        // viewport stable until the caret's exact visual line is available,
+        // then perform the normal single visibility adjustment below.
         cursorVisibilityDirty = true;
         return;
     }
@@ -2150,6 +2205,115 @@ void InputBox::scrollBy(double pixels) {
     cursorVisibilityDirty = false;
     needRedraw = true;
     if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+void InputBox::flushPendingNativeEditState() {
+    // Keyboard messages can arrive in a short burst before the posted sync is
+    // dispatched.  Consume that state before a visual Up/Down calculation so
+    // the layout and the hidden EDIT always start from the same selection.
+    if(nativeSyncMessagePosted || nativeTextSyncPending || nativeSelectionSyncPending) {
+        syncNativeEditState();
+    }
+}
+
+void InputBox::selectAllFromNativeEdit() {
+    if(!inv.m_hwnd) return;
+
+    cancelDrag();
+    const int length = contentLength();
+    dragBegin = 0;
+    dragEnd = length;
+    cursor_pos = length;
+    verticalNavigationXValid = false;
+    cursorVisibilityDirty = true;
+    inv.movecursor(0, length);
+    reflushCursorTick();
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+}
+
+bool InputBox::moveCursorVerticallyFromNativeEdit(int direction, bool extendSelection) {
+    if(!multiline || !inv.m_hwnd || (direction != -1 && direction != 1)) return false;
+
+    // A pending typed/deleted character changes the visual-line table.  Flush
+    // it synchronously here rather than navigate using a stale table.
+    flushPendingNativeEditState();
+    cancelDrag();
+    ensureTextLayout();
+    if(textLines.empty()) return true;
+
+    DWORD rawStart = 0;
+    DWORD rawEnd = 0;
+    ::SendMessageW(inv.m_hwnd, EM_GETSEL, (WPARAM)&rawStart, (LPARAM)&rawEnd);
+    const int length = contentLength();
+    int selectionStart = std::max(0, std::min((int)rawStart, length));
+    int selectionEnd = std::max(0, std::min((int)rawEnd, length));
+
+    // Match EDIT's non-Shift behavior first: an existing range collapses to
+    // its visual leading/trailing end.  Shift keeps the native anchor.
+    int anchor = selectionStart;
+    int caret = selectionEnd;
+    if(!extendSelection && selectionStart != selectionEnd) {
+        caret = direction < 0 ? std::min(selectionStart, selectionEnd)
+                              : std::max(selectionStart, selectionEnd);
+        anchor = caret;
+    }
+    else if(extendSelection) {
+        // EM_GETSEL returns the anchor first for selections created through
+        // EM_SETSEL, which is also how this InputBox owns its selection.
+        anchor = selectionStart;
+        caret = selectionEnd;
+    }
+
+    const int displayCaret = displayPositionForContentPosition(caret);
+    int sourceLine = lineIndexForDisplayPosition(displayCaret);
+    sourceLine = std::max(0, std::min(sourceLine, (int)textLines.size() - 1));
+    const int targetLine = sourceLine + direction;
+    if(targetLine < 0 || targetLine >= (int)textLines.size()) {
+        // Even at the document boundary, collapse a native selection in the
+        // same way the visible editor does.  This prevents later WM_CHAR from
+        // replacing an unexpected hidden selection.
+        dragBegin = anchor;
+        dragEnd = caret;
+        cursor_pos = caret;
+        inv.movecursor(anchor, caret);
+        verticalNavigationXValid = false;
+        cursorVisibilityDirty = true;
+        ensureCursorVisible();
+        needRedraw = true;
+        if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+        return true;
+    }
+
+    if(!verticalNavigationXValid) {
+        verticalNavigationX = xForDisplayPositionOnLine(displayCaret, sourceLine);
+        verticalNavigationXValid = true;
+    }
+
+    const TextLineLayout& destination = textLines[targetLine];
+    int bestDisplayPosition = destination.start;
+    float bestDistance = std::numeric_limits<float>::max();
+    for(int position = destination.start; position <= destination.end; ++position) {
+        const float distance = std::fabs(
+            xForDisplayPositionOnLine(position, targetLine) - verticalNavigationX);
+        if(distance < bestDistance) {
+            bestDistance = distance;
+            bestDisplayPosition = position;
+        }
+    }
+
+    const int newCaret = contentPositionForDisplayPosition(bestDisplayPosition);
+    if(!extendSelection) anchor = newCaret;
+    dragBegin = anchor;
+    dragEnd = newCaret;
+    cursor_pos = newCaret;
+    cursorVisibilityDirty = true;
+    inv.movecursor(anchor, newCaret);
+    ensureCursorVisible();
+    reflushCursorTick();
+    needRedraw = true;
+    if(Panel* p = dynamic_cast<Panel*>(parent)) p->setDirty();
+    return true;
 }
 
 void InputBox::updateDragAutoScroll(int mouseX, int mouseY) {
@@ -2233,7 +2397,7 @@ void InputBox::requestNativeEditSync(bool textMayHaveChanged) {
 }
 
 void InputBox::applyNativeTextChange(const std::wstring& nativeText, int oldStart,
-                                     int oldEnd, int newChangedEnd, bool exactChange) {
+                                      int oldEnd, int newChangedEnd, bool exactChange) {
     const std::wstring& oldText = materializedContent();
     if(exactChange) {
         invalidateTextLayoutForContentChange(oldText, nativeText, oldStart, oldEnd,
@@ -2247,6 +2411,7 @@ void InputBox::applyNativeTextChange(const std::wstring& nativeText, int oldStar
     cursor_pos = std::max(0, std::min(cursor_pos, length));
     dragBegin = std::max(0, std::min(dragBegin, length));
     dragEnd = std::max(0, std::min(dragEnd, length));
+    verticalNavigationXValid = false;
     cursorVisibilityDirty = true;
 }
 
@@ -2296,6 +2461,7 @@ void InputBox::applyNativeTextPatches() {
         }
     }
     cursorVisibilityDirty = true;
+    verticalNavigationXValid = false;
 }
 
 void InputBox::syncNativeEditState() {
@@ -2412,6 +2578,7 @@ void InputBox::syncNativeEditState() {
             dragBegin = newStart;
             dragEnd = newEnd;
             if(cursor_pos != newEnd) moveCursor(newEnd);
+            verticalNavigationXValid = false;
             stateChanged = true;
         }
     }
@@ -3051,6 +3218,7 @@ void InputBox::moveCursor(int pos){
     pos = std::max(0, std::min(pos, contentLength()));
     if(cursor_pos == pos) return;
     cursor_pos = pos;
+    verticalNavigationXValid = false;
     if(!IMECompositionString.empty()) invalidateTextLayout();
     cursorVisibilityDirty = true;
     needRedraw = true;

@@ -81,7 +81,10 @@ public:
         msg.style            = WS_CHILD | WS_BORDER | ES_LEFT | ES_WANTRETURN;
 
         if (multiline) {
-            msg.style |= ES_MULTILINE | WS_VSCROLL;
+            // This EDIT is a hidden input/IME proxy. AUTOHSCROLL prevents it
+            // from owning visible wrapping, while AUTOVSCROLL is required for
+            // edits once hard line breaks exceed its formatting rectangle.
+            msg.style |= ES_MULTILINE | ES_AUTOHSCROLL | ES_AUTOVSCROLL;
         } else {
             msg.style |= ES_AUTOHSCROLL;
         }

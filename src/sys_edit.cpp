@@ -154,6 +154,29 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 	    case WM_KEYDOWN:{
 			InputBox* p = static_cast<InputBox*>(m_object);
 			const bool ctrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
+			const bool shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+			const bool alt = (::GetKeyState(VK_MENU) & 0x8000) != 0;
+			const bool all = ctrl && wParam == 'A';
+			if(all) {
+				// Finish a preceding coalesced edit before selecting it.  In
+				// particular, this keeps Ctrl+A immediately after a typed key from
+				// selecting the old model length and forcing a whole-document read.
+				p->flushPendingNativeEditState();
+				auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+				p->selectAllFromNativeEdit();
+				return lr;
+			}
+
+			// The hidden EDIT has a 0x0 client area, so its built-in Up/Down
+			// navigation cannot describe the visual rows drawn by InputBox.  Let
+			// InputBox calculate the adjacent cached visual line, then write the
+			// resulting anchor/caret back through EM_SETSEL.  IME owns arrows while
+			// composing, and Ctrl/Alt variants retain the native command meaning.
+			if((wParam == VK_UP || wParam == VK_DOWN) && !ctrl && !alt && !p->haveIMEString() &&
+			   p->moveCursorVerticallyFromNativeEdit(wParam == VK_UP ? -1 : 1, shift)) {
+				return 0;
+			}
+
 			const bool directTextEdit = wParam == VK_BACK || wParam == VK_DELETE ||
                 wParam == VK_RETURN || (ctrl && (wParam == 'V' || wParam == 'X'));
 			const bool undo = ctrl && wParam == 'Z';
@@ -171,6 +194,10 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			return lr;
 		}
 		case WM_CHAR:{
+			// Ctrl+A is handled above as a selection-only command.  TranslateMessage
+			// still emits U+0001 afterwards; treating that control character as an
+			// ambiguous text edit used to trigger a full 100K-document sync.
+			if(wParam == 0x01) return 0;
 			// Text commands must be forwarded before synchronization so EDIT
 			// remains the single authority for keyboard, clipboard, and undo.
 			InputBox* p = static_cast<InputBox*>(m_object);

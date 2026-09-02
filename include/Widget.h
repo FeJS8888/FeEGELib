@@ -618,6 +618,8 @@ protected:
     unsigned long long textLayoutVersion = 1;
     unsigned long long builtTextLayoutVersion = 0;
     PendingTextLayoutChange pendingTextLayoutChange;
+    std::vector<TextLineLayout> stableTextLayoutSuffix;
+    int stableTextLayoutSuffixStart = -1;
     bool textLayoutComplete = false;
     int textLayoutBuildCursor = 0;
     bool cursorVisibilityDirty = true;
@@ -627,6 +629,11 @@ protected:
     bool dragging = false;
     int dragBegin = 0, dragEnd = 0;
     int dragSide = 0; // -1=左出界，1=右出界，0=无
+    // Native EDIT is deliberately hidden and must not decide a multiline
+    // vertical move from its own client geometry.  Keep the desired visual X
+    // here so consecutive self-drawn Up/Down moves retain one column.
+    float verticalNavigationX = 0.0f;
+    bool verticalNavigationXValid = false;
     int imeStartPos = 0; // 记录 IME 组合开始时的光标位置
     int lastDragMouseX = -1; // 上次 applyDragMove 处理的屏幕 X，用于跳过内容变化后的重复合成 MOUSEMOVE
     double lastDragTick = 0.0;
@@ -662,7 +669,8 @@ protected:
         const std::wstring& replacement, bool allowLocalReplacement);
     void ensureTextLayout();
     bool applyPendingTextLayoutChange(float availableWidth);
-    void beginProgressiveTextLayout(int firstLine, int displayStart);
+    void beginProgressiveTextLayout(int firstLine, int displayStart,
+        int suffixFirstLine, int characterDelta);
     void continueTextLayout(float availableWidth);
     void appendTextLines(const std::wstring& displayContent, int begin, int end,
         bool includeTrailingLine, float availableWidth, std::vector<TextLineLayout>& lines) const;
@@ -691,6 +699,9 @@ protected:
     void noteNativeCharacter(int selectionStart, int selectionEnd, wchar_t character);
     void requestNativeEditSync(bool textMayHaveChanged);
     void syncNativeEditState();
+    void flushPendingNativeEditState();
+    void selectAllFromNativeEdit();
+    bool moveCursorVerticallyFromNativeEdit(int direction, bool extendSelection);
     bool canApplyNativeTextPatches(int selectionStart, int selectionEnd) const;
     void applyNativeTextPatches();
     void applyNativeTextChange(const std::wstring& nativeText, int oldStart, int oldEnd,
