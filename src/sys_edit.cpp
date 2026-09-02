@@ -71,6 +71,22 @@ void sys_edit::killIME(){
 }
 
 LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
+    auto currentSelection = [this]() {
+        DWORD selectionStart = 0, selectionEnd = 0;
+        ::SendMessageW(m_hwnd, EM_GETSEL, (WPARAM)&selectionStart, (LPARAM)&selectionEnd);
+        return std::pair<int, int>{(int)selectionStart, (int)selectionEnd};
+    };
+    auto rememberTextChangeSelection = [this](InputBox* input, bool exactChange) {
+        if(!input) return;
+        if(!exactChange) {
+            input->noteNativeTextChange(0, 0, false);
+            return;
+        }
+        DWORD selectionStart = 0, selectionEnd = 0;
+        ::SendMessageW(m_hwnd, EM_GETSEL, (WPARAM)&selectionStart, (LPARAM)&selectionEnd);
+        input->noteNativeTextChange((int)selectionStart, (int)selectionEnd, true);
+    };
+
     switch (message) {
 	    case WM_CTLCOLOREDIT: {
 	        HDC dc = (HDC)wParam;
@@ -112,12 +128,13 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 		case WM_IME_COMPOSITION:{
 			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
 			InputBox* p = static_cast<InputBox*>(m_object);
+			const bool hasResultString = (lParam & GCS_RESULTSTR) != 0;
 			if (lParam & GCS_COMPSTR) {
                 std::wstring compositionString = GetImeCompositionString(getHWnd(), GCS_COMPSTR);
 				p->setIMECompositionString(compositionString);
             }
 
-            if (lParam & GCS_RESULTSTR) {
+            if (hasResultString) {
                 std::wstring resultString = GetImeCompositionString(getHWnd(), GCS_RESULTSTR);
 				p->setIMECompositionString(L"");
             }
@@ -126,55 +143,109 @@ LRESULT sys_edit::onMessage(UINT message, WPARAM wParam, LPARAM lParam){
 			ImmReleaseContext(getHWnd(), hIMC);
 			p->setIMECursorPos(cursorPos);
 			p->reflushCursorTick();
+			if (hasResultString) {
+                // The result may have changed the native EDIT after its normal
+                // processing.  Coalesce that read with the normal input sync.
+                rememberTextChangeSelection(p, false);
+                p->requestNativeEditSync(true);
+            }
 			return lr;
 		}
-		case WM_KEYDOWN:{
+	    case WM_KEYDOWN:{
 			InputBox* p = static_cast<InputBox*>(m_object);
-			if (wParam == 'A' && (GetKeyState(VK_CONTROL) & 0x8000) && !p->haveIMEString()) {
-				// Ctrl+A 全选
-				int len = p->getContent().size();
-				::SendMessageW(m_hwnd, EM_SETSEL, 0, len);
+			const bool ctrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
+			const bool shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+			const bool alt = (::GetKeyState(VK_MENU) & 0x8000) != 0;
+			const bool all = ctrl && wParam == 'A';
+			if(all) {
+				// Finish a preceding coalesced edit before selecting it.  In
+				// particular, this keeps Ctrl+A immediately after a typed key from
+				// selecting the old model length and forcing a whole-document read.
+				p->flushPendingNativeEditState();
+				auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+				p->selectAllFromNativeEdit();
+				return lr;
+			}
+
+			// The hidden EDIT cannot describe InputBox's visual rows. Queue the
+			// command here; layout and GDI+ measurement run on the render thread.
+			// IME owns arrows while composing, and Ctrl/Alt retain native meaning.
+			if((wParam == VK_UP || wParam == VK_DOWN) && !ctrl && !alt && !p->haveIMEString() &&
+			   p->enqueueVerticalNavigationFromNativeEdit(wParam == VK_UP ? -1 : 1, shift)) {
 				return 0;
 			}
-			switch (wParam) {
-                case VK_LEFT: {
-					// 方向键不应继续维持鼠标拖动状态。
-					p->cancelDrag();
-					int pos = getCursorPos();
-					if(pos <= 0) break;
-					p->moveCursor(pos - 1);
-					p->reflushCursorTick();
-                    break;
-                }
-                case VK_RIGHT: {
-					// 方向键不应继续维持鼠标拖动状态。
-					p->cancelDrag();
-					int pos = getCursorPos();
-					if(pos >= p->getContent().size()) break;
-					p->moveCursor(pos + 1);
-					p->reflushCursorTick();
-                    break;
-                }
+
+			const bool directTextEdit = wParam == VK_BACK || wParam == VK_DELETE ||
+                wParam == VK_RETURN || (ctrl && (wParam == 'V' || wParam == 'X'));
+			const bool undo = ctrl && wParam == 'Z';
+			if(wParam == VK_DELETE) {
+                const auto [selectionStart, selectionEnd] = currentSelection();
+                p->noteNativeDelete(selectionStart, selectionEnd, false);
             }
-			return ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			else if(directTextEdit) rememberTextChangeSelection(p, true);
+			else if(undo) rememberTextChangeSelection(p, false);
+			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			// Some commands (Backspace/Delete/Undo shortcuts) modify text during
+			// WM_KEYDOWN, while navigation only changes the native selection.
+			const bool textModified = ::SendMessageW(m_hwnd, EM_GETMODIFY, 0, 0) != 0;
+			p->requestNativeEditSync(textModified);
+			return lr;
 		}
 		case WM_CHAR:{
-			if (wParam == 1 && (GetKeyState(VK_CONTROL) & 0x8000)) {
-				return 0;
-			}
-		}
-        case WM_PASTE:
-        case WM_CUT:
-        case WM_SETTEXT:{
-			// 先让 EDIT 处理字符输入/粘贴/剪切（包括选区替换删除），
-			// 再结束拖动状态，避免提前清空选区导致“只取消框选不删除文字”。
+			// Ctrl+A is handled above as a selection-only command.  TranslateMessage
+			// still emits U+0001 afterwards; treating that control character as an
+			// ambiguous text edit used to trigger a full 100K-document sync.
+			if(wParam == 0x01) return 0;
+			// Text commands must be forwarded before synchronization so EDIT
+			// remains the single authority for keyboard, clipboard, and undo.
+			InputBox* p = static_cast<InputBox*>(m_object);
+            const auto [selectionStart, selectionEnd] = currentSelection();
+            p->noteNativeCharacter(selectionStart, selectionEnd, (wchar_t)wParam);
 			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
-			static_cast<InputBox*>(m_object)->cancelDrag();
-			::PostMessageW(m_hwnd,WM_USER + 100 + 1,0,0);
+			p->requestNativeEditSync(true);
+			return lr;
+		}
+        case WM_CUT:
+        case WM_CLEAR:{
+            InputBox* p = static_cast<InputBox*>(m_object);
+            const auto [selectionStart, selectionEnd] = currentSelection();
+            p->noteNativeTextReplacement(selectionStart, selectionEnd, L"");
+            auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+            p->requestNativeEditSync(true);
+            return lr;
+        }
+        case EM_REPLACESEL:{
+            InputBox* p = static_cast<InputBox*>(m_object);
+            const auto [selectionStart, selectionEnd] = currentSelection();
+            const wchar_t* replacement = reinterpret_cast<const wchar_t*>(lParam);
+            p->noteNativeTextReplacement(selectionStart, selectionEnd,
+                replacement ? std::wstring(replacement) : std::wstring());
+            auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+            p->requestNativeEditSync(true);
+            return lr;
+        }
+        case WM_PASTE:{
+            // Clipboard conversion and EDIT filtering are not reliably known
+            // until after dispatch; retain the full-text fallback for this path.
+            rememberTextChangeSelection(static_cast<InputBox*>(m_object), false);
+            auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+            static_cast<InputBox*>(m_object)->requestNativeEditSync(true);
+            return lr;
+        }
+		case WM_UNDO:
+        case EM_UNDO:
+        case WM_SETTEXT:{
+			// Undo and externally assigned text do not expose a reliable local
+			// replacement range.  They retain the coalesced sync but intentionally
+			// make the self-drawn layout take its conservative fallback path.
+			rememberTextChangeSelection(static_cast<InputBox*>(m_object), false);
+			auto lr = ((LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM))m_callback)(m_hwnd, message, wParam, lParam);
+			static_cast<InputBox*>(m_object)->requestNativeEditSync(true);
 			return lr;
 		}
 		case WM_USER + 100 + 1 :{
-			updatecursor();
+			InputBox* p = static_cast<InputBox*>(m_object);
+			p->syncNativeEditState();
 			return TRUE;
 		}
 		case WM_USER + 100 + 2 :{
